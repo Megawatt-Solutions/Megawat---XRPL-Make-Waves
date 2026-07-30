@@ -357,10 +357,18 @@ export function PlayView() {
 
               {!locked && (
                 <>
-              <div className="sc-bands">
+              {/* Radio group, not a list of divs. This is the game's primary
+                  interaction and it was a <div onClick> — unreachable by
+                  keyboard, invisible to assistive tech, and with no pressed
+                  state to announce. */}
+              <div className="sc-bands" role="radiogroup" aria-label="Predicted spread band">
                 {bands.map((b) => (
-                  <div
+                  <button
+                    type="button"
                     key={b.i}
+                    role="radio"
+                    aria-checked={sel === b.i}
+                    aria-label={`${b.name}, ${b.label} euro per megawatt hour`}
                     className={`sc-band-card${sel === b.i ? " sel" : ""}`}
                     style={{ "--bc": `var(${BAND_VARS[b.i]})` } as React.CSSProperties}
                     onClick={() => setSel(b.i)}
@@ -374,7 +382,7 @@ export function PlayView() {
                         {Math.round((bandHits[b.i] / history.length) * 100)}% of last {history.length}d
                       </div>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="sc-exact-row">

@@ -1820,6 +1820,11 @@ body { overflow-x: hidden; }
   border-radius: var(--r-row);
   overflow: hidden; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border: 1px solid var(--border); margin: 18px 0; }
 .sc-band-card {
+  /* Now a real <button> — reset the UA chrome it brings with it. */
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  width: 100%;
   position: relative;
   overflow: hidden;
   border-right: 1px solid var(--border);
@@ -2349,7 +2354,7 @@ body { overflow-x: hidden; }
 /* Spreadcast â€” recent-swings helper */
 .sc-hist { display: flex; align-items: flex-end; gap: 3px; height: 96px; margin-top: 14px; }
 .sc-hist span { flex: 1; min-height: 3px; opacity: 0.85; }
-.sc-hist span:hover { opacity: 1; }
+.sc-hist span:hover, .sc-hist span:focus-visible { opacity: 1; }
 .sc-hist-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; }
 .sc-band-hint {
   font-family: var(--mono);
@@ -2361,7 +2366,7 @@ body { overflow-x: hidden; }
 
 /* Spreadcast â€” instant bar tooltips */
 .sc-bar-tip { position: relative; }
-.sc-bar-tip:hover::after {
+.sc-bar-tip:hover::after, .sc-bar-tip:focus-visible::after, .sc-bar-tip.is-open::after {
   content: attr(data-tip);
   position: absolute;
   bottom: calc(100% + 9px);
@@ -2380,7 +2385,7 @@ body { overflow-x: hidden; }
   z-index: 30;
   font-variant-numeric: tabular-nums;
 }
-.sc-bar-tip:hover::before {
+.sc-bar-tip:hover::before, .sc-bar-tip:focus-visible::before, .sc-bar-tip.is-open::before {
   content: "";
   position: absolute;
   bottom: calc(100% + 4px);
