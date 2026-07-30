@@ -1,0 +1,199 @@
+# AI development guidelines — Megawatt
+
+How to extend this product using AI coding agents without eroding what makes it credible.
+
+**Audience:** anyone (human or agent) writing code here.
+**Companion docs:** [`ui-ux-rehaul.md`](./ui-ux-rehaul.md) for the current UI/UX plan and brand token system.
+**Last updated:** 2026-07-30
+
+---
+
+## 0. Read this first
+
+Megawatt makes two claims that are easy to write and hard to earn:
+
+1. **Real batteries.** Ljubljana and Metlika are operational BESS sites. The dashboards mirror real assets.
+2. **Real market data.** Spreadcast settles against official European day-ahead prices (ENTSO-E A44), and commits predictions on-chain before the outcome exists.
+
+Every AI-assisted change either strengthens or quietly corrodes those two claims. A fabricated number, a placeholder hash, or a chart bound to invented data does more damage here than a missing feature — because the entire pitch is *"this is not vapourware."*
+
+**The one rule that matters:** never render data the system does not actually have.
+
+---
+
+## 1. Non-negotiables
+
+### 1.1 Never fabricate data that looks real
+
+Prohibited, in prod and demo paths alike:
+
+- Fake transaction hashes, merkle roots, or XRPL addresses
+- Made-up prices, spreads, yields, APYs, or capacity figures
+- Placeholder leaderboard rows presented as real players
+- A chart bound to `Math.random()` or a hardcoded array dressed as live data
+
+If a surface needs data that no endpoint returns, you have exactly three honest options:
+
+1. Don't build the surface
+2. Build a reduced version that only uses data you have
+3. Label it unmistakably as simulated — the codebase already does this (`SIMULATED-` tx prefix, `"SIMULATED FEED"` pill, `isDemo` on leaderboard rows). Follow that precedent.
+
+> **Precedent to copy:** `/api/spreadcast/wallet` returns `note: "Prototype mode: address accepted without a Xaman signature."` when XUMM keys are absent. It tells the truth about its own limitations. Do that.
+
+### 1.2 Respect the scope boundary you were given
+
+This repo has had an explicit working rule: **design/structure/UI only — no backend, no web3 connectors.** If you are given a scope like that, it binds you *and* any tool you invoke.
+
+**Consuming** an existing hook or endpoint is UI work. **Changing** one is not.
+
+- ✅ Reading `useWallet()` in a component to decide what to render
+- ✅ `fetch`ing an existing endpoint from a new presentational component
+- ✅ Changing *which value* existing UI hands to an existing endpoint
+- ❌ Editing `src/lib/wallet.tsx` so something fires on connect
+- ❌ Adding a field to an API response, or a route under `api/`
+
+**Verify after every session**, including sessions where a codemod or setup wizard ran on your behalf:
+
+```powershell
+$forbidden = @('web/src/app/api/','web/src/lib/spreadcast/','web/src/lib/wallet.tsx',
+               'web/src/lib/xrpl.ts','worker/','contracts/','operator/')
+$changed = git status --porcelain | ForEach-Object { ($_ -replace '^...','').Trim() }
+$changed | Where-Object { $f = $_; $forbidden | Where-Object { $f -like "$_*" } }
+```
+
+Empty output = clean. **This has already caught a real violation** — the PostHog setup wizard edited `wallet.tsx` unprompted. Tools do not know your scope rules.
+
+### 1.3 Never put wallet addresses into analytics as identifiers
+
+An XRPL r-address is permanent, public, and cross-linkable across every chain and service. Making it the primary key in an analytics tool binds a person's entire product behaviour to their on-chain identity, forever, and is very likely personal data under GDPR for an EU company.
+
+```js
+posthog.identify(snap.address, { ... });   // ❌ never
+posthog.identify(anonId, { via, funded }); // ✅ non-identifying properties only
+```
+
+Same applies to emails, and to `sc_session` if it is ever derived from either. See §5.
+
+---
+
+## 2. Brand and design system
+
+The brand is **canonical and external** — it is not a matter of taste, and it is not defined by the code.
+
+**Source of truth:** `https://www.megawatt.solutions/brand/` → `colors/colors.css` + `colors/tokens.json`, mirrored by the Figma Variables bundle in the Claude Design project.
+
+| Token | Value | Rule |
+|---|---|---|
+| Megawatt Green | `#42E7AA` | accent, CTAs, brand moments — **~2% of any surface** |
+| Carbon | `#030907` | near-black brand ink; the app canvas |
+| Paper | `#FFFFFF` | light surfaces, inverted marks |
+| Conduit Gray | `#737373` | secondary text, structural detail |
+| Mist | `#F5F5F5` | dividers, hovers, secondary panels |
+
+Radius scale is `6 / 10 / 16 / 999` — **there is no `0`**. Type base is 16px and body never goes below it. Eyebrows are 12px mono, weight 500, uppercase, `+0.16em`. Motion is one curve: `cubic-bezier(0.22, 1, 0.36, 1)`.
+
+**Rules for agents:**
+
+- **Never introduce a raw hex or `rgba()` in a component.** Use `var(--token)` or `color-mix(in srgb, var(--token) N%, transparent)`. The codebase was cleaned of 31 such literals; do not reintroduce them.
+- **Canvas cannot resolve CSS variables.** Chart.js, and anything else drawing to `<canvas>`, must go through `src/lib/chartTheme.ts`. This is exactly how the charts silently drifted from the palette before.
+- **The ~2% green budget is a real constraint.** If you add a saturated colour, you are spending the accent's budget. Status and band hues are deliberately held near 60% chroma.
+- **Assign radius by object role, never by section** — controls `6px`, rows `10px`, surfaces `16px`, sheets `16px 16px 0 0`, pills `999px`.
+
+---
+
+## 3. Architecture conventions worth preserving
+
+### One navigation root
+The global `TopNav` (desktop bar + mobile tab bar) is the only navigation root. Sections may add a *section bar* beneath it — see `SectionBar.tsx` — but must never introduce a second bottom bar, a second wordmark, or a second identity. That combination is what makes an app feel like two apps stapled together.
+
+### State that must not remount belongs in a layout
+`RoundProvider` lives in `src/app/spreadcast/layout.tsx` so the countdown survives navigation between the four routes. If you add polling, a timer, or a websocket, ask whether route changes should reset it. Usually not — put it in the layout.
+
+### Guard every fetch
+Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and casting that to your success type produces state that is truthy but structurally wrong — which is worse than null, because null checks pass. This exact bug white-screened `/spreadcast`.
+
+```ts
+if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
+```
+
+### Every section gets an error boundary
+`src/app/spreadcast/error.tsx` contains failures to that section, so the game cannot take the vaults half down. New sections that depend on an external service need the same.
+
+### Mobile is the target, and 360px is the test
+Not 390. Chrome budget is already ~177px of an 844px viewport. `body { overflow-x: hidden }` means overflow **clips silently** rather than scrolling — a clipped primary control gives the user no signal that anything is missing. Test with same-origin iframes; media queries resolve against an iframe's own viewport:
+
+```html
+<iframe src="/spreadcast" width="360" height="700"></iframe>
+```
+
+---
+
+## 4. Working with AI agents on this codebase
+
+### Give the agent the constraint, not just the task
+"Add a streak calendar" invites invention. "Add a streak calendar **using only fields `/api/spreadcast/round` already returns; if the data isn't there, say so and propose the honest alternative**" produces either a correct feature or a useful no.
+
+### Make it verify, not assert
+A typecheck is not verification of a visual change. Require, in order:
+
+1. `npx tsc --noEmit`
+2. `npm run build`
+3. Actually look at it — a screenshot, or a live DOM probe of computed styles
+4. The scope check in §1.2
+
+Reading computed values off the running page catches what a diff cannot — that is how `.connect-btn` was found still square after a radius pass that "looked" complete, and how the 502px-in-360px header clip was found.
+
+### Ask for the data audit first
+Before building any surface, establish what the API actually returns. Most bad AI output on this codebase traces back to assuming a field exists. `/api/spreadcast/round` is unusually rich (`mine`, `latest`, `latest.mine.{correct,points,streak}`, `boundaries`) — most Spreadcast UI needs no new endpoint at all.
+
+### Expect tools to violate your rules
+Setup wizards, codemods and `npx` installers edit whatever they want. Run the scope check after any of them. Review their diffs specifically for: files outside your scope, credentials written to tracked files, and PII sent to third parties.
+
+### Prefer a reduced honest feature over a complete dishonest one
+A multiplier ladder with real streak data beats a calendar with invented days. This will come up repeatedly.
+
+---
+
+## 5. Analytics and privacy
+
+PostHog is wired for **EU hosting** (`eu.i.posthog.com`) behind a `/ingest` reverse proxy. Keep both — EU residency matters for a German/Slovenian entity, and the proxy survives ad-blockers.
+
+**Before enabling it in production:**
+
+- [ ] **Never `identify()` with a wallet address or email.** Use PostHog's own anonymous id, or a random id you mint. Non-identifying properties (`via`, `funded`, `rlusd_trustline`) are fine.
+- [ ] **Autocapture reads the text of clicked elements** — which includes the wallet pill and the Spreadcast account panel. Mask them: `data-ph-no-capture` on address-bearing nodes, `maskAllInputs: true` for session replay.
+- [ ] **Decide on cookies.** `persistence: "memory"` is cookieless and avoids a consent banner entirely. A cookie banner in front of hackathon judges is a real cost.
+- [ ] **Never send** amounts tied to an identified user, seeds, private keys, or session secrets.
+
+Event naming: `noun_verb_past` (`wallet_connected`, `deposit_completed`, `marketplace_position_listed`). Keep property keys `snake_case`. `.posthog-events.json` is the registry — update it when you add events.
+
+---
+
+## 6. Definition of done
+
+A change is done when:
+
+- [ ] `npx tsc --noEmit` clean
+- [ ] `npm run build` clean
+- [ ] Looked at on a real page, at 360px and at desktop
+- [ ] Scope check (§1.2) empty
+- [ ] No new raw hex or `rgba()` in components
+- [ ] No fabricated data on any path
+- [ ] `res.ok` checked on every new fetch
+- [ ] Copy is specific and honest — no "Lorem", no invented statistics
+- [ ] Secrets are in `web/.env` (gitignored), and `web/.env.example` lists any new key **by name only**
+
+---
+
+## 7. Known gaps — good next candidates
+
+Recorded so future work starts informed rather than rediscovering:
+
+| Gap | Note |
+|---|---|
+| No per-day history of a user's own results | Blocks a true streak calendar. Needs a backend change |
+| No magic-link email auth | `/api/spreadcast/join` sets the session cookie instantly; don't ship a "check your inbox" screen |
+| `/api/spreadcast/wallet` accepts an r-address with no signature | Self-documented as prototype mode. Production needs a Xaman sign-in payload |
+| Wallet bind is one tap, not zero | Automatic bind on connect needs `src/lib/wallet.tsx` |
+| `web/.env.example` is incomplete | Missing `SPREADCAST_API_URL`, `SPREADCAST_API_TOKEN`, `SESSION_SECRET`, `XRPL_ANCHOR_ADDRESS`. This directly caused a wasted debugging session |
+| Brand guidelines PDF unread | `docsend.com/view/quvyymw2ctm37f5n` — may specify clear-space and spacing rules not captured here |

@@ -1889,6 +1889,107 @@ body { overflow-x: hidden; }
   }
 }
 
+/* ─── Settlement announcement ─────────────────────────────────────
+   Yesterday's result, announced once at the top of Play. Renders from
+   /round's `latest` — no extra fetch. Dismissal persists per day. */
+.sc-settle {
+  position: relative;
+  border: 1px solid var(--border-2);
+  border-left: 3px solid var(--muted);
+  border-radius: var(--r-surface);
+  background: var(--card);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  animation: popIn 0.28s var(--ease);
+}
+.sc-settle.hit {
+  border-left-color: var(--accent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 60%), var(--card);
+}
+.sc-settle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sc-settle.hit .sc-settle-head .caps { color: var(--accent); }
+.sc-settle-x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--r-full);
+  color: var(--muted);
+  cursor: pointer;
+}
+.sc-settle-x:hover { color: var(--text); background: var(--card-2); }
+.sc-settle-num {
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin-top: 6px;
+  line-height: 1.1;
+}
+.sc-settle-num small {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-left: 8px;
+}
+.sc-settle-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.sc-settle-pts { color: var(--accent); font-family: var(--mono); font-size: 12px; }
+
+/* ─── Locked status strip ─────────────────────────────────────────
+   Replaces the picker once a pick exists, so "done" reads as done.
+   Changing is still allowed until close — the API permits it. */
+.sc-locked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 4px;
+  padding: 13px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-row);
+}
+.sc-locked-chip {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.sc-locked-id { flex: 1; min-width: 0; }
+.sc-locked-band {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.sc-locked-range {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+@media (max-width: 560px) {
+  .sc-locked { gap: 10px; }
+  .sc-locked .btn { width: 100%; }
+}
+
 .sc-arch-row { cursor: pointer; }
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {

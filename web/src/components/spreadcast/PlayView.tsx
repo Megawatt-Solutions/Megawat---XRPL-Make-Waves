@@ -51,6 +51,35 @@ export function PlayView() {
       .catch(() => {});
   }, []);
 
+  // ── Settlement announcement ────────────────────────────────────────────
+  // Yesterday's result is the emotional peak of the loop, but it must not
+  // re-announce itself on every visit for the rest of the day. Default to
+  // "seen" so a returning player never gets a flash of the card before
+  // localStorage is read. NB: these hooks must sit above the early returns
+  // below — they cannot move down next to the render that uses them.
+  const [resultSeen, setResultSeen] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const latestDay = state?.latest?.day ?? null;
+  const hasMyResult = !!state?.latest?.mine;
+  useEffect(() => {
+    if (!latestDay || !hasMyResult) return;
+    try {
+      setResultSeen(localStorage.getItem(`mw.sc.seen.${latestDay}`) === "1");
+    } catch {
+      setResultSeen(false); // private mode — show it, just don't remember
+    }
+  }, [latestDay, hasMyResult]);
+  const dismissResult = () => {
+    if (latestDay) {
+      try {
+        localStorage.setItem(`mw.sc.seen.${latestDay}`, "1");
+      } catch {
+        /* non-fatal */
+      }
+    }
+    setResultSeen(true);
+  };
+
   const join = async () => {
     setBusy(true);
     setAcctMsg(null);
@@ -98,6 +127,7 @@ export function PlayView() {
     if (!res.ok) return setMsg({ kind: "err", text: data.error });
     setCommit({ hash: data.prediction.hash, signed: false });
     setMsg({ kind: "ok", text: "Prediction locked in — you can change it until close." });
+    setEditing(false); // collapse back to the status strip
     reload();
   };
 
@@ -193,6 +223,9 @@ export function PlayView() {
     : null;
   const latest = state.latest;
 
+  // A pick exists for the open round and we're not currently changing it.
+  const locked = !!state.mine && isOpen && !editing;
+
   // Identity, stated honestly. The shell knowing an address is NOT the same as
   // the game session having one bound — rendering "connected" off shell state
   // alone would claim a binding that doesn't exist. Three states only:
@@ -223,8 +256,46 @@ export function PlayView() {
     (i) => history.filter((h) => bandOfSwing(h.swing) === i).length
   );
 
+  // Announce a settled result once, above everything else. Renders entirely
+  // from /round's `latest` — no extra fetch, no new endpoint.
+  const showSettlement = !!latest?.mine && !resultSeen;
+
   return (
     <>
+      {showSettlement && latest?.mine && (
+        <div className={`sc-settle${latest.mine.correct ? " hit" : ""}`} role="status">
+          <div className="sc-settle-head">
+            <span className="caps">
+              {latest.mine.correct ? "You called it" : "Not this time"} · {latest.day}
+            </span>
+            <button className="sc-settle-x" onClick={dismissResult} aria-label="Dismiss result">
+              <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div className="sc-settle-num">
+            {latest.spread.toFixed(2)}
+            <small>€/MWh</small>
+          </div>
+          <div className="sc-settle-meta">
+            <span
+              className="sc-band-chip"
+              style={{ "--bc": `var(${BAND_VARS[latest.outcomeBand]})` } as React.CSSProperties}
+            >
+              {latest.outcomeLabel}
+            </span>
+            {latest.mine.correct ? (
+              <span className="sc-settle-pts">
+                +{latest.mine.points} pts · streak {latest.mine.streak}
+              </span>
+            ) : (
+              <span className="muted">you called {BAND_NAMES[latest.mine.band]}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="sc-play-top">
         <div>
           <h1>
@@ -257,6 +328,35 @@ export function PlayView() {
                   {(state.open as { participants: number }).participants} predictions in
                 </span>
               </div>
+
+              {/* Today's pick is in: show it as a settled status strip rather
+                  than a live picker, so "done" actually reads as done. The
+                  shipped API still allows changes until close, so the action
+                  says "Change pick" — a locked-forever screen would be a game
+                  rule we don't have. See docs/ui-ux-rehaul.md §3. */}
+              {locked && (
+                <div className="sc-locked">
+                  <span
+                    className="sc-locked-chip"
+                    style={{ background: `var(${BAND_VARS[state.mine!.band]})` }}
+                    aria-hidden="true"
+                  />
+                  <div className="sc-locked-id">
+                    <div className="sc-locked-band">{BAND_NAMES[state.mine!.band]}</div>
+                    <div className="sc-locked-range">
+                      {bands[state.mine!.band]?.label} €/MWh
+                      {state.mine!.exact != null && ` · exact ${state.mine!.exact}`}
+                    </div>
+                  </div>
+                  <span className="sc-pill ok">Locked</span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
+                    Change pick
+                  </button>
+                </div>
+              )}
+
+              {!locked && (
+                <>
               <div className="sc-bands">
                 {bands.map((b) => (
                   <div
@@ -301,6 +401,8 @@ export function PlayView() {
                 </div>
               ) : (
                 <p className="sc-notice">Join with your email in the panel below — it takes five seconds.</p>
+              )}
+                </>
               )}
               {msg && <p className={msg.kind === "err" ? "sc-err" : "sc-notice"} style={{ marginTop: 10 }}>{msg.text}</p>}
 
