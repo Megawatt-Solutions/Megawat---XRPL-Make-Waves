@@ -20,10 +20,11 @@ import {
 } from "./Icons";
 import { Flag } from "./Flag";
 
+// Operational reads green like every other live signal — see NetworkPanel.
 const STATUS_DOT: Record<Vault["status"], string> = {
   active: "var(--accent)",
   fundraising: "var(--amber)",
-  operational: "var(--blue)",
+  operational: "var(--accent)",
   coming_soon: "var(--gray)",
 };
 
@@ -125,7 +126,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
             />
           )}
           <div className="tile">
-            <div style={{ display: "flex", gap: 28 }}>
+            <div style={{ display: "flex", gap: 28, flexWrap: "wrap", minWidth: 0 }}>
               <div>
                 <div className="caps">Capacity</div>
                 <div className="tile-value sm num">{fmtEnergy(vault.spec.energyKwh)}</div>
@@ -407,7 +408,7 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
           <div className="battery-fill" style={{ height: `calc(${snap.socPct}% - 0px)` }} />
           <div className="battery-pct num">{snap.socPct.toFixed(1)}%</div>
         </div>
-        <div style={{ flex: 1, display: "grid", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>
           <Mini label="MWh charged" value={fmtNum(snap.chargedMwh, 2)} />
           <Mini label="MWh discharged" value={fmtNum(snap.dischargedMwh, 2)} />
           <Mini label="Health" value={`${snap.healthPct.toFixed(1)}%`} />
@@ -568,7 +569,7 @@ function PositionCard(props: {
           centerLabel={`${sharePct.toFixed(0)}%`}
           centerSub="Your share"
         />
-        <div style={{ flex: 1, display: "grid", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>
           <LegendItem color="var(--accent)" name="You" value={fmtMoney(deposited, "USD")} pct={sharePct} />
           <LegendItem color="rgba(255,255,255,0.18)" name="Others" value={fmtMoney(others, "USD")} pct={othersPct} />
         </div>

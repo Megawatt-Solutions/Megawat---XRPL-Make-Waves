@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/lib/wallet";
 import { TopNav } from "@/components/TopNav";
+import { Onboarding } from "@/components/Onboarding";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 // Brand loads JetBrains Mono at 400/500 only. Anything heavier would be
@@ -39,6 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders>
           <TopNav />
           {children}
+          {/* Inside AppProviders (it reads useWallet) and last in DOM/tab
+              order, so its focus trap sits at the end of the document. */}
+          <Onboarding />
         </AppProviders>
       </body>
     </html>
