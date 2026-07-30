@@ -1,4 +1,5 @@
 "use client";
+import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Vault } from "@/lib/types";
@@ -17,6 +18,7 @@ import {
   ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, CubeIcon, VerifiedIcon,
   ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon,
 } from "./Icons";
+import { Flag } from "./Flag";
 
 const STATUS_DOT: Record<Vault["status"], string> = {
   active: "var(--accent)",
@@ -60,6 +62,12 @@ export function VaultDetail({ vault }: { vault: Vault }) {
   const onClaim = () => {
     if (!connected) return connect();
     if (claimable <= 0) return;
+    posthog.capture("yield_claimed", {
+      vault_id: vault.id,
+      vault_name: vault.name,
+      amount: claimable,
+      currency: vault.currency,
+    });
     notify(`Claimed ${fmtMoney(claimable, vault.currency)} yield`, "success");
   };
 
@@ -78,7 +86,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
               <span className="dot" style={{ background: STATUS_DOT[vault.status], boxShadow: `0 0 8px ${STATUS_DOT[vault.status]}` }} />
             </div>
             <div className="muted" style={{ fontSize: 14, marginTop: 3 }}>
-              {vault.flag} {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isShowcase ? "gross" : "APY"}
+              <Flag code={vault.flag} size={13} /> {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isShowcase ? "gross" : "APY"}
             </div>
           </div>
 
@@ -160,7 +168,14 @@ export function VaultDetail({ vault }: { vault: Vault }) {
                 target={liveTarget}
                 currency={liveCurrency}
                 disabled={isComing}
-                onDeposit={() => (connected ? setShowDeposit(true) : connect())}
+                onDeposit={() => {
+                  if (connected) {
+                    posthog.capture("deposit_initiated", { vault_id: vault.id, vault_name: vault.name, vault_status: vault.status });
+                    setShowDeposit(true);
+                  } else {
+                    connect();
+                  }
+                }}
               />
             )}
 
@@ -196,7 +211,14 @@ export function VaultDetail({ vault }: { vault: Vault }) {
                 showClaim={isActive}
                 depositDisabled={isComing}
                 connected={connected}
-                onDeposit={() => (connected ? setShowDeposit(true) : connect())}
+                onDeposit={() => {
+                  if (connected) {
+                    posthog.capture("deposit_initiated", { vault_id: vault.id, vault_name: vault.name, vault_status: vault.status });
+                    setShowDeposit(true);
+                  } else {
+                    connect();
+                  }
+                }}
                 onClaim={onClaim}
               />
             )}
@@ -602,7 +624,16 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   const valid = amt > 0 && !tooMuch && !overCap && kycOk;
   const maxAmt = Math.min(rlusdBalance, remaining);
 
-  const submit = () => onMockDone(amt);
+  const submit = () => {
+    posthog.capture("deposit_completed", {
+      vault_id: vault.id,
+      vault_name: vault.name,
+      amount_rlusd: amt,
+      shares_received: amt,
+      vault_symbol: vault.symbol,
+    });
+    onMockDone(amt);
+  };
 
   return (
     <div className="overlay" onClick={onClose}>

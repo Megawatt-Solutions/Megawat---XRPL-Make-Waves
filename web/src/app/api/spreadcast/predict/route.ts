@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { submitPrediction, attachCommitTx, getUser, isRpcError } from "@/lib/spreadcast/store";
 import { sessionUserId } from "@/lib/spreadcast/session";
 import { buildCommitTx } from "@/lib/spreadcast/xrplink";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const uid = await sessionUserId();
@@ -14,6 +15,21 @@ export async function POST(req: Request) {
     if (!result.prediction) return NextResponse.json({ error: result.error ?? "Submit failed." }, { status: 400 });
     const user = await getUser(uid);
     const p = result.prediction;
+    const ph = getPostHogClient();
+    if (ph) {
+      ph.capture({
+        distinctId: uid,
+        event: "spreadcast_prediction_submitted",
+        properties: {
+          day: p.day,
+          band: p.band,
+          has_exact: p.exact !== null,
+          commit_tx_needed: result.commitTxNeeded ?? false,
+          has_wallet: !!user?.wallet,
+        },
+      });
+      await ph.flush();
+    }
     return NextResponse.json({
       prediction: { day: p.day, band: p.band, exact: p.exact, hash: p.hash },
       // Verified players sign this 1-drop payment in Xaman — the daily

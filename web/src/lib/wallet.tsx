@@ -1,6 +1,7 @@
 "use client";
 // ─────────────────────────────────────────────────────────────
 // Wallet + toast providers — XRPL mainnet.
+import posthog from "posthog-js";
 // Connect opens the XRPL connect dialog. Primary flow: Xaman (XUMM)
 // sign-in — the server creates a SignIn payload, the user scans the
 // QR (or taps the deep link on mobile) and signs in the Xaman app,
@@ -89,6 +90,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const connect = useCallback(() => setShowConnect(true), []);
 
   const disconnect = useCallback(() => {
+    posthog.capture("wallet_disconnected");
+    posthog.reset();
     localStorage.removeItem(ADDRESS_KEY);
     localStorage.removeItem(VIA_KEY);
     setConnected(false);
@@ -132,6 +135,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
       try {
         const snap = await fetchAccount(address);
         adopt(snap, via);
+        posthog.identify(snap.address, { via, funded: snap.funded });
+        posthog.capture("wallet_connected", {
+          via,
+          funded: snap.funded,
+          rlusd_trustline: snap.rlusdTrustline,
+        });
         setShowConnect(false);
         notify(
           via === "xaman"
@@ -142,6 +151,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
           "success"
         );
       } catch (e) {
+        posthog.capture("wallet_connection_failed", {
+          via,
+          error: e instanceof Error ? e.message : "unknown",
+        });
         notify(e instanceof Error ? e.message : "Connection failed.");
       } finally {
         setConnecting(false);
