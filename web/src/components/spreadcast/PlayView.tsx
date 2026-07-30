@@ -44,6 +44,7 @@ function useCountdown(target: number | null) {
 
 export function PlayView() {
   const [state, setState] = useState<RoundState | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const [exact, setExact] = useState("");
   const [email, setEmail] = useState("");
@@ -59,8 +60,22 @@ export function PlayView() {
   const [signFlow, setSignFlow] = useState<{ uuid: string; qrPng: string; deeplink: string; opened: boolean } | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/spreadcast/round", { cache: "no-store" });
-    const data = (await res.json()) as RoundState;
+    // Every other fetch in this file checks res.ok; this one didn't. When the
+    // game API is down it answers 502 with { error }, which was being cast to
+    // RoundState and stored — leaving `state` truthy but `state.open`
+    // undefined, and the render then dereferenced it and took the page down.
+    let res: Response;
+    let data: (RoundState & { error?: string }) | null = null;
+    try {
+      res = await fetch("/api/spreadcast/round", { cache: "no-store" });
+      data = (await res.json()) as RoundState & { error?: string };
+    } catch {
+      return setErr("Game API unreachable.");
+    }
+    if (!res.ok || !data || !data.open) {
+      return setErr(data?.error || "Game API unreachable.");
+    }
+    setErr(null);
     setState(data);
     if (data.mine) {
       setSel(data.mine.band);
@@ -191,6 +206,32 @@ export function PlayView() {
     setCommit({ ...commit, signed: true });
     setMsg({ kind: "ok", text: "Commit signature recorded (simulated — Xaman signing arrives with API keys)." });
   };
+
+  if (err)
+    return (
+      <div className="panel sc-panel">
+        <span className="tick tl" />
+        <span className="tick tr" />
+        <span className="tick bl" />
+        <span className="tick br" />
+        <h2>Market feed unavailable</h2>
+        <p className="sc-notice">
+          {err}
+          {" "}
+          Today&apos;s round can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+        </p>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: 14 }}
+          onClick={() => {
+            setErr(null);
+            load();
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    );
 
   if (!state) return <p className="muted">Loading the market…</p>;
 
@@ -350,8 +391,10 @@ export function PlayView() {
             <div className="panel sc-panel">
               <h2>Between rounds</h2>
               <p className="sc-notice">
-                Today&apos;s results are being tallied. Predictions for {(state.open as { nextDay: string }).nextDay}{" "}
-                open at 15:00.
+                Today&apos;s results are being tallied.{" "}
+                {(state.open as { nextDay?: string })?.nextDay
+                  ? `Predictions for ${(state.open as { nextDay: string }).nextDay} open at 15:00.`
+                  : "The next round opens at 15:00."}
               </p>
             </div>
           )}
