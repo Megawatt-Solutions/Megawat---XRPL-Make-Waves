@@ -2201,6 +2201,34 @@ body { overflow-x: hidden; }
   .pf-row > :nth-child(5) { grid-area: chev; }
 }
 
+.sc-commit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.sc-commit-why {
+  background: none;
+  border: 0;
+  /* Grow the target leftward only — a negative margin on the right edge
+     would widen the flex row past its own container. */
+  padding: 0 0 0 10px;
+  margin: -6px 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .sc-arch-row { cursor: pointer; }
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {
@@ -2683,6 +2711,159 @@ body { overflow-x: hidden; }
 .drow:active {
   filter: brightness(0.92);
 }
+
+/* ═══ Sheet primitive ═════════════════════════════════════════════
+   Bottom sheet <=980px, centred dialog >=981px. z-index 950: above
+   .nav (50) and .bottom-nav (60), below .overlay (1000) so the XRPL
+   connect dialog still lands on top, and below .toasts (2000). */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  backdrop-filter: blur(5px);
+  animation: fade 0.18s ease;
+  overscroll-behavior: contain;
+}
+.sheet-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  max-height: min(88svh, calc(100svh - 40px));
+  background: var(--sheet);
+  border: 1px solid var(--border-2);
+  border-bottom: 0;
+  border-radius: var(--r-overlay);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.55);
+  outline: none;
+  animation: obSheetIn 0.3s var(--ease);
+}
+.sheet-grab {
+  flex-shrink: 0;
+  width: 38px;
+  height: 4px;
+  margin: 10px auto 0;
+  border-radius: var(--r-full);
+  background: var(--border-2);
+}
+.sheet-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+}
+.sheet-eyebrow {
+  font-family: var(--mono);
+  font-size: var(--eyebrow-size);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+.sheet-title {
+  font-size: 20px;
+  font-weight: 660;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.sheet-x {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px 0 0;
+  background: none;
+  border: 0;
+  border-radius: var(--r-full);
+  color: var(--muted);
+  cursor: pointer;
+}
+.sheet-x:hover { color: var(--text); background: var(--card-2); }
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 18px 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.sheet-foot {
+  flex-shrink: 0;
+  padding: 12px 18px max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--sheet);
+}
+@media (min-width: 981px) {
+  .sheet-scrim { align-items: center; padding: 24px; }
+  .sheet-panel {
+    max-width: 540px;
+    max-height: min(720px, calc(100vh - 48px));
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-surface);
+    animation: popIn 0.22s var(--ease);
+  }
+  .sheet-grab { display: none; }
+  .sheet-head { padding: 20px 22px 12px; }
+  .sheet-body { padding: 0 22px 20px; }
+  .sheet-foot { padding: 14px 22px 18px; }
+}
+@media (max-width: 359px) {
+  .sheet-head, .sheet-body, .sheet-foot { padding-left: 14px; padding-right: 14px; }
+}
+
+/* ─── Provably-fair explainer ─────────────────────────────────────
+   The commit hash used to be dumped raw in a dashed box. It is the
+   product's strongest credibility claim, so it gets an explanation
+   with the real values in it rather than a hex string on its own. */
+.pf-steps { display: grid; gap: 0; margin: 4px 0 18px; counter-reset: pf; }
+.pf-step {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--border);
+}
+.pf-step:first-child { border-top: 0; padding-top: 4px; }
+.pf-step::before {
+  counter-increment: pf;
+  content: counter(pf);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.pf-step-title { color: var(--text); font-weight: 600; font-size: 15px; }
+.pf-step-body { font-size: 14px; margin-top: 2px; }
+.pf-value {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+.pf-value.pending { color: var(--muted); font-style: italic; word-break: normal; }
 
 /* ═══ Onboarding overlay ══════════════════════════════════════════
    Bottom sheet <=980px, centred dialog >=981px — the same number that

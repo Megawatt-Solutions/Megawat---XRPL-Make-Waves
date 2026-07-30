@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@/lib/wallet";
 import { fmtAddress } from "@/lib/format";
 import { useRound } from "./RoundContext";
+import { Sheet } from "../Sheet";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -62,6 +63,7 @@ export function PlayView() {
   // Chart readouts — the touch-reachable replacement for hover tooltips.
   const [tip, setTip] = useState<string | null>(null);
   const [hourTip, setHourTip] = useState<string | null>(null);
+  const [showFair, setShowFair] = useState(false);
   const latestDay = state?.latest?.day ?? null;
   const hasMyResult = !!state?.latest?.mine;
   useEffect(() => {
@@ -283,8 +285,88 @@ export function PlayView() {
   // from /round's `latest` — no extra fetch, no new endpoint.
   const showSettlement = !!latest?.mine && !resultSeen;
 
+  const realTx = commit?.txHash && !commit.txHash.startsWith("SIMULATED-") ? commit.txHash : null;
+
   return (
     <>
+      {/* The credibility argument, explained with the player's own values
+          rather than left as a hex string in a dashed box. */}
+      <Sheet
+        open={showFair}
+        onClose={() => setShowFair(false)}
+        eyebrow="Provably fair"
+        title="How you know we can't move the goalposts"
+      >
+        <p style={{ marginBottom: 4 }}>
+          Spreadcast never decides who wins. The result comes from the official European day-ahead auction, and your
+          pick is sealed before that auction runs.
+        </p>
+        <div className="pf-steps">
+          <div className="pf-step">
+            <div>
+              <div className="pf-step-title">You pick a band</div>
+              <div className="pf-step-body">
+                Before 11:45 Ljubljana time — hours before the auction that decides tomorrow&apos;s prices.
+              </div>
+            </div>
+          </div>
+          <div className="pf-step">
+            <div>
+              <div className="pf-step-title">Your pick is fingerprinted</div>
+              <div className="pf-step-body">
+                We hash your band and a secret salt with SHA-256. The hash proves what you chose without revealing it,
+                so nobody — including us — can change it afterwards.
+                {commit && <span className="pf-value">{commit.hash}</span>}
+              </div>
+            </div>
+          </div>
+          <div className="pf-step">
+            <div>
+              <div className="pf-step-title">The fingerprint goes on XRPL</div>
+              <div className="pf-step-body">
+                {realTx ? (
+                  <>
+                    Written to the public ledger, timestamped and immutable.
+                    <a
+                      className="pf-value"
+                      href={`https://livenet.xrpl.org/transactions/${realTx}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      {realTx} ↗
+                    </a>
+                  </>
+                ) : state.user?.verified ? (
+                  <>
+                    Verified players sign a 1-drop payment carrying the hash, so the timestamp is the ledger&apos;s, not
+                    ours.
+                    <span className="pf-value pending">Not signed for this round yet.</span>
+                  </>
+                ) : (
+                  <>
+                    Email-only players are covered by a weekly Merkle anchor instead — one root covering every
+                    prediction that week, written to XRPL. Link a wallet to get your own per-round transaction.
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="pf-step">
+            <div>
+              <div className="pf-step-title">After settlement, everything is revealed</div>
+              <div className="pf-step-body">
+                The salt is published under Results, so anyone can re-hash your pick and check it matches the
+                fingerprint that was on-chain before the prices existed.
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--muted)" }}>
+          Prices come from the ENTSO-E transparency platform — the same published data the market settles on.
+        </p>
+      </Sheet>
+
       {showSettlement && latest?.mine && (
         <div className={`sc-settle${latest.mine.correct ? " hit" : ""}`} role="status">
           <div className="sc-settle-head">
@@ -439,8 +521,12 @@ export function PlayView() {
 
               {commit && state.user && (
                 <div className="sc-commit-box">
-                  PREDICTION FINGERPRINT (sha256 · locked before results exist · revealed after)
-                  <br />
+                  <div className="sc-commit-head">
+                    <span>PREDICTION FINGERPRINT · SHA-256</span>
+                    <button type="button" className="sc-commit-why" onClick={() => setShowFair(true)}>
+                      Why this matters
+                    </button>
+                  </div>
                   {commit.hash}
                   {state.user.verified && (
                     <div style={{ marginTop: 8 }}>
