@@ -481,6 +481,28 @@ Why it matters: if the worker hiccups mid-demo, the game doesn't degrade — it 
 
 ---
 
+## 7c. Narrow-viewport results (tested 2026-07-30)
+
+Chrome's `resize_window` refused (the window sits at `screenX: 3936` on a 1024-wide display, so any shrink fails the "50% on screen" rule) and Playwright hung. Tested instead with **same-origin iframes at 360 and 390** — media queries resolve against an iframe's own viewport, so these are real breakpoints, not a simulation.
+
+**Two findings.**
+
+**1. The header was clipped at phone width — now fixed.** `.nav` laid out to **502px of content inside a 360px viewport**. It didn't scroll, because `body { overflow-x: hidden }` clipped it — so the wallet pill silently lost its right edge, which is worse than an overflow you can see. Fixed by shedding optional parts as width drops, so the payload (the address) is never what disappears:
+
+| Width | What goes |
+|---|---|
+| ≤980px | nav padding 26→14px, gap 30→12px |
+| ≤560px | `MAINNET` tag and wallet avatar hidden; pill and CTA padding tightened |
+| ≤380px | brand wordmark drops to the symbol alone |
+
+Result: `502px → 360px` at 360, `→ 375px` at 390. Verified in both header states (connected pill *and* `CONNECT WALLET`).
+
+**2. `.sc-tabs` overflows at 360 — confirmed, left alone deliberately.** `scrollWidth 364` vs `clientWidth 313`; "HOW IT WORKS" is cut and a scrollbar appears. This is exactly the defect §1 predicted. **Phase 2 deletes this element**, so it is not worth styling around — but it is visible today, so don't demo `/spreadcast` at phone width until Phase 2 lands.
+
+**Also confirmed correct:** `.page` padding-bottom resolves to 96px against a 75px measured bottom nav (so `--nav-h-safe` is right), `.nav-links` correctly hidden, no page-level horizontal overflow on either page. The `globe-pin` overflow the probe reported is benign — a `nowrap` tooltip at `opacity: 0` inside a 20px anchor.
+
+---
+
 ## 8. Open questions
 
 - **[OPEN]** Surface ladder hexes (§3.5) — derived, not eyeballed on hardware.

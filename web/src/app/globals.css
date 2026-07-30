@@ -1560,6 +1560,29 @@ body { overflow-x: hidden; }
   .chain-btn .chain-btn-name { display: none; }
 }
 
+/* ─── Header at phone widths ──────────────────────────────────────
+   The header laid out to ~502px of content inside a 360px viewport.
+   body { overflow-x: hidden } meant it was silently CLIPPED rather
+   than scrolled, so the wallet pill lost its right edge. Shed the
+   optional parts by width instead of letting the primary one vanish. */
+@media (max-width: 980px) {
+  .nav { padding: 0 14px; gap: 12px; }
+}
+@media (max-width: 560px) {
+  .nav { padding: 0 12px; gap: 10px; }
+  .nav-brand { font-size: 12.5px; letter-spacing: 0.1em; gap: 8px; }
+  /* Network tag and avatar are decoration; the address is the payload. */
+  .chain-net { display: none; }
+  .wallet-avatar { display: none; }
+  .wallet-pill { padding: 6px 10px; gap: 7px; }
+  .connect-btn { padding: 10px 12px; letter-spacing: 0.06em; }
+}
+@media (max-width: 380px) {
+  /* Last resort before the address itself would be cut. */
+  .nav-brand span, .nav-brand { font-size: 0; gap: 0; }
+  .nav-brand svg { font-size: initial; }
+}
+
 /* Responsive overrides for the chrome above â€” must stay after the base rules */
 @media (max-width: 900px) {
   .net-grid { grid-template-columns: 1fr; }
