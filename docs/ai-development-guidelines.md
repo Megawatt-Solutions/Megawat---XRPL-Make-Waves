@@ -119,6 +119,24 @@ if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…")
 ### Every section gets an error boundary
 `src/app/spreadcast/error.tsx` contains failures to that section, so the game cannot take the vaults half down. New sections that depend on an external service need the same.
 
+### There is an automated responsive audit — run it
+
+`web/public/__responsive-audit.html`. Open it against a running dev server and call:
+
+```js
+runAudit(["/", "/dashboard-v2", "/spreadcast"], [320, 360, 390, 430, 768, 1024, 1440]);
+// then, once the HUD says done:
+report();
+```
+
+It drives one iframe through every route at every width and reports document-level horizontal overflow, content clipped inside its own box, anything past the right edge, sub-36px tap targets, sub-9px text, and bottom-nav overlap. It ignores anything inside an intentional horizontal scroller, so scrollable tables don't show up as false positives.
+
+**It is currently at zero findings. Keep it there.** If you change layout, re-run it before you commit.
+
+⚠ It lives in `public/`, which is served — so it is publicly reachable in production unless gated or deleted before deploy.
+
+Sanity-check the detector occasionally by injecting a deliberately oversized element and confirming it flags; a zero that comes from a broken audit is worse than a number.
+
 ### Mobile is the target, and 360px is the test
 Not 390. Chrome budget is already ~177px of an 844px viewport. `body { overflow-x: hidden }` means overflow **clips silently** rather than scrolling — a clipped primary control gives the user no signal that anything is missing. Test with same-origin iframes; media queries resolve against an iframe's own viewport:
 

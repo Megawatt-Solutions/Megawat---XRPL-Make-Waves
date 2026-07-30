@@ -2,7 +2,7 @@
 
 **Branch:** `ui-ux-rehaul`
 **Scope:** `web/` — **design, structure, and UI/UX only.** No backend, no web3 connectors. See [§0](#0-scope-constraint--design-structure-uiux-only).
-**Status:** Phase 0 (token foundation) and Phase 1 (identity, UI-only) complete and verified. Phases 2–3 pending.
+**Status:** Phases 0–2 complete and verified. Phase 3 part 1 done (settlement announcement, locked strip). Plus a full responsive pass to **zero audit findings** across 9 routes × 7 widths, and a first-run onboarding flow — see [`onboarding.md`](./onboarding.md).
 **Last updated:** 2026-07-30
 
 ---
