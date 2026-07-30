@@ -18,27 +18,27 @@ export default function SpreadcastError({
     console.error("[spreadcast]", error);
   }, [error]);
 
+  // layout.tsx already provides <main className="page sc">, so render only the
+  // panel here — otherwise the section would nest two <main> elements.
   return (
-    <main className="page sc">
-      <div className="panel sc-panel" style={{ marginTop: 24 }}>
-        <span className="tick tl" />
-        <span className="tick tr" />
-        <span className="tick bl" />
-        <span className="tick br" />
-        <h2>Spreadcast is having a moment</h2>
-        <p className="sc-notice" style={{ marginTop: 8 }}>
-          Something went wrong loading the forecasting game. The rest of Megawatt — vaults, portfolio and
-          marketplace — is unaffected.
-        </p>
-        <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn btn-accent btn-sm" onClick={reset}>
-            Try again
-          </button>
-          <a className="btn btn-ghost btn-sm" href="/dashboard-v2">
-            Back to overview
-          </a>
-        </div>
+    <div className="panel sc-panel" style={{ marginTop: 24 }}>
+      <span className="tick tl" />
+      <span className="tick tr" />
+      <span className="tick bl" />
+      <span className="tick br" />
+      <h2>Spreadcast is having a moment</h2>
+      <p className="sc-notice" style={{ marginTop: 8 }}>
+        Something went wrong loading the forecasting game. The rest of Megawatt — vaults, portfolio and marketplace —
+        is unaffected.
+      </p>
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+        <button className="btn btn-accent btn-sm" onClick={reset}>
+          Try again
+        </button>
+        <a className="btn btn-ghost btn-sm" href="/dashboard-v2">
+          Back to overview
+        </a>
       </div>
-    </main>
+    </div>
   );
 }

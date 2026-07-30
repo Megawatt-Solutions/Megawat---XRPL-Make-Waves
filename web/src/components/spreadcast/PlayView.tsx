@@ -3,50 +3,17 @@
 // submit. Verified players additionally get the 1-drop commit transaction to
 // sign (simulated locally until Xaman credentials are configured).
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useWallet } from "@/lib/wallet";
 import { fmtAddress } from "@/lib/format";
+import { useRound } from "./RoundContext";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
-interface RoundState {
-  now: { day: string; hh: number; mm: number };
-  user: { id: string; name: string; email: string; verified: boolean; wallet: string | null } | null;
-  open:
-    | { day: string; closesAt: number; boundaries: number[]; bands: { i: number; name: string; label: string }[]; participants: number }
-    | { nextOpensAt: number; nextDay: string };
-  mine: { band: number; exact: number | null; hash: string; txHash: string | null } | null;
-  latest: {
-    day: string;
-    spread: number;
-    outcomeLabel: string;
-    outcomeBand: number;
-    source: string;
-    hourly: number[];
-    mine: { band: number; correct: boolean; points: number; streak: number } | null;
-  } | null;
-  boundaries: number[];
-}
-
-function useCountdown(target: number | null) {
-  const [left, setLeft] = useState<number | null>(null);
-  useEffect(() => {
-    if (!target) return;
-    const tick = () => setLeft(Math.max(0, target - Date.now()));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  if (left == null) return "—";
-  const s = Math.floor(left / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-}
-
 export function PlayView() {
-  const [state, setState] = useState<RoundState | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  // Round state, the open/closed flag and the countdown all come from the
+  // section layout now, so they survive navigation between the four routes.
+  const { state, err, reload, isOpen } = useRound();
   const [sel, setSel] = useState<number | null>(null);
   const [exact, setExact] = useState("");
   const [email, setEmail] = useState("");
@@ -64,45 +31,25 @@ export function PlayView() {
   // Live Xaman signing of the daily commit (QR / deep link + polling).
   const [signFlow, setSignFlow] = useState<{ uuid: string; qrPng: string; deeplink: string; opened: boolean } | null>(null);
 
-  const load = useCallback(async () => {
-    // Every other fetch in this file checks res.ok; this one didn't. When the
-    // game API is down it answers 502 with { error }, which was being cast to
-    // RoundState and stored — leaving `state` truthy but `state.open`
-    // undefined, and the render then dereferenced it and took the page down.
-    let res: Response;
-    let data: (RoundState & { error?: string }) | null = null;
-    try {
-      res = await fetch("/api/spreadcast/round", { cache: "no-store" });
-      data = (await res.json()) as RoundState & { error?: string };
-    } catch {
-      return setErr("Game API unreachable.");
-    }
-    if (!res.ok || !data || !data.open) {
-      return setErr(data?.error || "Game API unreachable.");
-    }
-    setErr(null);
-    setState(data);
-    if (data.mine) {
-      setSel(data.mine.band);
-      setExact(data.mine.exact != null ? String(data.mine.exact) : "");
-      // Simulated (demo-era) signatures don't count as signed — the real
-      // Xaman flow can replace them until close.
-      const realTx = data.mine!.txHash && !data.mine!.txHash.startsWith("SIMULATED-");
-      setCommit((c) => c ?? { hash: data.mine!.hash, signed: !!realTx, txHash: data.mine!.txHash });
-    }
-  }, []);
+  // Mirror the server's stored pick into local form state. This used to live
+  // inside reload(); the round fetch now belongs to the section layout, so react
+  // to the resulting state instead of owning the request.
   useEffect(() => {
-    load();
+    if (!state?.mine) return;
+    setSel(state.mine.band);
+    setExact(state.mine.exact != null ? String(state.mine.exact) : "");
+    // Simulated (demo-era) signatures don't count as signed — the real Xaman
+    // flow can replace them until close.
+    const realTx = state.mine.txHash && !state.mine.txHash.startsWith("SIMULATED-");
+    setCommit((c) => c ?? { hash: state.mine!.hash, signed: !!realTx, txHash: state.mine!.txHash });
+  }, [state]);
+
+  useEffect(() => {
     fetch("/api/spreadcast/history", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setHistory(Array.isArray(d.days) ? d.days : []))
       .catch(() => {});
-  }, [load]);
-
-  const isOpen = state?.open && "day" in state.open;
-  const closesAt = isOpen ? (state!.open as { closesAt: number }).closesAt : null;
-  const opensAt = !isOpen && state?.open ? (state.open as { nextOpensAt: number }).nextOpensAt : null;
-  const countdown = useCountdown(isOpen ? closesAt : opensAt);
+  }, []);
 
   const join = async () => {
     setBusy(true);
@@ -115,7 +62,7 @@ export function PlayView() {
     const data = await res.json();
     setBusy(false);
     if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    load();
+    reload();
   };
 
   // Bind the address the shell already proved to this Spreadcast session.
@@ -134,7 +81,7 @@ export function PlayView() {
     setBusy(false);
     if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
     setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked — you're verified." });
-    load();
+    reload();
   };
 
   const submit = async () => {
@@ -151,7 +98,7 @@ export function PlayView() {
     if (!res.ok) return setMsg({ kind: "err", text: data.error });
     setCommit({ hash: data.prediction.hash, signed: false });
     setMsg({ kind: "ok", text: "Prediction locked in — you can change it until close." });
-    load();
+    reload();
   };
 
   // Real Xaman signing: server wraps the 1-drop commit Payment (anchor
@@ -232,10 +179,7 @@ export function PlayView() {
         <button
           className="btn btn-ghost btn-sm"
           style={{ marginTop: 14 }}
-          onClick={() => {
-            setErr(null);
-            load();
-          }}
+          onClick={reload}
         >
           Try again
         </button>
@@ -292,10 +236,11 @@ export function PlayView() {
             play, every day.
           </p>
         </div>
-        <div className="sc-countdown">
-          {countdown}
-          <small>{isOpen ? "UNTIL CLOSE · 11:45 CET" : "NEXT ROUND OPENS · 15:00 CET"}</small>
-        </div>
+        {/* The countdown lives in the section bar now — it's sticky, so it is
+            on screen whenever this would have been, and it keeps ticking
+            across tab changes. A second larger copy directly beneath it was
+            pure duplication, and cost vertical space we don't have on a
+            phone. See docs/ui-ux-rehaul.md §2.1. */}
       </div>
 
       <div className="sc-play-grid">
@@ -345,12 +290,17 @@ export function PlayView() {
                 />
                 <span className="muted" style={{ fontSize: 12 }}>€/MWh</span>
               </div>
+              {/* On mobile this docks flush against the bottom tab bar, so the
+                  CTA and the nav read as one assembly rather than a button
+                  colliding with chrome. Static on desktop. */}
               {state.user ? (
-                <button className="btn btn-accent" onClick={submit} disabled={busy || sel == null}>
-                  {state.mine ? "Update prediction" : "Lock in prediction"}
-                </button>
+                <div className="sc-cta-dock">
+                  <button className="btn btn-accent btn-block" onClick={submit} disabled={busy || sel == null}>
+                    {state.mine ? "Update prediction" : "Lock in prediction"}
+                  </button>
+                </div>
               ) : (
-                <p className="sc-notice">Join with your email in the panel on the right — it takes five seconds.</p>
+                <p className="sc-notice">Join with your email in the panel below — it takes five seconds.</p>
               )}
               {msg && <p className={msg.kind === "err" ? "sc-err" : "sc-notice"} style={{ marginTop: 10 }}>{msg.text}</p>}
 

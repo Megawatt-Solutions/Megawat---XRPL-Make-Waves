@@ -428,13 +428,24 @@ That last row is the honesty guard. Claiming a binding that doesn't exist would 
 
 **Still out of scope:** the *zero*-tap version, where `connect()` success fires the bind automatically. That needs `src/lib/wallet.tsx`. See §9.
 
-### Phase 2 — the shell
+### Phase 2 — the shell ✅ **DONE**
 
-- [ ] `src/app/spreadcast/layout.tsx` + section bar component
-- [ ] Four real routes: `/spreadcast` (play), `/board`, `/log`, `/how`
-- [ ] Delete `.sc-tabs`
-- [ ] Move Spreadcast to `LINKS` index 2; add the status dot
-- [ ] Full-width band rows; dock the CTA against the bottom nav
+- [x] `src/app/spreadcast/layout.tsx` + `SectionBar` + `RoundContext`
+- [x] Four real routes: `/spreadcast`, `/spreadcast/board`, `/spreadcast/log`, `/spreadcast/how` (build reports 23 routes, was 20)
+- [x] `.sc-tabs` deleted — markup and CSS
+- [x] Spreadcast moved to `LINKS` index 2 (centre thumb slot)
+- [x] Full-width 52px band rows below 900px; gapless 5-cell strip above
+- [x] CTA docked against the bottom nav on phones
+
+**"One clock" is real, not a figure of speech.** `RoundProvider` lives in the layout, so moving between the four routes swaps only `children` — the provider, its `/round` fetch and its 1s interval never remount. `PlayView` lost its own fetch, its own `RoundState` interface and its own `useCountdown`; it now consumes `useRound()`.
+
+**Measured at 360 / 390:** section bar 44px at `top: 58px`; tabs 196px of 336px available; whole bar `345/345` and `375/375` — fits with no overflow. Content starts at 122px (58 nav + 44 bar + 20 padding). No horizontal overflow anywhere.
+
+#### Two things found by building it
+
+**1. The doc's width worry was mis-scoped.** It predicted "four tabs + countdown + streak ≈ 310px of 358px usable." Actual: **196px** of tabs. The difference is labels — `PLAY · BOARD · LOG · HOW` instead of `HOW IT WORKS`. Short labels were worth more than the extra padding budget.
+
+**2. Removing `.sc-tabs` exposed a duplicate clock.** With the section bar showing the countdown persistently, `PlayView`'s hero `.sc-countdown` sat immediately beneath it showing the same value. Removed the in-page one — the bar's is sticky, so it's on screen whenever the hero would have been, and it reclaims vertical space on the phone. `.sc-countdown` CSS deleted as orphaned.
 
 **[VERIFIED]** `src/app/layout.tsx` is currently the **only** layout in the tree — no route groups, no templates. So this is purely additive; nothing existing can break from the structure itself. The four views take no props and self-fetch, so each page file is ~4 lines.
 

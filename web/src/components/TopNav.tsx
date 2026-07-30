@@ -9,12 +9,15 @@ import { BrandMark } from "./BrandMark";
 import { ChainSelect } from "./ChainSelect";
 import { GridIcon, BriefcaseIcon, StoreIcon, WalletIcon, TrendingUpIcon, BoltIcon } from "./Icons";
 
+// Spreadcast sits at index 2 — the centre thumb slot on a phone — because it
+// is the only daily-return destination here. Everything else is browsing.
+// See docs/ui-ux-rehaul.md §2.2.
 const LINKS = [
   { href: "/dashboard-v2", label: "Overview", icon: TrendingUpIcon },
   { href: "/", label: "Vaults", icon: GridIcon },
+  { href: "/spreadcast", label: "Spreadcast", icon: BoltIcon },
   { href: "/portfolio", label: "Portfolio", icon: BriefcaseIcon },
   { href: "/marketplace", label: "Marketplace", icon: StoreIcon },
-  { href: "/spreadcast", label: "Spreadcast", icon: BoltIcon },
 ];
 
 export function TopNav() {
