@@ -73,7 +73,7 @@ export function LeaderboardView() {
         </div>
       </div>
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
-        <table className="sc-table">
+        <table className="sc-table sc-t-lb">
           <thead>
             <tr>
               <th>#</th>

@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import createGlobe from "cobe";
 import { bessMarkers } from "@/lib/protocol";
 import { fmtPct, bpsToPct } from "@/lib/format";
+import { Flag } from "./Flag";
 
 const MARKERS = bessMarkers();
 
@@ -186,7 +187,7 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
                 }}
               />
               <div className="globe-tip">
-                <div className="globe-tip-name">{m.flag} {m.name}</div>
+                <div className="globe-tip-name"><Flag code={m.flag} size={13} /> {m.name}</div>
                 <div className="globe-tip-sub">{m.location} · {m.capacityMw} MW / {m.energyMwh} MWh</div>
                 <div className="globe-tip-sub">
                   <span className="globe-tip-status">{m.status.replace("_", " ")}</span> · {fmtPct(bpsToPct(m.apyBps))} APY

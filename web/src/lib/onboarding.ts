@@ -1,0 +1,169 @@
+// Onboarding configuration and persistence.
+//
+// Everything about the flow is data, so it can be turned off, re-ordered or
+// A/B'd without touching the component. See docs/onboarding.md.
+//
+// Design rationale (research-backed, 2026):
+//  - Linear "show every feature upfront" onboarding completes at ~53%;
+//    contextual/progressive completes at ~75%. So this is deliberately SHORT
+//    (4 screens) and the app itself teaches the rest in context.
+//  - Value is shown before anything is asked of the user.
+//  - The wallet step is SKIPPABLE. Forcing wallet-connect before value is the
+//    single best-documented drop-off point in web3 onboarding — you can browse
+//    every vault, read every result and play Spreadcast free without it.
+
+export const ONBOARDING_VERSION = 1;
+
+/** Master switch. Set false to disable the flow everywhere, instantly. */
+export const ONBOARDING_ENABLED = true;
+
+/**
+ * Show on desktop too?
+ * Research is mobile-centric, but this product is unusual enough (grid
+ * batteries + XRPL + a forecasting game) that a cold desktop visitor is just
+ * as lost. The flow adapts rather than duplicating: a centred dialog on
+ * desktop, a full-height sheet on phones.
+ */
+export const ONBOARDING_ON_DESKTOP = true;
+
+const KEY = `mw.onboarding.v${ONBOARDING_VERSION}`;
+
+export interface OnboardingStep {
+  id: string;
+  /** Small mono eyebrow above the title. */
+  eyebrow: string;
+  title: string;
+  body: string;
+  /** Optional supporting points — keep to three, they are scanned not read. */
+  points?: string[];
+  /** Label for the primary button. Final step's label is the completion CTA. */
+  cta: string;
+  /** Renders the wallet-connect affordance alongside the primary CTA. */
+  offersWallet?: boolean;
+  enabled?: boolean;
+}
+
+/**
+ * The flow. Each screen answers exactly one question a first-time visitor has,
+ * in the order they would ask it. Disable any step with `enabled: false`.
+ */
+export const STEPS: OnboardingStep[] = [
+  {
+    id: "what",
+    eyebrow: "What this is",
+    title: "Grid batteries, onchain",
+    body:
+      "Megawatt turns real battery storage sites into something you can hold a share of. The batteries are physical and already running — Ljubljana and Metlika are live today.",
+    points: [
+      "Batteries charge when power is cheap and sell when it's expensive",
+      "That daily price gap is the revenue",
+      "Vaults tokenise a share of it on the XRP Ledger",
+    ],
+    cta: "How it works",
+  },
+  {
+    id: "where",
+    eyebrow: "Getting around",
+    title: "Four places worth knowing",
+    body: "Everything lives under one nav. Nothing here needs a wallet to look at.",
+    points: [
+      "Vaults — every site, its capacity, and what it yields",
+      "Portfolio — your positions and claimable yield",
+      "Marketplace — trade a position before it matures",
+      "Spreadcast — the free daily game, explained next",
+    ],
+    cta: "What's Spreadcast?",
+  },
+  {
+    id: "spreadcast",
+    eyebrow: "The daily habit",
+    title: "Call tomorrow's spread",
+    body:
+      "Spreadcast asks you to predict how far apart tomorrow's highest and lowest electricity prices will be — the exact number the batteries earn on. One pick a day, free, no purchase.",
+    points: [
+      "Pick a band before 11:45 CET",
+      "It settles against official European market prices",
+      "Your pick is committed on-chain before the result exists",
+    ],
+    cta: "Nearly done",
+  },
+  {
+    id: "wallet",
+    eyebrow: "Optional",
+    title: "Connect when you're ready",
+    body:
+      "You can browse every vault, read every result and play Spreadcast for free without connecting anything. A wallet is only needed to deposit, or to join the verified leaderboard.",
+    cta: "Explore first",
+    offersWallet: true,
+  },
+];
+
+export function activeSteps(): OnboardingStep[] {
+  return STEPS.filter((s) => s.enabled !== false);
+}
+
+type State = { done: boolean; step: number };
+
+function read(): State | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as State) : null;
+  } catch {
+    return null;
+  }
+}
+
+function write(s: State) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    /* private mode — the flow just won't be remembered */
+  }
+}
+
+/** True when the user has finished or dismissed the flow. */
+export function isComplete(): boolean {
+  return read()?.done === true;
+}
+
+/** Resume point for a user who closed the tab mid-flow. */
+export function savedStep(): number {
+  return read()?.step ?? 0;
+}
+
+export function saveStep(step: number) {
+  write({ done: false, step });
+}
+
+export function complete() {
+  write({ done: true, step: activeSteps().length });
+}
+
+/** Clear progress — used by the `?onboarding=reset` escape hatch. */
+export function reset() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* no-op */
+  }
+}
+
+/**
+ * Decide whether to show the flow, including the testing overrides.
+ * `?onboarding=1` forces it open, `?onboarding=reset` clears and reopens,
+ * `?onboarding=0` suppresses it — so the flow can be demoed or skipped
+ * without clearing site data by hand.
+ */
+export function shouldShow(search: string): boolean {
+  if (!ONBOARDING_ENABLED) return false;
+  const params = new URLSearchParams(search);
+  const override = params.get("onboarding");
+  if (override === "0") return false;
+  if (override === "reset") {
+    reset();
+    return true;
+  }
+  if (override === "1") return true;
+  return !isComplete();
+}

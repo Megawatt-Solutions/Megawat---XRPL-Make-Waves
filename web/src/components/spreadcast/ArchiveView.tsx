@@ -67,7 +67,7 @@ export function ArchiveView() {
       </p>
 
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto", marginBottom: 20 }}>
-        <table className="sc-table">
+        <table className="sc-table sc-t-results">
           <thead>
             <tr>
               <th>DELIVERY DAY</th>
@@ -99,7 +99,7 @@ export function ArchiveView() {
         get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
-        <table className="sc-table">
+        <table className="sc-table sc-t-anchor">
           <thead>
             <tr>
               <th>WEEK</th>
@@ -134,7 +134,10 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
         <td className="num" style={{ fontWeight: 700 }}>{r.spread.toFixed(2)}</td>
         <td>
           <span className="sc-band-chip" style={{ "--bc": `var(${BAND_VARS[r.outcomeBand]})` } as React.CSSProperties}>
-            {r.outcomeName} · {r.outcomeLabel}
+            {r.outcomeName}
+            {/* The range is dropped on phones — it is the widest part of the
+                row and the band name already carries the meaning. */}
+            <span className="sc-chip-range"> · {r.outcomeLabel}</span>
           </span>
         </td>
         <td className="sc-mono muted" style={{ fontSize: 11 }}>{r.boundaries.join(" / ")}</td>
@@ -172,7 +175,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                   {min.toFixed(2)} / max {max.toFixed(2)} €/MWh
                 </p>
                 <div style={{ overflowX: "auto" }}>
-                  <table className="sc-table">
+                  <table className="sc-table sc-t-reveal">
                     <thead>
                       <tr>
                         <th>PLAYER</th>

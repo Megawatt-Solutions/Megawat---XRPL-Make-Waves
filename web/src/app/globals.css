@@ -866,7 +866,7 @@ button {
 @media (max-width: 1100px) {
   .detail-tiles { grid-template-columns: 1fr 1fr; }
   .detail-layout { flex-direction: column; }
-  .detail-main { grid-template-columns: 1fr; }
+  .detail-main { grid-template-columns: minmax(0, 1fr); }
   .detail-side { width: auto; }
 }
 @media (max-width: 560px) {
@@ -945,6 +945,12 @@ button {
 @media (max-width: 1000px) {
   .site-summary { grid-template-columns: 1fr; }
   .site-grid { grid-template-columns: 1fr; }
+}
+/* .site-summary collapses at 1000, but this inner 3-up never did — at 320px
+   each column got ~76px while "1,234 kWh" needs ~85px, so it clipped. */
+@media (max-width: 560px) {
+  .site-prod { grid-template-columns: 1fr; gap: 12px; text-align: left; }
+  .site-prod .caps { margin-top: 0; }
 }
 
 /* Expandable performance panel */
@@ -1189,6 +1195,9 @@ body { overflow-x: hidden; }
 /* Table */
 .v2-table { margin-top: 4px; }
 .v2-row { display: grid; align-items: center; gap: 12px; padding: 13px 10px; }
+/* Without this every fr track floors at min-content and the row refuses to
+   shrink — which is the only reason it needed a 540px min-width below. */
+.v2-row > * { min-width: 0; }
 .v2-head { padding: 14px 10px 10px; border-bottom: 1px solid var(--border); }
 .v2-group {
   background: rgba(255, 255, 255, 0.035);
@@ -1387,6 +1396,39 @@ body { overflow-x: hidden; }
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
 }
+/* Drawn flags, not emoji — Windows has no flag-emoji font, so 🇸🇮 rendered
+   as the bare letters "SI". A hairline keeps white bands (SI, RS) from
+   bleeding into the dark surface. */
+.flag {
+  flex-shrink: 0;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  display: inline-block;
+  vertical-align: -1px; /* sits on the text baseline in inline contexts */
+}
+.flag-fallback {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 2px;
+  border: 1px solid var(--border-2);
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+}
+/* Status dot now sits inline with the location it describes. */
+.site-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  margin-right: 7px;
+  vertical-align: 1px;
+  flex-shrink: 0;
+}
+
 .site-row:last-child { border-bottom: none; }
 .site-row:hover { background: rgba(255, 255, 255, 0.025); }
 .site-row .dot { flex-shrink: 0; }
@@ -1568,6 +1610,16 @@ body { overflow-x: hidden; }
 @media (max-width: 980px) {
   .nav { padding: 0 14px; gap: 12px; }
 }
+/* Tablet-landscape / small-laptop band. Above 980 the desktop nav-links are
+   shown, and at the brand eyebrow spec (12px, +0.16em) brand + 5 links +
+   chain select + wallet pill measured 1127px inside 1009px at 1024 — clipped,
+   because body is overflow-x: hidden. Tighten rather than drop anything;
+   there is room, it was just spent on tracking and padding. */
+@media (min-width: 981px) and (max-width: 1180px) {
+  .nav { padding: 0 16px; gap: 16px; }
+  .nav-link { padding: 0 9px; letter-spacing: 0.1em; }
+  .nav-brand { font-size: 12.5px; letter-spacing: 0.1em; }
+}
 @media (max-width: 560px) {
   .nav { padding: 0 12px; gap: 10px; }
   .nav-brand { font-size: 12.5px; letter-spacing: 0.1em; gap: 8px; }
@@ -1709,10 +1761,21 @@ body { overflow-x: hidden; }
 }
 
 @media (max-width: 560px) {
-  .sc-bar { padding: 0 12px; gap: 8px; }
+  .sc-bar { padding: 0 12px; gap: 6px; }
   .sc-bar-tab { padding: 0 8px; letter-spacing: 0.1em; }
   .sc-bar-status { gap: 8px; padding-left: 8px; }
 }
+/* Shed the optional half before the primary half is forced to clip — the
+   countdown is load-bearing, the streak chip is not. */
+@media (max-width: 420px) {
+  .sc-bar-streak { display: none; }
+}
+@media (max-width: 380px) {
+  .sc-bar-tab { padding: 0 6px; letter-spacing: 0.06em; }
+  .sc-bar-status { padding-left: 6px; }
+}
+/* Was a hard height, smaller than its own children. */
+.sc-bar-status { height: auto; min-height: 22px; }
 
 .sc-pill {
   border-radius: var(--r-full);
@@ -1783,7 +1846,12 @@ body { overflow-x: hidden; }
 .sc-band-range { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .sc-band-unit { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
 
-.sc-play-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+/* minmax(0, 1fr) not 1fr: a plain fr track has an automatic minimum of
+   min-content, so one unbreakable string anywhere inside (a commit hash, an
+   r-address) props the whole column open and the grid stops shrinking. */
+.sc-play-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.sc-play-grid > * { min-width: 0; }
+.sc-side-stack > * { min-width: 0; }
 .sc-side-stack { display: flex; flex-direction: column; gap: 16px; }
 
 .sc-exact-row { display: flex; gap: 10px; align-items: center; margin: 14px 0 18px; flex-wrap: wrap; }
@@ -1879,12 +1947,18 @@ body { overflow-x: hidden; }
    background, same blur, sharing its hairline — so the two read as a single
    ~130px assembly instead of a button colliding with fixed chrome. */
 .sc-cta-dock { margin-top: 4px; }
-@media (max-width: 900px) {
+/* Matches .bottom-nav's own breakpoint — the docked treatment and the tab bar
+   have to appear together, or the dock parks against nothing. */
+@media (max-width: 980px) {
   .sc-cta-dock {
     position: sticky;
-    bottom: 0;
-    margin: 4px -14px -14px;
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    /* NOT bottom: 0. The tab bar is position:fixed at bottom:0 with z-index 60,
+       so bottom:0 parked the game's primary CTA *behind* it. Dock above the
+       bar instead — --nav-h-safe already carries its height + safe area. */
+    bottom: var(--nav-h-safe);
+    /* Bleed to the panel's edges: .sc-panel is padding 20px 22px. */
+    margin: 4px -22px -20px;
+    padding: 12px 22px;
     background: linear-gradient(180deg, transparent, var(--card) 38%);
   }
 }
@@ -1990,6 +2064,67 @@ body { overflow-x: hidden; }
   .sc-locked .btn { width: 100%; }
 }
 
+/* ═══ Data rows (Marketplace / Portfolio) ═════════════════════════
+   These were inline `gridTemplateColumns` in the TSX, which no media
+   query can reach — so at 320px the min-content of the text columns
+   pushed the trailing column (Marketplace's Buy button, Portfolio's
+   chevron) clean off the screen. And because html/body are
+   overflow-x: hidden, it was clipped rather than scrollable: the Buy
+   button was simply unreachable on a phone.
+   Now a class, so it can collapse. */
+.drow {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border);
+}
+.drow-head {
+  display: grid;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+/* Every cell must be allowed to shrink, or fr tracks floor at min-content
+   and the row refuses to fit no matter what the template says. */
+.drow > *, .drow-head > * { min-width: 0; }
+
+.mk-row, .mk-head { grid-template-columns: 1.9fr 1fr 0.9fr 0.8fr 1fr 86px; }
+.pf-row, .pf-head { grid-template-columns: 2.1fr 1fr 1fr 0.8fr 26px; }
+
+@media (max-width: 700px) {
+  /* Column headers stop meaning anything once the row stacks. */
+  .mk-head, .pf-head { display: none; }
+
+  /* Identity on the left, the number that matters on the right, and the
+     action on its own full-width line where it can actually be tapped. */
+  .mk-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "id ask" "meta meta" "buy buy";
+    row-gap: 10px;
+    padding: 16px 0;
+  }
+  .mk-row > :nth-child(1) { grid-area: id; }
+  .mk-row > :nth-child(2) { grid-area: ask; text-align: right; }
+  .mk-row > :nth-child(3),
+  .mk-row > :nth-child(4),
+  .mk-row > :nth-child(5) { display: none; }
+  .mk-row > :nth-child(6) { grid-area: buy; }
+  .mk-row > :nth-child(6) .btn { width: 100%; }
+
+  .pf-row {
+    grid-template-columns: 1fr auto 20px;
+    grid-template-areas: "id val chev" "id sub chev";
+    row-gap: 2px;
+    padding: 14px 0;
+  }
+  .pf-row > :nth-child(1) { grid-area: id; }
+  .pf-row > :nth-child(2) { grid-area: val; text-align: right; }
+  .pf-row > :nth-child(3) { grid-area: sub; text-align: right; }
+  .pf-row > :nth-child(4) { display: none; }
+  .pf-row > :nth-child(5) { grid-area: chev; }
+}
+
 .sc-arch-row { cursor: pointer; }
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {
@@ -2022,6 +2157,78 @@ body { overflow-x: hidden; }
 .sc-timeline { display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--text-2); }
 .sc-timeline .t { display: flex; gap: 14px; align-items: baseline; }
 .sc-timeline .t b { font-family: var(--mono); color: var(--accent); min-width: 92px; font-size: 11.5px; font-weight: 500; }
+
+/* ═══ Mobile tables ═══════════════════════════════════════════════
+   These tables carry 4-8 columns. On a 360px screen the wrappers'
+   overflow-x turned that into a scroll where every cell wrapped:
+   dates broke mid-value ("2026-\n07-31"), band chips broke into
+   three lines, and "PREDICTION IN" split across rows with the tag
+   border rendering on the first line only.
+
+   Scrolling was the wrong answer — the fix is fewer columns, not a
+   wider surface. Below 640px each table keeps only the columns that
+   answer the question the user came with, and everything that
+   identifies a row is forbidden from wrapping. Once the columns fit,
+   the inline overflow-x has nothing to scroll and the bar disappears
+   on its own. Full detail stays available on desktop. */
+
+/* Nothing that identifies a row may wrap — not at any width. */
+.sc-tag,
+.sc-band-chip,
+.sc-prize-amt { white-space: nowrap; }
+
+/* Merkle roots, tx hashes and raw r-addresses are unbreakable 34-64 char
+   tokens, so their min-content alone is ~260-390px. Truncate at EVERY width,
+   not just on phones — otherwise a tablet gets a 900px-wide table that
+   scrolls the row identity out of view. */
+.sc-table td.sc-mono {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* An expanded day nests a table inside a <td>; without this its min-content
+   propagates up and re-widens the outer table, undoing the column hiding. */
+.sc-arch-detail > td { max-width: 0; }
+
+@media (max-width: 640px) {
+  .sc-table { font-size: 12.5px; }
+  .sc-table th,
+  .sc-table td { padding: 10px 10px; white-space: nowrap; }
+  .sc-table th { font-size: 9px; letter-spacing: 0.1em; }
+
+  .sc-table td.sc-mono { max-width: 120px; }
+
+  /* Results — keep day / swing / band. Drop boundaries + source, and the
+     range inside the band chip, which is the widest thing in the row. */
+  .sc-t-results th:nth-child(4), .sc-t-results td:nth-child(4),
+  .sc-t-results th:nth-child(5), .sc-t-results td:nth-child(5) { display: none; }
+  .sc-chip-range { display: none; }
+
+  /* Anchors — keep week / root / tx. Drop the leaf count. */
+  .sc-t-anchor th:nth-child(3), .sc-t-anchor td:nth-child(3) { display: none; }
+  .sc-t-anchor td.sc-mono { max-width: 96px; }
+
+  /* Reveal — keep player / band / points. The hashes are a desktop
+     audit surface, not something anyone verifies on a phone. */
+  .sc-t-reveal th:nth-child(3), .sc-t-reveal td:nth-child(3),
+  .sc-t-reveal th:nth-child(4), .sc-t-reveal td:nth-child(4),
+  .sc-t-reveal th:nth-child(5), .sc-t-reveal td:nth-child(5) { display: none; }
+
+  /* Leaderboard — keep rank / player / points. Wallet is redundant
+     next to the V tag; played, hit rate, streak and tiebreak error
+     are all secondary to "who is winning". */
+  .sc-t-lb th:nth-child(3), .sc-t-lb td:nth-child(3),
+  .sc-t-lb th:nth-child(5), .sc-t-lb td:nth-child(5),
+  .sc-t-lb th:nth-child(6), .sc-t-lb td:nth-child(6),
+  .sc-t-lb th:nth-child(7), .sc-t-lb td:nth-child(7),
+  .sc-t-lb th:nth-child(8), .sc-t-lb td:nth-child(8) { display: none; }
+
+  /* The player cell is the one place wrapping is wanted — a long
+     name plus its badges should stack, not truncate. */
+  .sc-t-lb td:nth-child(2) { white-space: normal; line-height: 1.5; }
+  .sc-t-lb td:nth-child(2) .sc-tag { margin-top: 3px; }
+}
 
 .sc-legal {
   margin-top: 40px;
@@ -2070,7 +2277,7 @@ body { overflow-x: hidden; }
   .sc-band-hint { grid-area: hint; }
   .sc-band-range { grid-area: range; text-align: right; font-size: 14px; }
   .sc-band-unit { grid-area: unit; text-align: right; margin-top: 0; }
-  .sc-play-grid, .sc-how-grid { grid-template-columns: 1fr; }
+  .sc-play-grid, .sc-how-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Header chain chip â€” XRPL network tag */
@@ -2186,6 +2393,89 @@ body { overflow-x: hidden; }
   border-bottom: 1px solid var(--border-2);
   pointer-events: none;
   z-index: 29;
+}
+
+/* ─── Shrink hygiene ──────────────────────────────────────────────
+   The remaining 320px failures were all the same shape: a flex/grid
+   child whose automatic minimum is min-content, holding a token with
+   no break opportunity (a vault name, a sha256 commit hash, an
+   r-address). The child refuses to shrink and pushes its parent past
+   the viewport — and because html/body are overflow-x: hidden, the
+   overflow is clipped rather than scrollable. */
+.detail-layout,
+.detail-main,
+.detail-side,
+.detail-main > *,
+.legend-left > div,
+.row > *,
+.site-total > * { min-width: 0; }
+
+/* Names and prose may break mid-word rather than prop a column open. */
+.vault-name,
+.site-name,
+.sc-notice,
+.legend-name,
+.legend-desc { overflow-wrap: anywhere; }
+
+/* Hashes have no natural break at all. */
+.sc-commit-box {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+/* Key/value detail rows: the value is usually an unbreakable currency or
+   percentage token, so let the pair wrap onto two lines instead of clipping. */
+@media (max-width: 560px) {
+  .row { flex-wrap: wrap; row-gap: 2px; }
+  .row-key { flex: 1 1 100%; }
+  .row-val { flex: 1 1 100%; }
+}
+.row-key,
+.row-val { overflow-wrap: anywhere; }
+
+/* A button may shrink to its container before it overflows the screen. */
+.btn { max-width: 100%; }
+@media (max-width: 700px) {
+  .sc-locked { gap: 10px; }
+  .sc-locked .btn { width: 100%; }
+}
+
+/* ─── Focus and press states ──────────────────────────────────────
+   The app had exactly two :focus rules and one :active. Every button,
+   tab and row was hover-only — invisible to a keyboard, and with no
+   feedback at all on touch, where :hover never fires. */
+.btn:focus-visible,
+.btn-sm:focus-visible,
+.connect-btn:focus-visible,
+.wallet-pill:focus-visible,
+.chain-btn:focus-visible,
+.chain-opt:focus-visible,
+.seg-btn:focus-visible,
+.v2-tab:focus-visible,
+.nav-link:focus-visible,
+.bottom-nav-item:focus-visible,
+.sc-bar-tab:focus-visible,
+.sc-band-card:focus-visible,
+.sc-seg button:focus-visible,
+.site-row:focus-visible,
+.sc-arch-row:focus-visible,
+.perf-toggle:focus-visible,
+.sc-settle-x:focus-visible,
+.drow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-control);
+}
+/* Touch has no hover, so pressing needs to acknowledge itself. */
+.btn:active:not(:disabled),
+.connect-btn:active,
+.seg-btn:active,
+.sc-band-card:active,
+.sc-bar-tab:active,
+.site-row:active,
+.drow:active {
+  filter: brightness(0.92);
 }
 
 /* ─── Reduced motion ──────────────────────────────────────────────

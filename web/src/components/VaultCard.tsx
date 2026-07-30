@@ -5,6 +5,7 @@ import { raiseProgress } from "@/lib/vaults";
 import { socSeries } from "@/lib/bess";
 import { Sparkline } from "./Sparkline";
 import { BoltIcon, SunIcon, BatteryIcon } from "./Icons";
+import { Flag } from "./Flag";
 
 const STATUS_BADGE: Record<Vault["status"], { cls: string; label: string }> = {
   active: { cls: "badge-active", label: "Active" },
@@ -36,7 +37,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <div style={{ minWidth: 0 }}>
             <div className="vault-name">{vault.name}</div>
             <div className="vault-loc">
-              {vault.flag} {vault.location}
+              <Flag code={vault.flag} size={13} /> {vault.location}
             </div>
           </div>
         </div>

@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>responsive audit (throwaway)</title>
+<style>
+  body { margin:0; background:#111; color:#ccc; font:12px/1.5 system-ui; }
+  #stage { border:1px solid #444; background:#000; display:block; }
+  #hud { padding:8px; font-family:ui-monospace,monospace; }
+</style>
+<div id="hud">idle</div>
+<iframe id="stage" src="about:blank" width="360" height="760"></iframe>
+<script>
+// Statistically common viewport widths (2026 global mix): Android baseline,
+// the iPhone cluster, tablets in both orientations, and the laptop/desktop
+// modes that dominate desktop traffic.
+const WIDTHS = [320, 360, 390, 414, 430, 768, 820, 1024, 1280, 1440, 1920];
+const HEIGHTS = { 320:658, 360:800, 390:844, 414:896, 430:932, 768:1024, 820:1180, 1024:768, 1280:800, 1440:900, 1920:1080 };
+const ROUTES = [
+  "/", "/dashboard-v2", "/portfolio", "/marketplace",
+  "/vault/bess-ljubljana-01",
+  "/spreadcast", "/spreadcast/board", "/spreadcast/log", "/spreadcast/how",
+];
+
+const stage = document.getElementById("stage");
+const hud = document.getElementById("hud");
+
+function load(url, w, h) {
+  return new Promise((resolve) => {
+    stage.width = w; stage.height = h;
+    stage.onload = () => setTimeout(resolve, 850); // let data land + layout settle
+    stage.src = url;
+  });
+}
+
+// True when some ancestor is an intentional horizontal scroller. Content
+// inside one is *supposed* to exceed the viewport, so flagging it is noise.
+function inScroller(el, root) {
+  for (let p = el.parentElement; p && p !== root; p = p.parentElement) {
+    const ox = getComputedStyle(p).overflowX;
+    if (ox === "auto" || ox === "scroll") return true;
+  }
+  return false;
+}
+
+function describe(el) {
+  const c = typeof el.className === "string" ? el.className.trim().split(/\s+/).slice(0,2).join(".") : "";
+  return (c ? "." + c : el.tagName.toLowerCase()) + (el.id ? "#" + el.id : "");
+}
+
+// One viewport's worth of checks.
+function audit(w) {
+  const d = stage.contentDocument, win = stage.contentWindow;
+  const out = [];
+  const de = d.documentElement;
+
+  // 1. Technical: does the page scroll sideways at all?
+  if (de.scrollWidth > de.clientWidth + 1)
+    out.push({ kind: "doc-overflow-x", detail: de.scrollWidth + ">" + de.clientWidth });
+
+  const vw = de.clientWidth;
+  for (const el of d.querySelectorAll("body *")) {
+    const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden" || s.opacity === "0") continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+
+    const scrolled = inScroller(el, d.body);
+
+    // 2. Technical: content wider than its own box, with no way to scroll it.
+    if (!scrolled && el.scrollWidth > el.clientWidth + 1 && s.overflowX !== "auto" && s.overflowX !== "scroll" && s.overflowX !== "hidden")
+      out.push({ kind: "clipped-content", el: describe(el), detail: el.scrollWidth + ">" + el.clientWidth });
+
+    // 3. Visual: anything sticking out past the right edge of the viewport.
+    // Skipped inside a horizontal scroller — that overflow is deliberate.
+    if (!scrolled && r.right > vw + 1 && s.position !== "fixed")
+      out.push({ kind: "past-right-edge", el: describe(el), detail: Math.round(r.right) + ">" + vw });
+
+    // 4. Visual: sub-44px touch targets on touch-sized viewports.
+    if (w <= 820 && (el.tagName === "BUTTON" || el.tagName === "A" || el.getAttribute("role") === "button")) {
+      const isInline = s.display.includes("inline") && !s.display.includes("flex") && !s.display.includes("grid");
+      if (!isInline && (r.height < 36 || r.width < 24) && el.innerText.trim())
+        out.push({ kind: "small-tap-target", el: describe(el), detail: Math.round(r.width) + "x" + Math.round(r.height) });
+    }
+
+    // 5. Visual: text too small to read on a phone.
+    const fs = parseFloat(s.fontSize);
+    if (w <= 430 && fs > 0 && fs < 9 && el.innerText && el.innerText.trim().length > 1 && el.children.length === 0)
+      out.push({ kind: "tiny-text", el: describe(el), detail: fs + "px" });
+  }
+
+  // 6. Visual: fixed bottom chrome covering page content.
+  const nav = d.querySelector(".bottom-nav");
+  if (nav && getComputedStyle(nav).display !== "none") {
+    const navTop = nav.getBoundingClientRect().top;
+    const page = d.querySelector(".page");
+    if (page) {
+      const pb = parseFloat(getComputedStyle(page).paddingBottom);
+      const navH = win.innerHeight - navTop;
+      if (pb < navH) out.push({ kind: "nav-covers-content", detail: "pad " + Math.round(pb) + " < nav " + Math.round(navH) });
+    }
+  }
+
+  // Collapse duplicates (a repeated row shouldn't report 40 times).
+  const seen = new Map();
+  for (const v of out) {
+    const k = v.kind + "|" + (v.el || "");
+    if (!seen.has(k)) seen.set(k, { ...v, count: 1 });
+    else seen.get(k).count++;
+  }
+  return [...seen.values()];
+}
+
+window.runAudit = async function (routes, widths) {
+  routes = routes || ROUTES; widths = widths || WIDTHS;
+  const findings = [];
+  let n = 0, total = routes.length * widths.length;
+  for (const route of routes) {
+    for (const w of widths) {
+      hud.textContent = `auditing ${++n}/${total}  ${route} @ ${w}`;
+      await load(route, w, HEIGHTS[w] || 800);
+      let res = [];
+      try { res = audit(w); } catch (e) { res = [{ kind: "audit-error", detail: String(e).slice(0, 90) }]; }
+      for (const r of res) findings.push({ route, w, ...r });
+    }
+  }
+  hud.textContent = `done — ${findings.length} findings`;
+  window.LAST = findings; // stored in the page's own scope so it survives
+  return findings;
+};
+
+// Compact report: unique issue per (kind, element, route), with the widths it
+// appeared at. Called separately once runAudit has finished.
+window.report = function () {
+  const f = window.LAST || [];
+  const byKind = {};
+  const uniq = new Map();
+  for (const x of f) {
+    byKind[x.kind] = (byKind[x.kind] || 0) + 1;
+    const k = x.kind + "|" + (x.el || "") + "|" + x.route;
+    if (!uniq.has(k)) uniq.set(k, { kind: x.kind, el: x.el, route: x.route, detail: x.detail, w: [x.w] });
+    else uniq.get(k).w.push(x.w);
+  }
+  return { total: f.length, unique: uniq.size, byKind, issues: [...uniq.values()] };
+};
+</script>

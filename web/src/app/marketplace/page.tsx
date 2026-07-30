@@ -1,4 +1,5 @@
 "use client";
+import posthog from "posthog-js";
 import { useState } from "react";
 import { StatTile } from "@/components/StatTile";
 import { useWallet, useToast } from "@/lib/wallet";
@@ -11,7 +12,6 @@ import {
   StoreIcon, CoinsIcon, TrendingUpIcon, LayersIcon, SunIcon, BatteryIcon, XIcon, CheckIcon,
 } from "@/components/Icons";
 
-const ROW_GRID = "1.9fr 1fr 0.9fr 0.8fr 1fr 86px";
 
 function premiumStr(bps: number) {
   return `${bps >= 0 ? "+" : ""}${fmtPct(bps / 100)}`;
@@ -26,6 +26,14 @@ export default function MarketplacePage() {
 
   const buy = (lv: ListingView) => {
     if (!connected) return connect();
+    posthog.capture("marketplace_buy_clicked", {
+      vault_id: lv.vault.id,
+      vault_name: lv.vault.name,
+      vault_symbol: lv.vault.symbol,
+      shares: lv.listing.shares,
+      ask_total_usd: lv.askTotal,
+      premium_bps: lv.premiumBps,
+    });
     notify(`Bought ${fmtNum(lv.listing.shares)} ${lv.vault.symbol} for ${fmtMoney(lv.askTotal, "USD")}`, "success");
   };
 
@@ -59,7 +67,7 @@ export default function MarketplacePage() {
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: ROW_GRID, gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border)" }} className="caps">
+        <div className="drow-head mk-head caps">
           <span>Vault · Seller</span>
           <span style={{ textAlign: "right" }}>Shares</span>
           <span style={{ textAlign: "right" }}>Premium</span>
@@ -68,7 +76,7 @@ export default function MarketplacePage() {
           <span />
         </div>
         {views.map((lv) => (
-          <div key={lv.listing.id} style={{ display: "grid", gridTemplateColumns: ROW_GRID, gap: 12, padding: "15px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}>
+          <div key={lv.listing.id} className="drow mk-row">
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
                 {lv.vault.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
@@ -174,7 +182,18 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
         <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-accent" style={{ flex: 1 }} disabled={!valid}
-            onClick={() => onDone(`Listed ${fmtNum(shares)} ${vault!.symbol} at ${fmtMoney(price, "USD")}/share (${premiumStr(premiumBps)})`)}>
+            onClick={() => {
+              posthog.capture("marketplace_position_listed", {
+                vault_id: vault!.id,
+                vault_name: vault!.name,
+                vault_symbol: vault!.symbol,
+                shares,
+                price_per_share: price,
+                ask_total_usd: askTotal,
+                premium_bps: premiumBps,
+              });
+              onDone(`Listed ${fmtNum(shares)} ${vault!.symbol} at ${fmtMoney(price, "USD")}/share (${premiumStr(premiumBps)})`);
+            }}>
             List position
           </button>
         </div>

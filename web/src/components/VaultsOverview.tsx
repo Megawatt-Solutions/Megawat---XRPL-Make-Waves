@@ -5,6 +5,7 @@ import { allocation, vaultGroups } from "@/lib/protocol";
 import type { VaultRow } from "@/lib/protocol";
 import { fmtCompact, fmtPct, fmtNum, bpsToPct } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
+import { Flag } from "./Flag";
 
 const COLS = "2.3fr 1.3fr 0.8fr 1fr 1fr";
 
@@ -110,7 +111,7 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
         </span>
         <span style={{ minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 13.5, display: "block" }}>{v.name}</span>
-          <span className="muted" style={{ fontSize: 11.5 }}>{v.flag} {v.location}</span>
+          <span className="muted" style={{ fontSize: 11.5 }}><Flag code={v.flag} size={12} /> {v.location}</span>
         </span>
       </span>
       <span className="num">

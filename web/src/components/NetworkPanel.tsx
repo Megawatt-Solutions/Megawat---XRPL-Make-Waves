@@ -4,11 +4,16 @@
 // tooltip open; selecting again — or dragging the globe — releases it.
 import { useState } from "react";
 import { BessGlobe } from "./BessGlobe";
+import { Flag } from "./Flag";
 import { bessMarkers, CAPACITY } from "@/lib/protocol";
 
+// A site that is physically running is a good state, so it reads green like
+// every other live signal in the app. It was blue, which made the two real
+// operational sites — the flagship ones — look like a different kind of thing
+// from "active", when both simply mean live.
 const STATUS_DOT: Record<string, string> = {
   active: "var(--accent)",
-  operational: "var(--blue)",
+  operational: "var(--accent)",
   fundraising: "var(--amber)",
   coming_soon: "var(--gray)",
 };
@@ -36,11 +41,16 @@ export function NetworkPanel() {
               aria-pressed={selected === s.id}
               onClick={() => setSelected(selected === s.id ? null : s.id)}
             >
-              <span className="dot" style={{ background: STATUS_DOT[s.status] }} />
+              {/* The flag takes the leading slot — location is what the eye
+                  wants first in a list of sites. The status dot moves inline
+                  with the text it describes, instead of floating loose in its
+                  own column where it read as decoration. */}
+              <Flag code={s.flag} size={18} title={s.location} />
               <span className="site-id">
                 <span className="site-name">{s.name}</span>
                 <span className="site-loc">
-                  {s.flag} {s.location}
+                  <span className="site-status-dot" style={{ background: STATUS_DOT[s.status] }} aria-hidden="true" />
+                  {s.location}
                 </span>
               </span>
               <span className="site-num">

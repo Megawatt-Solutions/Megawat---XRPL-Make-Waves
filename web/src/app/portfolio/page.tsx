@@ -10,8 +10,8 @@ import {
   CoinsIcon, BoltIcon, ShieldIcon, TrendingUpIcon, ChevronRightIcon,
   SunIcon, BatteryIcon, WalletIcon,
 } from "@/components/Icons";
+import { Flag } from "@/components/Flag";
 
-const ROW_GRID = "2.1fr 1fr 1fr 0.8fr 26px";
 
 export default function PortfolioPage() {
   const { connected, connect } = useWallet();
@@ -81,7 +81,7 @@ export default function PortfolioPage() {
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: ROW_GRID, gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border)" }} className="caps">
+        <div className="drow-head pf-head caps">
           <span>Vault</span>
           <span style={{ textAlign: "right" }}>Deposited</span>
           <span style={{ textAlign: "right" }}>Claimable</span>
@@ -95,8 +95,7 @@ export default function PortfolioPage() {
             <Link
               key={p.vaultId}
               href={`/vault/${v.id}`}
-              style={{ display: "grid", gridTemplateColumns: ROW_GRID, gap: 12, padding: "15px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }}
-              className="prow"
+              className="drow pf-row prow"
             >
               <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                 <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
@@ -104,7 +103,7 @@ export default function PortfolioPage() {
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{v.flag} {v.location} · {fmtNum(p.shares)} {v.symbol}</div>
+                  <div className="muted" style={{ fontSize: 12 }}><Flag code={v.flag} size={12} /> {v.location} · {fmtNum(p.shares)} {v.symbol}</div>
                 </div>
               </div>
               <div style={{ textAlign: "right" }} className="num">{fmtMoney(p.deposited, "USD")}</div>
