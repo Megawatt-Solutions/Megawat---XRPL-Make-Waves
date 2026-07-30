@@ -4,6 +4,8 @@
 // sign (simulated locally until Xaman credentials are configured).
 
 import { useCallback, useEffect, useState } from "react";
+import { useWallet } from "@/lib/wallet";
+import { fmtAddress } from "@/lib/format";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -49,8 +51,11 @@ export function PlayView() {
   const [exact, setExact] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [wallet, setWallet] = useState("");
   const [busy, setBusy] = useState(false);
+  // The Megawatt shell already owns wallet connection (Xaman handshake, QR,
+  // deep link, watch-only fallback). Spreadcast consumes that state rather
+  // than running a second connect flow — see docs/ui-ux-rehaul.md §4.
+  const { connected, connecting, profile, connect: connectShellWallet } = useWallet();
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
   const [acctMsg, setAcctMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
   const [commit, setCommit] = useState<{ hash: string; signed: boolean; txHash?: string | null } | null>(null);
@@ -113,18 +118,22 @@ export function PlayView() {
     load();
   };
 
-  const connect = async () => {
+  // Bind the address the shell already proved to this Spreadcast session.
+  // Same endpoint the manual r-address input used to call — the only change
+  // is where the address comes from, so no API or connector change is needed.
+  const linkWallet = async (address: string) => {
+    if (!address) return;
     setBusy(true);
     setAcctMsg(null);
     const res = await fetch("/api/spreadcast/wallet", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ address: wallet }),
+      body: JSON.stringify({ address }),
     });
     const data = await res.json();
     setBusy(false);
     if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet connected — you're verified." });
+    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked — you're verified." });
     load();
   };
 
@@ -239,6 +248,17 @@ export function PlayView() {
     ? (state.open as { bands: { i: number; name: string; label: string }[] }).bands
     : null;
   const latest = state.latest;
+
+  // Identity, stated honestly. The shell knowing an address is NOT the same as
+  // the game session having one bound — rendering "connected" off shell state
+  // alone would claim a binding that doesn't exist. Three states only:
+  //   shellAddress && !gameWallet  -> connected but unlinked (offer one tap)
+  //   gameWallet === shellAddress  -> linked
+  //   gameWallet !== shellAddress  -> mismatched (say so; don't silently rebind)
+  const shellAddress = connected && profile ? profile.address : null;
+  const gameWallet = state.user?.wallet ?? null;
+  const mismatched = !!gameWallet && !!shellAddress && gameWallet !== shellAddress;
+
   const hourlyMin = latest ? Math.min(...latest.hourly) : 0;
   const hourlyMax = latest ? Math.max(...latest.hourly) : 1;
 
@@ -493,6 +513,14 @@ export function PlayView() {
                 <button className="btn btn-accent" onClick={join} disabled={busy}>
                   Start playing
                 </button>
+                {shellAddress && (
+                  // Don't imply the connected wallet already plays — /join is
+                  // email-based. Just set the expectation honestly.
+                  <p className="sc-notice" style={{ fontSize: 12 }}>
+                    You&apos;re connected as <span className="sc-mono">{fmtAddress(shellAddress)}</span> — you can link
+                    it right after, to become prize-eligible.
+                  </p>
+                )}
                 {acctMsg && <p className={acctMsg.kind === "err" ? "sc-err" : "sc-notice"}>{acctMsg.text}</p>}
               </div>
             </div>
@@ -505,23 +533,57 @@ export function PlayView() {
               {!state.user.verified ? (
                 <>
                   <p className="sc-notice" style={{ margin: "10px 0" }}>
-                    Connect an XRPL wallet to join the verified leaderboard and become prize-eligible. Your daily
+                    Link an XRPL wallet to join the verified leaderboard and become prize-eligible. Your daily
                     prediction then gets locked on-chain — tamper-proof.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <input className="sc-field sc-mono" placeholder="rYourXrplAddress…" value={wallet} onChange={(e) => setWallet(e.target.value)} />
-                    <button className="btn btn-ghost" onClick={connect} disabled={busy}>
-                      Connect wallet (Xaman in prod)
-                    </button>
+                    {shellAddress ? (
+                      // Connected in the header but not bound here yet. One tap,
+                      // no retyping — the address is already proven by the shell.
+                      <>
+                        <div className="sc-wallet-row">
+                          <span className="dot" style={{ background: "var(--accent)" }} />
+                          <span className="sc-mono" style={{ flex: 1, minWidth: 0 }}>
+                            {fmtAddress(shellAddress)}
+                          </span>
+                          <span className="sc-pill">in wallet</span>
+                        </div>
+                        <button className="btn btn-accent" onClick={() => linkWallet(shellAddress)} disabled={busy}>
+                          {busy ? "Linking…" : "Link this wallet"}
+                        </button>
+                      </>
+                    ) : (
+                      <button className="btn btn-ghost" onClick={connectShellWallet} disabled={connecting}>
+                        {connecting ? "Connecting…" : "Connect wallet"}
+                      </button>
+                    )}
                     {acctMsg && <p className={acctMsg.kind === "err" ? "sc-err" : "sc-notice"}>{acctMsg.text}</p>}
                   </div>
                 </>
               ) : (
-                <p className="sc-notice" style={{ marginTop: 8 }}>
-                  <span className="sc-mono">{state.user.wallet}</span>
-                  <br />
-                  Your predictions are locked on-chain with tiny 1-drop payments.
-                </p>
+                <>
+                  <p className="sc-notice" style={{ marginTop: 8 }}>
+                    <span className="sc-mono">{state.user.wallet}</span>
+                    <br />
+                    Your predictions are locked on-chain with tiny 1-drop payments.
+                  </p>
+                  {mismatched && (
+                    <div style={{ marginTop: 12 }}>
+                      <p className="sc-err">
+                        The wallet in your header ({fmtAddress(shellAddress!)}) isn&apos;t the one linked here.
+                        Predictions stay bound to the linked address.
+                      </p>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ marginTop: 8 }}
+                        onClick={() => linkWallet(shellAddress!)}
+                        disabled={busy}
+                      >
+                        {busy ? "Linking…" : "Link the header wallet instead"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

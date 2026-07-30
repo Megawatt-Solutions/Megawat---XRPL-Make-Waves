@@ -1780,6 +1780,24 @@ body { overflow-x: hidden; }
 .sc-tag.v { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .sc-streak-flame { color: var(--sc-b3); font-family: var(--mono); }
 
+/* Connected-but-unlinked wallet row — the shell already proved this address,
+   so the game offers one tap rather than a second connect flow. */
+.sc-wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-control);
+  font-size: 13px;
+}
+.sc-wallet-row .sc-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sc-arch-row { cursor: pointer; }
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {

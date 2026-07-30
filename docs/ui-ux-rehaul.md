@@ -2,7 +2,7 @@
 
 **Branch:** `ui-ux-rehaul`
 **Scope:** `web/` — **design, structure, and UI/UX only.** No backend, no web3 connectors. See [§0](#0-scope-constraint--design-structure-uiux-only).
-**Status:** Phase 0 (token foundation) complete and verified. Phases 1–3 pending.
+**Status:** Phase 0 (token foundation) and Phase 1 (identity, UI-only) complete and verified. Phases 2–3 pending.
 **Last updated:** 2026-07-30
 
 ---
@@ -401,19 +401,32 @@ and repoint `.page { padding-bottom }` and `.toasts` at it. **[VERIFIED]** `.toa
 
 **Test:** vaults half looks identical-but-warmer, nothing regressed, charts still accent-coloured.
 
-### Phase 1 — identity, UI-only (§4)
+### Phase 1 — identity, UI-only (§4) ✅ **DONE**
 
-All within scope — no `api/`, no `wallet.tsx`, no `lib/spreadcast/`.
+All within scope — `wallet.tsx` is *consumed*, never modified; no `api/`, no `lib/spreadcast/`.
 
-- [ ] Read `useWallet()` in `PlayView.tsx`; derive three states by comparing `profile.address` against `/round`'s `user.wallet`: **linked** / **connected-but-unlinked** / **not connected**
-- [ ] Replace the manual `rYourXrplAddress…` input (`PlayView.tsx:469`) with a one-tap **"Link this wallet"** row that feeds `profile.address` into the existing fetch at `PlayView.tsx:104`
-- [ ] Never render "connected" from header state alone — show the unlinked state honestly
-- [ ] Don't build O1 / O2 / O3 / O7 from the redesign (§5)
-- [ ] Restyle the existing email + display-name fields (`PlayView.tsx:448-449`) rather than rebuilding them
+- [x] `useWallet()` read in `PlayView.tsx`; **four** states derived by comparing `profile.address` against `/round`'s `user.wallet`
+- [x] Manual `rYourXrplAddress…` input **deleted**; replaced by a one-tap **"Link this wallet"** row feeding `profile.address` into the existing `/api/spreadcast/wallet` fetch
+- [x] Never renders "connected" from shell state alone
+- [x] O1 / O2 / O3 / O7 not built (§5)
+- [x] Existing email + display-name fields kept and reused, not rebuilt
 
-**Highest ratio of problem-solved to code-written in the whole plan.**
+The local `connect()` helper was renamed `linkWallet(address)` and now takes the address as an argument instead of reading a text-input state. **That rename is the whole fix** — same endpoint, same request shape, the only change is where the address comes from.
 
-**Test:** connect in the header → tap into Spreadcast → one tap links it, and the game shows your address. Not the zero-tap version that needs `wallet.tsx`, but the contradiction is gone.
+#### The four states
+
+| Condition | UI |
+|---|---|
+| No shell wallet | "Connect wallet" → calls `useWallet().connect()` (the real Xaman/watch-only dialog) |
+| Shell connected, game unbound | Address row + `in wallet` pill + **"Link this wallet"** (one tap, no retyping) |
+| Bound, matches shell | `VERIFIED` tag + full address + on-chain commit note |
+| Bound, **differs** from shell | Names the discrepancy explicitly and offers "Link the header wallet instead" — never silently rebinds |
+
+That last row is the honesty guard. Claiming a binding that doesn't exist would be worse than the original split, so a mismatch is stated plainly rather than papered over.
+
+**Verified end to end in the browser** (game API stubbed client-side; XUMM keys absent, so the real watch-only connect path ran): connect in header → tap Spreadcast → address already shown, matching the header pill → one tap → `VERIFIED`. Mismatch state confirmed separately. `tsc` clean, `next build` clean (20/20).
+
+**Still out of scope:** the *zero*-tap version, where `connect()` success fires the bind automatically. That needs `src/lib/wallet.tsx`. See §9.
 
 ### Phase 2 — the shell
 
