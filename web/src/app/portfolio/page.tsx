@@ -27,14 +27,25 @@ export default function PortfolioPage() {
           <div className="page-title">Portfolio</div>
           <div className="page-sub">Track your deposits, yield, and positions.</div>
         </div>
-        <div className="card empty">
-          <div style={{ display: "grid", placeItems: "center", gap: 14 }}>
-            <span style={{ color: "var(--muted)" }}><WalletIcon size={34} /></span>
-            <div>
-              <div className="empty-title" style={{ fontSize: 16, fontWeight: 600, color: "var(--text-2)" }}>Connect your wallet</div>
-              <div style={{ fontSize: 13.5, marginTop: 4 }}>Connect to view your deposits and claimable yield.</div>
+        {/* This is where a curious visitor hits a wall, so it should say what
+            connecting is *for* and never be a dead end — browsing vaults and
+            playing Spreadcast both work with no wallet at all. */}
+        <div className="card">
+          <div className="empty-state">
+            <WalletIcon size={26} />
+            <div className="empty-state-title">Your positions live here</div>
+            <p className="empty-state-body">
+              Connect a wallet to see what you&apos;ve deposited, what each vault has earned, and claim yield as it
+              accrues. Nothing is charged for connecting — it only reads your balances.
+            </p>
+            <div className="empty-state-actions">
+              <button className="btn btn-accent btn-sm" onClick={connect}>
+                Connect wallet
+              </button>
+              <Link className="btn btn-ghost btn-sm" href="/">
+                Browse vaults instead
+              </Link>
             </div>
-            <button className="btn btn-accent" style={{ width: 200 }} onClick={connect}>Connect Wallet</button>
           </div>
         </div>
       </main>

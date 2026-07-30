@@ -16,7 +16,7 @@ import { Donut } from "./Donut";
 import { SiteMonitor } from "./SiteMonitor";
 import {
   ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, CubeIcon, VerifiedIcon,
-  ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon,
+  ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon, WalletIcon,
 } from "./Icons";
 import { Flag } from "./Flag";
 
@@ -548,10 +548,18 @@ function PositionCard(props: {
 
   if (!connected) {
     return (
-      <div className="card" style={{ justifyContent: "center", textAlign: "center" }}>
-        <div className="card-title" style={{ justifyContent: "center" }}>Your Position</div>
-        <div className="empty" style={{ padding: "30px 8px" }}>Connect your wallet to deposit and track your position.</div>
-        <button className="btn btn-accent btn-block" onClick={onDeposit}>Connect Wallet</button>
+      <div className="card">
+        <div className="card-title">Your position</div>
+        <div className="empty-state">
+          <WalletIcon size={26} />
+          <p className="empty-state-body" style={{ marginTop: 2 }}>
+            Connect a wallet to deposit into this vault and track what it earns. Everything on this page is readable
+            without one.
+          </p>
+          <button className="btn btn-accent btn-sm" onClick={onDeposit}>
+            Connect wallet
+          </button>
+        </div>
       </div>
     );
   }

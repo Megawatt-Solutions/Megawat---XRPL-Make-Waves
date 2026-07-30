@@ -737,6 +737,18 @@ button {
   color: var(--text-2);
 }
 .empty-state .btn { margin-top: 4px; }
+/* A gate should offer a way forward AND a way around — never a dead end. */
+.empty-state-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+@media (max-width: 420px) {
+  .empty-state-actions { width: 100%; flex-direction: column; }
+  .empty-state-actions .btn { width: 100%; }
+}
 @media (max-width: 480px) {
   .empty-state { padding: 32px 4px 30px; }
   .empty-state-body { font-size: 13px; }
