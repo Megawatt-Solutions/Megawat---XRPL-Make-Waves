@@ -30,7 +30,9 @@ export function VaultCard({ vault }: { vault: Vault }) {
   return (
     <Link href={`/vault/${vault.id}`} className={`vault-card ${STATUS_CARD[vault.status]}`}>
       <div className="vault-card-top">
-        <div style={{ display: "flex", gap: 13, minWidth: 0 }}>
+        {/* flex:1 so the name/location block claims the space rather than
+            being squeezed to a sliver by the status badge beside it. */}
+        <div style={{ display: "flex", gap: 13, minWidth: 0, flex: 1 }}>
           <span className="vault-thumb">
             {vault.spec.hasSolar ? <SunIcon size={22} /> : <BatteryIcon size={22} />}
           </span>

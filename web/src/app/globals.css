@@ -79,6 +79,15 @@
   --eyebrow-weight: 500;
   --eyebrow-tracking: 0.16em;
 
+  /* Type ladder. The file had 24 distinct sizes including 9.5/10.5/11.5/
+     12.5/13.5/14.5/15.5/16.5 — half-pixel steps nobody can perceive as
+     intentional, which is what a design that grew rather than was designed
+     looks like. Collapsed to whole pixels:
+       9 10 11 12 · 13 14 15 16 · 17 18 20 22 · 24 26 30
+     Small end is mono/labels, 13-16 is body, 17+ is headings.
+     Use an existing step. If a new one seems necessary, it usually means
+     the hierarchy needs rethinking, not the ramp extending. */
+
   /* â”€â”€â”€ Motion â€” brand curve, lifted from megawatt-landing â”€â”€â”€â”€â”€â”€â”€ */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
@@ -144,7 +153,7 @@ button {
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  font-size: 13.5px;
+  font-size:$114px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -354,7 +363,7 @@ button {
   gap: 8px;
   padding: 11px 18px;
   border-radius: var(--r-control);
-  font-size: 13.5px;
+  font-size:$114px;
   font-weight: 620;
   cursor: pointer;
   transition: all 0.15s;
@@ -394,7 +403,7 @@ button {
 }
 .btn-sm {
   padding: 8px 14px;
-  font-size: 12.5px;
+  font-size:$113px;
   border-radius: var(--r-control);
 }
 
@@ -407,7 +416,7 @@ button {
   padding: 3px 8px;
   border: 1px solid transparent;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -483,7 +492,7 @@ button {
   justify-content: space-between;
   padding: 11px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 13.5px;
+  font-size:$114px;
   gap: 12px;
 }
 .row:last-child {
@@ -512,7 +521,7 @@ button {
   gap: 11px;
 }
 .legend-name {
-  font-size: 13.5px;
+  font-size:$114px;
   font-weight: 600;
 }
 .legend-desc {
@@ -561,12 +570,12 @@ button {
   color: var(--accent);
 }
 .vault-name {
-  font-size: 15.5px;
+  font-size:$116px;
   font-weight: 640;
   letter-spacing: -0.01em;
 }
 .vault-loc {
-  font-size: 12.5px;
+  font-size:$113px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -595,7 +604,7 @@ button {
   margin: 34px 0 16px;
 }
 .section-title {
-  font-size: 16.5px;
+  font-size:$117px;
   font-weight: 640;
   letter-spacing: -0.015em;
   display: flex;
@@ -725,14 +734,14 @@ button {
 }
 .empty-state > svg { color: var(--text-2); opacity: 0.55; }
 .empty-state-title {
-  font-size: 15.5px;
+  font-size:$116px;
   font-weight: 620;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 .empty-state-body {
   max-width: 46ch;
-  font-size: 13.5px;
+  font-size:$114px;
   line-height: 1.6;
   color: var(--text-2);
 }
@@ -770,7 +779,7 @@ button {
   color: var(--text);
   padding: 13px 18px;
   border-radius: var(--r-row);
-  font-size: 13.5px;
+  font-size:$114px;
   font-weight: 500;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.28s ease;
@@ -932,7 +941,7 @@ button {
   border-left: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size:$111px;
   font-weight: 500;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -962,7 +971,7 @@ button {
   text-align: center;
   color: var(--accent);
   font-weight: 600;
-  font-size: 14.5px;
+  font-size:$115px;
   letter-spacing: -0.01em;
   margin-bottom: 14px;
 }
@@ -1007,7 +1016,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-size: 14.5px;
+  font-size:$115px;
   font-weight: 620;
   cursor: pointer;
   transition: all 0.15s;
@@ -1114,7 +1123,7 @@ body { overflow-x: hidden; }
 }
 .v2-metric-top svg { flex-shrink: 0; opacity: 0.9; }
 .v2-metric-value {
-  font-size: 29px;
+  font-size:$130px;
   font-weight: 640;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -1172,7 +1181,7 @@ body { overflow-x: hidden; }
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text-2);
-  font-size: 12.5px;
+  font-size:$113px;
   font-weight: 550;
   cursor: pointer;
 }
@@ -1240,6 +1249,24 @@ body { overflow-x: hidden; }
 /* Without this every fr track floors at min-content and the row refuses to
    shrink — which is the only reason it needed a 540px min-width below. */
 .v2-row > * { min-width: 0; }
+/* Tablet band: five columns don't fit between 641 and 900. "Contribution" is
+   the most derivable of them — drop it rather than make a financial table
+   scroll sideways, which hides the vault name while you read its numbers. */
+@media (min-width: 641px) and (max-width: 900px) {
+  .v2-row { gap: 8px; padding-left: 6px; padding-right: 6px; }
+  .v2-row > :nth-child(4) { display: none; }
+  /* Status is the widest label ("OPERATIONAL" needs ~141px). With column 4
+     gone there is room — take it from the name column, which truncates
+     gracefully, instead of clipping a word that cannot. */
+  .v2-row { grid-template-columns: 1.7fr 1.2fr 0.7fr 0 1.5fr !important; }
+  .v2-row > :last-child { white-space: nowrap; }
+}
+/* Same problem one band up: at 1024 the default 1fr gives Status 131px for a
+   141px word. Take the difference from the name column, which truncates. */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .v2-row { grid-template-columns: 2fr 1.2fr 0.8fr 1fr 1.35fr !important; }
+  .v2-row > :last-child { white-space: nowrap; }
+}
 .v2-head { padding: 14px 10px 10px; border-bottom: 1px solid var(--border); }
 .v2-group {
   background: rgba(255, 255, 255, 0.035);
@@ -1339,7 +1366,7 @@ body { overflow-x: hidden; }
   z-index: 6;
 }
 .globe-pin:hover .globe-tip { opacity: 1; bottom: 24px; }
-.globe-tip-name { font-size: 12.5px; font-weight: 620; }
+.globe-tip-name { font-size:$113px; font-weight: 620; }
 .globe-tip-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
 /* â•â•â• Institutional chrome (v2) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -1375,7 +1402,7 @@ body { overflow-x: hidden; }
   gap: 14px;
   margin: 34px 0 14px;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size:$111px;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1634,7 +1661,7 @@ body { overflow-x: hidden; }
 .chain-opt-sub {
   display: block;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1660,11 +1687,11 @@ body { overflow-x: hidden; }
 @media (min-width: 981px) and (max-width: 1180px) {
   .nav { padding: 0 16px; gap: 16px; }
   .nav-link { padding: 0 9px; letter-spacing: 0.1em; }
-  .nav-brand { font-size: 12.5px; letter-spacing: 0.1em; }
+  .nav-brand { font-size:$113px; letter-spacing: 0.1em; }
 }
 @media (max-width: 560px) {
   .nav { padding: 0 12px; gap: 10px; }
-  .nav-brand { font-size: 12.5px; letter-spacing: 0.1em; gap: 8px; }
+  .nav-brand { font-size:$113px; letter-spacing: 0.1em; gap: 8px; }
   /* Network tag and avatar are decoration; the address is the payload. */
   .chain-net { display: none; }
   .wallet-avatar { display: none; }
@@ -1710,7 +1737,7 @@ body { overflow-x: hidden; }
 .sc h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px; }
 .sc h1 span { color: var(--accent); }
 .sc h2 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
-.sc-sub { color: var(--text-2); font-size: 13.5px; margin-bottom: 24px; max-width: 640px; }
+.sc-sub { color: var(--text-2); font-size:$114px; margin-bottom: 24px; max-width: 640px; }
 .sc-mono { font-family: var(--mono); }
 .sc-panel { padding: 20px 22px; }
 
@@ -1827,7 +1854,7 @@ body { overflow-x: hidden; }
   padding: 3px 8px;
   border: 1px solid var(--border-2);
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1845,15 +1872,15 @@ body { overflow-x: hidden; }
   padding: 10px 13px;
   width: 100%;
   outline: none;
-  font-size: 13.5px;
+  font-size:$114px;
   font-family: inherit;
   margin: 0;
 }
 .sc-field:focus { border-color: var(--accent); }
 .sc-field::placeholder { color: var(--muted); }
 
-.sc-err { color: var(--red); font-size: 12.5px; }
-.sc-notice { color: var(--text-2); font-size: 12.5px; }
+.sc-err { color: var(--red); font-size:$113px; }
+.sc-notice { color: var(--text-2); font-size:$113px; }
 
 .sc-play-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 /* .sc-countdown removed — the section bar owns the clock now (§2.1). */
@@ -1890,7 +1917,7 @@ body { overflow-x: hidden; }
   color: var(--bc);
   margin-bottom: 4px;
 }
-.sc-band-range { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sc-band-range { font-family: var(--mono); font-size:$113px; font-variant-numeric: tabular-nums; }
 .sc-band-unit { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
 
 /* minmax(0, 1fr) not 1fr: a plain fr track has an automatic minimum of
@@ -1910,7 +1937,7 @@ body { overflow-x: hidden; }
 .sc-commit-box {
   border-radius: var(--r-control);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size:$111px;
   word-break: break-all;
   background: var(--surface);
   border: 1px dashed var(--border-2);
@@ -1934,7 +1961,7 @@ body { overflow-x: hidden; }
   cursor: pointer;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size:$111px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1945,7 +1972,7 @@ body { overflow-x: hidden; }
 .sc-table th {
   text-align: left;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--muted);
@@ -2196,16 +2223,16 @@ body { overflow-x: hidden; }
 .sc-how-h {
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 10.5px !important;
+  font-size:$111px !important;
   font-weight: 500 !important;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.sc-how-grid p, .sc-how-grid li { font-size: 13.5px; color: var(--text-2); line-height: 1.6; }
+.sc-how-grid p, .sc-how-grid li { font-size:$114px; color: var(--text-2); line-height: 1.6; }
 .sc-how-grid ul { padding-left: 18px; }
-.sc-timeline { display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--text-2); }
+.sc-timeline { display: flex; flex-direction: column; gap: 9px; font-size:$114px; color: var(--text-2); }
 .sc-timeline .t { display: flex; gap: 14px; align-items: baseline; }
-.sc-timeline .t b { font-family: var(--mono); color: var(--accent); min-width: 92px; font-size: 11.5px; font-weight: 500; }
+.sc-timeline .t b { font-family: var(--mono); color: var(--accent); min-width: 92px; font-size:$112px; font-weight: 500; }
 
 /* ═══ Mobile tables ═══════════════════════════════════════════════
    These tables carry 4-8 columns. On a 360px screen the wrappers'
@@ -2241,7 +2268,7 @@ body { overflow-x: hidden; }
 .sc-arch-detail > td { max-width: 0; }
 
 @media (max-width: 640px) {
-  .sc-table { font-size: 12.5px; }
+  .sc-table { font-size:$113px; }
   .sc-table th,
   .sc-table td { padding: 10px 10px; white-space: nowrap; }
   .sc-table th { font-size: 9px; letter-spacing: 0.1em; }
@@ -2284,7 +2311,7 @@ body { overflow-x: hidden; }
   padding-top: 14px;
   border-top: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   font-weight: 500;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -2365,7 +2392,7 @@ body { overflow-x: hidden; }
 .sc-prizebar .amount small { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; }
 .sc-prizebar .label {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size:$110px;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -2408,7 +2435,7 @@ body { overflow-x: hidden; }
   min-height: 20px;
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size:$112px;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -2434,7 +2461,7 @@ body { overflow-x: hidden; }
   border: 1px solid var(--border-2);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size:$111px;
   font-weight: 500;
   letter-spacing: 0.02em;
   padding: 5px 9px;
@@ -2475,10 +2502,14 @@ body { overflow-x: hidden; }
 
 /* Names and prose may break mid-word rather than prop a column open. */
 .vault-name,
+.vault-loc,
 .site-name,
 .sc-notice,
 .legend-name,
-.legend-desc { overflow-wrap: anywhere; }
+.legend-desc { overflow-wrap: anywhere; min-width: 0; }
+/* The badge beside the vault name must yield first — the identity of the
+   card matters more than the status chip. */
+.vault-card-top > .badge { flex-shrink: 0; }
 
 /* Hashes have no natural break at all. */
 .sc-commit-box {
