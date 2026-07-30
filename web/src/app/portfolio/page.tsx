@@ -8,7 +8,7 @@ import { getVault } from "@/lib/vaults";
 import { fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct } from "@/lib/format";
 import {
   CoinsIcon, BoltIcon, ShieldIcon, TrendingUpIcon, ChevronRightIcon,
-  SunIcon, BatteryIcon, WalletIcon,
+  SunIcon, BatteryIcon, WalletIcon, BriefcaseIcon,
 } from "@/components/Icons";
 import { Flag } from "@/components/Flag";
 
@@ -81,13 +81,26 @@ export default function PortfolioPage() {
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
-        <div className="drow-head pf-head caps">
+        <div className="drow-head pf-head caps" hidden={POSITIONS.length === 0}>
           <span>Vault</span>
           <span style={{ textAlign: "right" }}>Deposited</span>
           <span style={{ textAlign: "right" }}>Claimable</span>
           <span style={{ textAlign: "right" }}>APY</span>
           <span />
         </div>
+        {POSITIONS.length === 0 && (
+          <div className="empty-state">
+            <BriefcaseIcon size={26} />
+            <div className="empty-state-title">No positions yet</div>
+            <p className="empty-state-body">
+              Deposit into a vault to start earning a share of what its batteries make on the day-ahead market. Your
+              positions and claimable yield will show up here.
+            </p>
+            <Link className="btn btn-accent btn-sm" href="/">
+              Browse vaults
+            </Link>
+          </div>
+        )}
         {POSITIONS.map((p) => {
           const v = getVault(p.vaultId);
           if (!v) return null;

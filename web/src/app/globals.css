@@ -712,6 +712,36 @@ button {
   color: var(--muted);
 }
 
+/* An empty list is a normal state, not a failure — so it gets a real
+   composition: what this surface is for, why it's empty, and the one action
+   that changes that. Replaces a header row rendered over nothing. */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 44px 20px 40px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state > svg { color: var(--text-2); opacity: 0.55; }
+.empty-state-title {
+  font-size: 15.5px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.empty-state-body {
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.empty-state .btn { margin-top: 4px; }
+@media (max-width: 480px) {
+  .empty-state { padding: 32px 4px 30px; }
+  .empty-state-body { font-size: 13px; }
+}
+
 /* â”€â”€â”€ Toasts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .toasts {
   position: fixed;
@@ -2077,6 +2107,8 @@ body { overflow-x: hidden; }
    overflow-x: hidden, it was clipped rather than scrollable: the Buy
    button was simply unreachable on a phone.
    Now a class, so it can collapse. */
+[hidden] { display: none !important; }
+
 .drow {
   display: grid;
   gap: 12px;

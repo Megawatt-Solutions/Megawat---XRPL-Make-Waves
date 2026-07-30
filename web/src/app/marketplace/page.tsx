@@ -1,6 +1,7 @@
 "use client";
 import posthog from "posthog-js";
 import { useState } from "react";
+import Link from "next/link";
 import { StatTile } from "@/components/StatTile";
 import { useWallet, useToast } from "@/lib/wallet";
 import { listingViews, marketplaceMetrics } from "@/lib/marketplace";
@@ -67,7 +68,9 @@ export default function MarketplacePage() {
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
-        <div className="drow-head mk-head caps">
+        {/* Column headers describe rows — with no rows they describe nothing,
+            so they'd sit as a stray strip above the empty state on desktop. */}
+        <div className="drow-head mk-head caps" hidden={views.length === 0}>
           <span>Vault · Seller</span>
           <span style={{ textAlign: "right" }}>Shares</span>
           <span style={{ textAlign: "right" }}>Premium</span>
@@ -75,6 +78,21 @@ export default function MarketplacePage() {
           <span style={{ textAlign: "right" }}>Ask</span>
           <span />
         </div>
+        {views.length === 0 && (
+          // Was a header row over nothing. An empty marketplace is the normal
+          // early state, not an error — say what it means and what to do.
+          <div className="empty-state">
+            <StoreIcon size={26} />
+            <div className="empty-state-title">No positions listed right now</div>
+            <p className="empty-state-body">
+              The secondary market is where holders sell a vault position before it matures. Nothing is listed yet —
+              list one from your portfolio, or check back once vaults are further into their term.
+            </p>
+            <Link className="btn btn-ghost btn-sm" href="/portfolio">
+              Go to your portfolio
+            </Link>
+          </div>
+        )}
         {views.map((lv) => (
           <div key={lv.listing.id} className="drow mk-row">
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
