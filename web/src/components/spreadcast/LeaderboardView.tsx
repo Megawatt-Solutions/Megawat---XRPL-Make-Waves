@@ -88,11 +88,17 @@ export function LeaderboardView() {
           </thead>
           <tbody>
             {rows == null ? (
-              <tr>
-                <td colSpan={8} className="muted">
-                  Loading…
-                </td>
-              </tr>
+              // Placeholder rows keep the table's height while it loads, so
+              // the panel doesn't collapse and then jump.
+              <>
+                {[0, 1, 2, 3, 4].map((n) => (
+                  <tr key={n} aria-hidden="true">
+                    <td colSpan={8} style={{ padding: "10px 12px" }}>
+                      <div className="skel skel-line" style={{ marginBottom: 0 }} />
+                    </td>
+                  </tr>
+                ))}
+              </>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="muted">

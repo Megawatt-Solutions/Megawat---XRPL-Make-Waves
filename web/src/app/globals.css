@@ -2479,6 +2479,43 @@ body { overflow-x: hidden; }
   .sc-locked .btn { width: 100%; }
 }
 
+/* ─── Skeletons ───────────────────────────────────────────────────
+   Loading used to collapse a whole view to one line of muted text,
+   then snap to full content — a jarring jump on the surface people
+   land on most. A skeleton that mirrors the real layout holds the
+   page still and makes the wait feel shorter than it is.
+   The global prefers-reduced-motion block freezes the sweep. */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--card-2);
+  border-radius: var(--r-control);
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text) 6%, transparent),
+    transparent
+  );
+  animation: skelSweep 1.4s infinite;
+}
+.skel-line { height: 12px; margin-bottom: 9px; }
+.skel-line.sm { height: 10px; }
+.skel-line.lg { height: 22px; }
+.skel-line.w40 { width: 40%; }
+.skel-line.w60 { width: 60%; }
+.skel-line.w80 { width: 80%; }
+.skel-row { height: 52px; margin-bottom: 8px; border-radius: var(--r-row); }
+.skel-cta { height: 46px; border-radius: var(--r-control); margin-top: 16px; }
+@keyframes skelSweep {
+  to { transform: translateX(100%); }
+}
+
 /* ─── Touch targets ───────────────────────────────────────────────
    WCAG 2.5.8 asks for 24px minimum; 44px is the platform convention
    and what the audit checks. Grown with padding rather than height so

@@ -79,11 +79,15 @@ export function ArchiveView() {
           </thead>
           <tbody>
             {rounds == null ? (
-              <tr>
-                <td colSpan={5} className="muted">
-                  Loading…
-                </td>
-              </tr>
+              <>
+                {[0, 1, 2, 3, 4, 5].map((n) => (
+                  <tr key={n} aria-hidden="true">
+                    <td colSpan={5} style={{ padding: "10px 12px" }}>
+                      <div className="skel skel-line" style={{ marginBottom: 0 }} />
+                    </td>
+                  </tr>
+                ))}
+              </>
             ) : (
               rounds.map((r) => (
                 <RowGroup key={r.day} r={r} open={openDay === r.day} detail={detail[r.day]} onToggle={() => toggle(r.day)} />

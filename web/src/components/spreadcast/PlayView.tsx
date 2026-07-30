@@ -219,7 +219,27 @@ export function PlayView() {
       </div>
     );
 
-  if (!state) return <p className="muted">Loading the market…</p>;
+  // Mirrors the real Play layout — headline, round panel, five band rows, CTA
+  // — so the page holds its shape instead of collapsing to one line and
+  // snapping back. This is the surface people land on most.
+  if (!state)
+    return (
+      <div aria-busy="true" aria-live="polite" aria-label="Loading today's round">
+        <div className="skel skel-line lg w80" style={{ marginBottom: 14 }} />
+        <div className="skel skel-line w60" style={{ marginBottom: 24 }} />
+        <div className="panel sc-panel">
+          <span className="tick tl" />
+          <span className="tick tr" />
+          <span className="tick bl" />
+          <span className="tick br" />
+          <div className="skel skel-line w40" style={{ marginBottom: 18 }} />
+          {[0, 1, 2, 3, 4].map((n) => (
+            <div key={n} className="skel skel-row" />
+          ))}
+          <div className="skel skel-cta" />
+        </div>
+      </div>
+    );
 
   const bands = isOpen
     ? (state.open as { bands: { i: number; name: string; label: string }[] }).bands
