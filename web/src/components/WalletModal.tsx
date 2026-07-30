@@ -5,8 +5,9 @@ import { KYC_LABEL } from "@/lib/user";
 import { explorerAccount } from "@/lib/xrpl";
 import { fmtAddress, fmtNum, fmtDate } from "@/lib/format";
 import {
-  XIcon, CopyIcon, ExternalLinkIcon, ShieldIcon, VerifiedIcon, CheckIcon,
+  CopyIcon, ExternalLinkIcon, ShieldIcon, VerifiedIcon, CheckIcon,
 } from "./Icons";
+import { Sheet } from "./Sheet";
 
 export function WalletModal({ onClose }: { onClose: () => void }) {
   const { profile, disconnect } = useWallet();
@@ -25,15 +26,29 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Profile</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close" style={iconBtn}>
-            <XIcon size={17} />
-          </button>
-        </div>
-
+    // Sheet, not a bespoke .overlay: it brings a focus trap, Escape-to-close,
+    // scroll lock and a bottom-sheet form on phones — none of which the old
+    // centred modal had. Deliberately the FIRST sheet a user meets, so the
+    // pattern reads as the app's own overlay language rather than something
+    // Spreadcast imported. Restyle only; the disconnect path is untouched.
+    <Sheet
+      open
+      onClose={onClose}
+      title="Profile"
+      footer={
+        <button
+          className="btn btn-ghost btn-block"
+          onClick={() => {
+            disconnect();
+            notify("Wallet disconnected");
+            onClose();
+          }}
+        >
+          Disconnect
+        </button>
+      }
+    >
+      <>
         {/* Identity */}
         <div style={{ display: "flex", alignItems: "center", gap: 13, margin: "18px 0 20px" }}>
           <div style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(135deg, var(--accent), #3aa9ff)", flexShrink: 0 }} />
@@ -115,28 +130,18 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        <button
-          className="btn btn-ghost btn-block"
-          style={{ marginTop: 18 }}
-          onClick={() => {
-            disconnect();
-            notify("Wallet disconnected");
-            onClose();
-          }}
-        >
-          Disconnect
-        </button>
-      </div>
-    </div>
+      </>
+    </Sheet>
   );
 }
 
 const iconBtn: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
-  width: 26,
-  height: 26,
+  width: 36,
+  height: 36,
   borderRadius: 7,
+  flexShrink: 0,
   background: "transparent",
   border: "none",
   color: "var(--muted)",
