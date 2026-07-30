@@ -109,7 +109,7 @@ export function LeaderboardView() {
                   <td>
                     {r.name} {r.verified && <span className="sc-tag v">V</span>}{" "}
                     {r.pending && (
-                      <span className="sc-tag" style={{ color: "var(--amber)", borderColor: "rgba(244,181,62,0.4)" }}>
+                      <span className="sc-tag" style={{ color: "var(--amber)", borderColor: "color-mix(in srgb, var(--amber) 40%, transparent)" }}>
                         prediction in
                       </span>
                     )}{" "}

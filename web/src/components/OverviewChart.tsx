@@ -9,6 +9,7 @@ import { Line } from "react-chartjs-2";
 import { tvlSeries, apySeries } from "@/lib/protocol";
 import type { Range } from "@/lib/protocol";
 import { fmtCompact } from "@/lib/format";
+import { useChartTheme, alpha } from "@/lib/chartTheme";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
@@ -23,19 +24,20 @@ function monoFamily() {
 
 export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; title: string; control?: ReactNode }) {
   const [range, setRange] = useState<Range>("ALL");
+  const t = useChartTheme();
 
   const { data, options } = useMemo(() => {
     const fam = monoFamily();
     const tickFont = { size: 10, family: fam };
     const tooltipBase = {
-      backgroundColor: "#101413",
-      borderColor: "rgba(255,255,255,0.14)",
+      backgroundColor: t.elevated,
+      borderColor: t.border,
       borderWidth: 1,
-      cornerRadius: 0,
+      cornerRadius: 6,
       padding: 10,
       caretSize: 0,
-      titleColor: "#f1f4f2",
-      bodyColor: "#aab2ae",
+      titleColor: t.text,
+      bodyColor: t.text2,
       titleFont: { size: 11, family: fam },
       bodyFont: { size: 11, family: fam },
     };
@@ -45,13 +47,15 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
       const data = {
         labels: s.labels,
         datasets: [
+          // NB: the fills used to be swapped relative to their borders —
+          // green line over a purple fill, purple line over a green fill.
           {
-            label: "Operational sites", data: s.deployed, borderColor: "#34d399",
-            backgroundColor: "rgba(139,147,240,0.1)", fill: true, tension: 0, pointRadius: 0, borderWidth: 1.3,
+            label: "Operational sites", data: s.deployed, borderColor: t.accent,
+            backgroundColor: alpha(t.accent, 0.09), fill: true, tension: 0, pointRadius: 0, borderWidth: 1.3,
           },
           {
-            label: "Replacement fund", data: s.reserves, borderColor: "#8b93f0",
-            backgroundColor: "rgba(52,211,153,0.09)", fill: true, tension: 0, pointRadius: 0, borderWidth: 1.3,
+            label: "Replacement fund", data: s.reserves, borderColor: t.blue,
+            backgroundColor: alpha(t.blue, 0.1), fill: true, tension: 0, pointRadius: 0, borderWidth: 1.3,
           },
         ],
       };
@@ -66,8 +70,8 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
           },
         },
         scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { color: "#6c756f", font: tickFont, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, border: { display: false } },
-          y: { stacked: true, position: "right", grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#6c756f", font: tickFont, maxTicksLimit: 5, callback: (v) => fmtCompact(Number(v), "USD") }, border: { display: false } },
+          x: { stacked: true, grid: { display: false }, ticks: { color: t.muted, font: tickFont, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, border: { display: false } },
+          y: { stacked: true, position: "right", grid: { color: t.grid }, ticks: { color: t.muted, font: tickFont, maxTicksLimit: 5, callback: (v) => fmtCompact(Number(v), "USD") }, border: { display: false } },
         },
       };
       return { data, options };
@@ -78,8 +82,8 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
       labels: s.labels,
       datasets: [
         {
-          label: "APY", data: s.values, borderColor: "#34d399",
-          backgroundColor: "rgba(52,211,153,0.07)", fill: true, tension: 0, pointRadius: 0, borderWidth: 1.4,
+          label: "APY", data: s.values, borderColor: t.accent,
+          backgroundColor: alpha(t.accent, 0.07), fill: true, tension: 0, pointRadius: 0, borderWidth: 1.4,
         },
       ],
     };
@@ -95,12 +99,12 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
         },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: "#6c756f", font: tickFont, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, border: { display: false } },
-        y: { position: "right", grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#6c756f", font: tickFont, maxTicksLimit: 5, callback: (v) => `${v}%` }, border: { display: false } },
+        x: { grid: { display: false }, ticks: { color: t.muted, font: tickFont, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, border: { display: false } },
+        y: { position: "right", grid: { color: t.grid }, ticks: { color: t.muted, font: tickFont, maxTicksLimit: 5, callback: (v) => `${v}%` }, border: { display: false } },
       },
     };
     return { data, options };
-  }, [type, range]);
+  }, [type, range, t]);
 
   return (
     <div className="card">

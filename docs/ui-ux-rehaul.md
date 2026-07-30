@@ -2,7 +2,7 @@
 
 **Branch:** `ui-ux-rehaul`
 **Scope:** `web/` — **design, structure, and UI/UX only.** No backend, no web3 connectors. See [§0](#0-scope-constraint--design-structure-uiux-only).
-**Status:** plan agreed, not yet implemented
+**Status:** Phase 0 (token foundation) complete and verified. Phases 1–3 pending.
 **Last updated:** 2026-07-30
 
 ---
@@ -360,21 +360,34 @@ That collapses O1 + O2 + O2e + O3 + O5 into a single sheet fired at demonstrated
 
 Ordered for **testability**: each phase leaves the app coherent and demoable. Stop at any phase boundary without a broken demo.
 
-### Phase 0 — foundation (do this first, finish it before touching layout)
+### Phase 0 — foundation ✅ **DONE**
 
 Nothing else is verifiable until this lands, and **half-done is worse than not done** — the seam just relocates inside the vaults half.
 
-- [ ] De-literalise **27** `rgba(52,211,153,…)` → `color-mix(in srgb, var(--accent) X%, transparent)`
-- [ ] Thread accent into the 4 Chart.js configs via `getComputedStyle`
-- [ ] `--accent` → `#42E7AA`; `--bg` → `#030907`; rebase the surface ladder (§3.5)
-- [ ] Add `--sheet` + `--toast` steps
-- [ ] `--border` → `0.10`, `--border-2` → `0.14`
-- [ ] Add the 5 radius role tokens; rewrite the **15** hardcoded `border-radius: 0` rules against them
-- [ ] Swap the band ramp; knock `--red`/`--blue`/`--amber` back to match
-- [ ] One `--ease: cubic-bezier(.22,1,.36,1)`; retire `popIn`
-- [ ] Add `prefers-reduced-motion`
-- [ ] `body` 14px → 16px; mono weights → `["400","500"]`; eyebrows → 12px `+0.16em`
-- [ ] Add `export const viewport = { viewportFit: 'cover' }` to `src/app/layout.tsx`
+- [x] De-literalised **26** `rgba(…)` values in `globals.css` + **5** in component inline styles → `color-mix(in srgb, var(--token) X%, transparent)`
+- [x] Threaded tokens into all 3 Chart.js components via a new `src/lib/chartTheme.ts`
+- [x] `--accent` → `#42E7AA`; `--bg` → Carbon `#030907`; surface ladder rebased
+- [x] Added `--sheet` + `--toast` steps
+- [x] `--border` → `0.10` (brand ring value), `--border-2` → `0.14`
+- [x] Added 5 radius role tokens; rewrote the **15** hardcoded `border-radius: 0` rules — **plus an unplanned second wave, see below**
+- [x] Swapped the band ramp; knocked `--red`/`--blue`/`--amber` back
+- [x] One `--ease: cubic-bezier(.22,1,.36,1)`; retired the `popIn` overshoot
+- [x] Added `prefers-reduced-motion`
+- [x] `body` 14px → 16px/26px; mono weights → `["400","500"]`; `.nav-link` eyebrow → 12px `+0.16em`
+- [x] Added `export const viewport = { viewportFit: 'cover', themeColor: '#030907' }`
+- [x] `--nav-h-safe` published; `.page` padding-bottom and `.toasts` repointed at it
+
+**Verified:** `tsc --noEmit` clean · `next build` clean (20/20 routes) · live token read on `/dashboard-v2` confirms `--bg #030907`, `--accent #42e7aa`, `--r-surface 16px`, body `16px/26px`, `.nav-link` `12px/1.92px` tracking · no horizontal overflow, no element overflowing its container.
+
+#### Two things the plan didn't anticipate
+
+**1. Square by omission.** The plan said "rewrite the 15 hardcoded `border-radius: 0` rules". That was necessary but *not sufficient* — a second set of elements had **no `border-radius` declaration at all**, so they defaulted to 0 and the sweep missed them. Found by querying the live DOM for elements with a border/background and a 0 radius. **18 more rules** were given role tokens: `.connect-btn`, `.wallet-pill`, `.chain-btn`, `.chain-menu`, `.badge`, `.sc-pill`, `.sc-tag`, `.v2-projected`, `.chain-net`, `.ribbon`, `.surface`, `.sc-commit-box`, `.sc-prizebar`, `.seg`, `.sc-seg`, `.v2-charts`, `.sc-bands`, `.panel`.
+
+Left deliberately square: `body`, `.nav`, `.bottom-nav` (full-bleed chrome), `.v2-footer`, `.site-total` (divider rows).
+
+**2. The corner-tick motif collided with the radius decision.** `.tick` marks were positioned at `-1px` to hang off a *square* corner. Rounding `.panel` to 16px (and clipping its inner shared borders with `overflow: hidden`) would have clipped them away entirely. They are now inset to `7px` and read as registration marks just inside the curve. **[OPEN]** — this is a real design change to an existing signature; worth a look before Phase 1.
+
+**3. Mono weight sweep was larger than "change the font loader".** Dropping weight 600 from `JetBrains_Mono({weight})` alone would have left **17** mono rules rendering faux-bold. All 17 were capped at the brand's 500 first, so the loader change is safe.
 
 **[VERIFIED]** that last one matters: there is **no viewport export anywhere in `src`**, so `env(safe-area-inset-bottom)` currently evaluates to `0` and the `max(10px, env(...))` already sitting in `.bottom-nav` is dead code.
 
@@ -439,6 +452,19 @@ Stacks cleanly, stops anywhere. **[VERIFIED]** every item here reads from data `
 **Thumb reach.** The game's tabs sit 58–102px from the top — a two-handed stretch on a 6.7". Accepted because the loop is *land-on-Play → act → leave*, not browse-between-tabs.
 
 **The signal we picked wrong:** users tab-hopping repeatedly inside Spreadcast within one session. Then a top-anchored bar is the wrong control and the escalation is a contextual bottom bar. Everything else in this plan survives that change unmodified — it is a cheap thing to be wrong about.
+
+---
+
+## 7b. Bug found while working — not ours to fix, but it will bite
+
+**`/spreadcast` hard-crashes when the game API is unavailable.** Reproduced locally: with no game backend configured, `/api/spreadcast/round` returns **502**, and `PlayView.tsx:353` then does `(state.open as { nextDay: string }).nextDay` on `undefined` → `TypeError` → the whole page white-screens with "This page couldn't load". There is no error boundary.
+
+**[VERIFIED]** pre-existing — `PlayView.tsx` has an empty diff against `HEAD` (`d13c6a9`); nothing in Phase 0 touched it.
+
+Why it matters: if the worker hiccups mid-demo, the game doesn't degrade — it takes the page down. Two candidate fixes, **both UI and both in scope**, but neither belongs in a token pass:
+
+1. Guard the `state.open` access and render the existing "Between rounds" panel with a fallback string.
+2. Add an `error.tsx` boundary under `src/app/spreadcast/` — natural to fold into Phase 2, which creates that layout anyway.
 
 ---
 

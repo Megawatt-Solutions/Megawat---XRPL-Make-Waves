@@ -502,7 +502,7 @@ function SiteOverviewCard({ vault }: { vault: Vault }) {
         <Row k="Operator" v="Megawatt" />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 16 }}>
-        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid rgba(107,140,255,0.2)" }}>
+        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
           <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={17} /></span>
           <div style={{ fontSize: 12, color: "var(--text-2)" }}>
             Off-chain showcase — one of our operational sites, shown for transparency. Not an investable vault.

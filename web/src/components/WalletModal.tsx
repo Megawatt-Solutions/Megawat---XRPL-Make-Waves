@@ -58,7 +58,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
         <div
           style={{
             background: verified ? "var(--accent-dim)" : "var(--amber-dim)",
-            border: `1px solid ${verified ? "rgba(52,211,153,0.25)" : "rgba(244,181,62,0.25)"}`,
+            border: `1px solid ${verified ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--amber) 25%, transparent)"}`,
             borderRadius: 13,
             padding: 15,
             marginBottom: 14,
