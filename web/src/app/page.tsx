@@ -3,6 +3,7 @@ import { VaultCard } from "@/components/VaultCard";
 import { VAULTS, dashboardMetrics, vaultsByStatus } from "@/lib/vaults";
 import { fmtCompact, fmtNum } from "@/lib/format";
 import { CoinsIcon, ShieldIcon, LayersIcon, BoltIcon } from "@/components/Icons";
+import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export default function DashboardPage() {
   const m = dashboardMetrics();
@@ -15,6 +16,7 @@ export default function DashboardPage() {
 
   return (
     <main className="page">
+      <SpreadcastStrip />
       <div className="page-head">
         <div className="page-title">Vaults</div>
         <div className="page-sub">

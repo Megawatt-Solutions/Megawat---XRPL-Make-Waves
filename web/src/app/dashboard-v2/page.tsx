@@ -6,6 +6,7 @@ import { NetworkPanel } from "@/components/NetworkPanel";
 import { Sparkline } from "@/components/Sparkline";
 import { PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
 import { fmtPct, bpsToPct, fmtMoney, fmtCompact } from "@/lib/format";
+import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 function Ticks() {
   return (
@@ -36,6 +37,7 @@ export default function DashboardV2Page() {
 
   return (
     <main className="page">
+      <SpreadcastStrip />
       {/* Status ribbon */}
       <div className="ribbon">
         <div className="ribbon-group">

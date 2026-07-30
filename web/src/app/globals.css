@@ -2712,6 +2712,101 @@ body { overflow-x: hidden; }
   filter: brightness(0.92);
 }
 
+/* ─── Vault spread line ───────────────────────────────────────────
+   The product argument in one row: a BESS earns by buying at the
+   day's low and selling at the day's high, so the spread IS the
+   revenue. Sits under a vault's revenue figure and links to the game
+   that asks you to predict it. */
+.vsl {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  transition: border-color 0.15s, background 0.15s;
+}
+.vsl:hover { border-color: var(--border-2); background: var(--card-2); }
+.vsl-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.vsl-value { font-size: 16px; font-weight: 620; letter-spacing: -0.01em; }
+.vsl-unit { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: -4px; }
+
+/* ─── Spreadcast cross-sell strip ─────────────────────────────────
+   The only thing the vaults half gets back from the game. Full-bleed
+   panel with a rule painted in the five band colours, so the strip is
+   visually of the game without borrowing the accent's 2% budget. */
+.scs {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  margin-bottom: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-surface);
+  transition: border-color 0.15s;
+}
+.scs:hover { border-color: var(--border-2); }
+.scs-rule {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--sc-b0, #7fa8d9),
+    var(--sc-b1, #55b89a),
+    var(--sc-b2, #d9b356),
+    var(--sc-b3, #d98d4f),
+    var(--sc-b4, #d96a6a)
+  );
+}
+.scs-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 18px 20px 16px;
+}
+.scs-eyebrow {
+  font-family: var(--mono);
+  font-size: var(--eyebrow-size);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.scs-title { font-size: 18px; font-weight: 650; letter-spacing: -0.015em; margin-top: 6px; }
+.scs-sub { font-size: 13px; color: var(--text-2); margin-top: 4px; max-width: 52ch; }
+.scs-clock {
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.scs-clock .num { font-size: 22px; font-weight: 500; }
+.scs-clock small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .scs-body { padding: 16px; gap: 12px; }
+  .scs-clock { text-align: left; }
+  .scs-clock .num { font-size: 18px; }
+}
+
 /* ═══ Sheet primitive ═════════════════════════════════════════════
    Bottom sheet <=980px, centred dialog >=981px. z-index 950: above
    .nav (50) and .bottom-nav (60), below .overlay (1000) so the XRPL

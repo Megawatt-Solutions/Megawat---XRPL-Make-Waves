@@ -19,6 +19,7 @@ import {
   ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon, WalletIcon,
 } from "./Icons";
 import { Flag } from "./Flag";
+import { VaultSpreadLine } from "./spreadcast/DailySpread";
 
 // Operational reads green like every other live signal — see NetworkPanel.
 const STATUS_DOT: Record<Vault["status"], string> = {
@@ -313,6 +314,9 @@ function RevenueCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof si
         {fmtMoney(snap.grossYtd, vault.currency, 0)}
       </div>
       <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>Gross revenue · year to date</div>
+      {/* The thesis, in one row: this revenue comes from the day-ahead spread,
+          which is the exact number Spreadcast asks you to predict. */}
+      <VaultSpreadLine />
       <div className="divider" />
       <div className="rows">
         <div className="row"><span className="row-key">Net revenue (YTD)</span><span className="row-val accent num">{fmtMoney(snap.netYtd, vault.currency, 0)}</span></div>
