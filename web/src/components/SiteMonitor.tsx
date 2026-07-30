@@ -40,7 +40,7 @@ export function SiteMonitor({ vault }: { vault: Vault }) {
             <div style={{ fontSize: 30, fontWeight: 680 }} className="num">{tel.weather.tempC}°C</div>
             <div style={{ textAlign: "left" }}>
               <div style={{ fontWeight: 600 }}>{tel.weather.condition}</div>
-              <div className="muted" style={{ fontSize: 12.5 }}>{tel.weather.location}</div>
+              <div className="muted" style={{ fontSize: 13 }}>{tel.weather.location}</div>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ function DeviceCard({ group }: { group: DeviceGroup }) {
     <div className="card" style={{ padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontWeight: 620, fontSize: 14 }}>{group.label}</div>
-        <span className="muted" style={{ fontSize: 11.5 }}>{group.deviceCount} {group.deviceCount === 1 ? "Device" : "Devices"}</span>
+        <span className="muted" style={{ fontSize: 12 }}>{group.deviceCount} {group.deviceCount === 1 ? "Device" : "Devices"}</span>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px" }}>
         {group.metrics.map((mm) => (
@@ -116,7 +116,7 @@ function SiteOverview({ vault }: { vault: Vault }) {
       </div>
       <div style={{ display: "flex", gap: 8, padding: 11, marginTop: 12, borderRadius: 10, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
         <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={15} /></span>
-        <div style={{ fontSize: 11.5, color: "var(--text-2)" }}>Off-chain showcase of a live Megawatt site. Not an investable vault.</div>
+        <div style={{ fontSize: 12, color: "var(--text-2)" }}>Off-chain showcase of a live Megawatt site. Not an investable vault.</div>
       </div>
     </div>
   );

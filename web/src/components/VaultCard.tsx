@@ -78,7 +78,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <div className="progress">
             <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: 11.5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: 12 }}>
             <span className="accent" style={{ fontWeight: 600 }}>{Math.round(progress * 100)}% funded</span>
             <span className="muted num">
               {fmtCompact(vault.raised, vault.currency)} / {fmtCompact(vault.capex, vault.currency)}

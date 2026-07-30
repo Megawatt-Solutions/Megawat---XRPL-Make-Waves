@@ -48,14 +48,14 @@ export function VaultsOverview() {
       <div className="alloc-legend">
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px" }}>
           {[...alloc.deployed, ...alloc.pipeline].map((s) => (
-            <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5 }}>
+            <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13 }}>
               <span className="dot" style={{ background: s.color }} />
               <span className="dim">{s.label}</span>
               <span className="num" style={{ fontWeight: 600 }}>{fmtCompact(s.value, "USD")}</span>
             </span>
           ))}
         </div>
-        <div className="muted" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>
+        <div className="muted" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
           Total: <span className="num" style={{ color: "var(--text)", fontWeight: 650 }}>{fmtCompact(alloc.total, "USD")}</span>
           <span className="section-count" style={{ marginLeft: 8 }}>{totalCount} vaults</span>
         </div>
@@ -79,7 +79,7 @@ export function VaultsOverview() {
           {groups.map((g) => (
             <div key={g.group}>
               <div className="v2-row v2-group" style={{ gridTemplateColumns: COLS }}>
-                <span style={{ fontFamily: "var(--mono)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 10.5 }}>
+                <span style={{ fontFamily: "var(--mono)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 11 }}>
                   {g.group === "deployed" ? "Total Deployed" : "Total Pipeline"} <span className="muted">{g.count} vaults</span>
                 </span>
                 <span className="num">{fmtCompact(g.total, "USD")}</span>
@@ -110,13 +110,13 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
           {v.spec.hasSolar ? <SunIcon size={15} /> : <BatteryIcon size={15} />}
         </span>
         <span style={{ minWidth: 0 }}>
-          <span style={{ fontWeight: 600, fontSize: 13.5, display: "block" }}>{v.name}</span>
-          <span className="muted" style={{ fontSize: 11.5 }}><Flag code={v.flag} size={12} /> {v.location}</span>
+          <span style={{ fontWeight: 600, fontSize: 14, display: "block" }}>{v.name}</span>
+          <span className="muted" style={{ fontSize: 12 }}><Flag code={v.flag} size={12} /> {v.location}</span>
         </span>
       </span>
       <span className="num">
         {fmtCompact(row.amount, v.currency)}
-        <span className="muted" style={{ fontSize: 11.5 }}> ({row.utilizationPct.toFixed(0)}%)</span>
+        <span className="muted" style={{ fontSize: 12 }}> ({row.utilizationPct.toFixed(0)}%)</span>
       </span>
       <span className="num">{fmtPct(bpsToPct(row.apyBps))}</span>
       <span className="num accent">{row.contributionBps > 0 ? `+${fmtPct(bpsToPct(row.contributionBps))}` : "—"}</span>

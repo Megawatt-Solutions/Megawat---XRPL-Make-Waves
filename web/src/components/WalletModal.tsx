@@ -47,7 +47,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 <ExternalLinkIcon size={14} />
               </a>
             </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
               XRPL · Mainnet · {profile.via === "xaman" ? "Xaman sign-in" : "watch-only"}
               {profile.funded ? "" : " · unfunded (1 XRP base reserve)"}
             </div>
@@ -70,9 +70,9 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 {accredited ? <VerifiedIcon size={20} /> : <ShieldIcon size={20} />}
               </span>
               <div>
-                <div style={{ fontWeight: 620, fontSize: 13.5 }}>{KYC_LABEL[profile.kycLevel]}</div>
+                <div style={{ fontWeight: 620, fontSize: 14 }}>{KYC_LABEL[profile.kycLevel]}</div>
                 {profile.kycIssuer && (
-                  <div className="muted" style={{ fontSize: 11.5 }}>
+                  <div className="muted" style={{ fontSize: 12 }}>
                     {profile.kycIssuer}
                     {profile.kycIssuedAt ? ` · ${fmtDate(profile.kycIssuedAt)}` : ""}
                   </div>
@@ -109,7 +109,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {!profile.rlusdTrustline && (
-          <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
+          <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
             Vault deposits settle in RLUSD — you&apos;ll be asked to set the RLUSD trustline when fundraising
             opens.
           </p>

@@ -64,7 +64,7 @@ export default function MarketplacePage() {
 
       <div className="section-head">
         <div className="section-title">Open Listings <span className="section-count">{views.length}</span></div>
-        <span className="muted" style={{ fontSize: 12.5 }}>Settled in USDC</span>
+        <span className="muted" style={{ fontSize: 13 }}>Settled in USDC</span>
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
@@ -106,7 +106,7 @@ export default function MarketplacePage() {
             </div>
             <div style={{ textAlign: "right" }} className="num">
               {fmtNum(lv.listing.shares)}
-              <div className="muted" style={{ fontSize: 11.5 }}>{fmtMoney(lv.listing.pricePerShare, "USD")}/sh</div>
+              <div className="muted" style={{ fontSize: 12 }}>{fmtMoney(lv.listing.pricePerShare, "USD")}/sh</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <span className={`badge ${lv.premiumBps >= 0 ? "badge-fundraising" : "badge-active"}`}>{premiumStr(lv.premiumBps)}</span>
@@ -168,7 +168,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
                     color: "var(--text)",
                   }}
                 >
-                  <span style={{ fontWeight: 600, fontSize: 13.5 }}>{v.name}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
                   <span className="muted num" style={{ fontSize: 12 }}>{fmtNum(p.shares)} {v.symbol}</span>
                 </button>
               );

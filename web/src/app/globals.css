@@ -2554,6 +2554,23 @@ body { overflow-x: hidden; }
   .sc-locked .btn { width: 100%; }
 }
 
+/* Hero number of a detail card. ClaimCard, RevenueCard and FundraisingCard
+   all render the same slot — left-top of .detail-main — and all had the same
+   weight and tracking, but at 40 / 34 / 32px respectively. They are mutually
+   exclusive by vault status, so nobody ever saw two at once and the drift
+   went unnoticed: the page simply weighed differently depending on which
+   kind of vault you opened. One size, on the brand's h3 step. */
+.card-hero-num {
+  font-size: 32px;
+  font-weight: 690;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-top: 14px;
+}
+@media (max-width: 480px) {
+  .card-hero-num { font-size: 26px; }
+}
+
 /* ─── Skeletons ───────────────────────────────────────────────────
    Loading used to collapse a whole view to one line of muted text,
    then snap to full content — a jarring jump on the surface people

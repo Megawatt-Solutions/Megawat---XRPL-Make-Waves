@@ -314,7 +314,7 @@ function XrplConnectModal({
                 autoFocus
               />
             </div>
-            <p className="muted" style={{ fontSize: 11.5, margin: "2px 0 14px" }}>
+            <p className="muted" style={{ fontSize: 12, margin: "2px 0 14px" }}>
               {phase.reason ??
                 "Watch-only link (no signature). Xaman sign-in activates once XUMM API keys are configured on the server."}
             </p>
