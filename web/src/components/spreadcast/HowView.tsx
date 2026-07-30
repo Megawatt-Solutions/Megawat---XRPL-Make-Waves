@@ -22,10 +22,10 @@ export function HowView() {
         <div className="panel sc-panel">
           <h2 className="sc-how-h">THE CLOCK</h2>
           <div className="sc-timeline">
-            <div className="t"><b>15:00 CET</b><span>Predictions open for the day after tomorrow.</span></div>
-            <div className="t"><b>11:45 CET</b><span>Predictions close — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
-            <div className="t"><b>~13:00 CET</b><span>Auction results publish.</span></div>
-            <div className="t"><b>15:00 CET</b><span>Results are scored automatically from the official published prices.</span></div>
+            <div className="t"><b>15:00 Ljubljana time</b><span>Predictions open for the day after tomorrow.</span></div>
+            <div className="t"><b>11:45 Ljubljana time</b><span>Predictions close — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
+            <div className="t"><b>~13:00 Ljubljana time</b><span>Auction results publish.</span></div>
+            <div className="t"><b>15:00 Ljubljana time</b><span>Results are scored automatically from the official published prices.</span></div>
           </div>
         </div>
 

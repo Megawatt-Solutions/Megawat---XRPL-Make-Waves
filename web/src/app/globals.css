@@ -2356,6 +2356,20 @@ body { overflow-x: hidden; }
 .sc-hist span { flex: 1; min-height: 3px; opacity: 0.85; }
 .sc-hist span:hover, .sc-hist span:focus-visible { opacity: 1; }
 .sc-hist-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; }
+
+/* Chart readout — replaces the hover tooltip on touch. Reserves its own line
+   so the layout doesn't shift as the value changes, and is a live region so
+   the value is announced rather than only drawn. */
+.sc-readout {
+  min-height: 20px;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.sc-bar-tip { cursor: pointer; touch-action: manipulation; }
 .sc-band-hint {
   font-family: var(--mono);
   font-size: 9px;

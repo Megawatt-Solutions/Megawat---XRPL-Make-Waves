@@ -81,7 +81,7 @@ export const STEPS: OnboardingStep[] = [
     body:
       "Spreadcast asks you to predict how far apart tomorrow's highest and lowest electricity prices will be — the exact number the batteries earn on. One pick a day, free, no purchase.",
     points: [
-      "Pick a band before 11:45 CET",
+      "Pick a band before 11:45 Ljubljana time",
       "It settles against official European market prices",
       "Your pick is committed on-chain before the result exists",
     ],

@@ -59,6 +59,9 @@ export function PlayView() {
   // below — they cannot move down next to the render that uses them.
   const [resultSeen, setResultSeen] = useState(true);
   const [editing, setEditing] = useState(false);
+  // Chart readouts — the touch-reachable replacement for hover tooltips.
+  const [tip, setTip] = useState<string | null>(null);
+  const [hourTip, setHourTip] = useState<string | null>(null);
   const latestDay = state?.latest?.day ?? null;
   const hasMyResult = !!state?.latest?.mine;
   useEffect(() => {
@@ -485,18 +488,33 @@ export function PlayView() {
                 <h2 style={{ marginBottom: 0 }}>Recent swings · last {history.length} days</h2>
                 <span className="sc-pill">real market data</span>
               </div>
-              <div className="sc-hist">
+              {/* Tap/hover updates the readout below rather than firing a
+                  tooltip. A hover tooltip is invisible on touch, and making
+                  60 bars individually focusable would add 60 tab stops — a
+                  single caption is reachable, readable and announces once. */}
+              <div
+                className="sc-hist"
+                onPointerDown={(e) => {
+                  const t = (e.target as HTMLElement).closest("[data-tip]");
+                  if (t) setTip(t.getAttribute("data-tip"));
+                }}
+                onPointerLeave={() => setTip(null)}
+              >
                 {history.map((h) => (
                   <span
                     key={h.day}
                     className="sc-bar-tip"
                     data-tip={`${shortDay(h.day)} · ${h.swing.toFixed(0)} €/MWh · ${BAND_NAMES[bandOfSwing(h.swing)]}`}
+                    onPointerEnter={(e) => setTip(e.currentTarget.getAttribute("data-tip"))}
                     style={{
                       height: `${8 + (h.swing / histMax) * 90}%`,
                       background: `var(${BAND_VARS[bandOfSwing(h.swing)]})`,
                     }}
                   />
                 ))}
+              </div>
+              <div className="sc-readout" role="status" aria-live="polite">
+                {tip ?? `Last ${history.length} days · tap a bar for the day`}
               </div>
               <div className="sc-hist-stats">
                 <span className="sc-mono muted">avg {histAvg.toFixed(0)} €/MWh</span>
@@ -537,7 +555,14 @@ export function PlayView() {
                     <span className="sc-pill">your pick missed — streak reset</span>
                   ))}
               </div>
-              <div className="sc-spark">
+              <div
+                className="sc-spark"
+                onPointerDown={(e) => {
+                  const t = (e.target as HTMLElement).closest("[data-tip]");
+                  if (t) setHourTip(t.getAttribute("data-tip"));
+                }}
+                onPointerLeave={() => setHourTip(null)}
+              >
                 {latest.hourly.map((v, i) => {
                   const t = (v - hourlyMin) / (hourlyMax - hourlyMin || 1);
                   return (
@@ -545,6 +570,7 @@ export function PlayView() {
                       key={i}
                       className="sc-bar-tip"
                       data-tip={`${String(i).padStart(2, "0")}:00 · ${v.toFixed(2)} €/MWh`}
+                      onPointerEnter={(e) => setHourTip(e.currentTarget.getAttribute("data-tip"))}
                       style={{
                         height: `${6 + t * 92}%`,
                         background: v < 0 ? "var(--sc-b0)" : `color-mix(in srgb, var(--sc-b4) ${Math.round(t * 100)}%, var(--sc-b1))`,
@@ -553,8 +579,11 @@ export function PlayView() {
                   );
                 })}
               </div>
+              <div className="sc-readout" role="status" aria-live="polite">
+                {hourTip ?? "Hourly prices, 00–23 · tap a bar for the hour"}
+              </div>
               <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-                hourly prices, 00–23 · blue = price went negative · full details under Results
+                blue = price went negative · full details under Results
               </p>
             </div>
           )}
