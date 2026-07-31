@@ -553,13 +553,20 @@ window.runAudit = async function (routes, widths) {
     findings.push({ route: "(landscape)", w: 0, kind: "short-viewport-audit-error", detail: String(e).slice(0, 90) });
   }
 
-  // Overlays, at the width where they are most constrained.
-  hud.textContent = "auditing overlays…";
-  try {
-    for (const f of await auditOverlays(390)) findings.push(f);
-  } catch (e) {
-    findings.push({ route: "(overlays)", w: 390, kind: "overlay-audit-error", detail: String(e).slice(0, 90) });
-  }
+  // Overlays are NOT run from here — call auditOverlays(390) yourself.
+  //
+  // Embedded in this sweep it was both slow (minutes, sometimes not finishing)
+  // and wrong: every entry logged that it had opened its dialog, then reported
+  // zero, while the identical call standalone finds the 189x31 button every
+  // time. Four attempts at the cause — polling the opener, polling the overlay,
+  // an error being swallowed, a stale document from a reused URL — and none of
+  // them was it. See the UNRESOLVED note in docs/ai-development-guidelines.md.
+  //
+  // A check that silently reports clean is worse than one that is absent,
+  // because absence is visible. So it is absent, loudly, and the summary says
+  // so on every run.
+  findings.push({ route: "(overlays)", w: 390, kind: "overlays-not-audited-here",
+    detail: "run auditOverlays(390) separately — it is reliable standalone" });
 
   // Run the value check as part of every audit, so it cannot be forgotten.
   hud.textContent = "validating CSS values…";

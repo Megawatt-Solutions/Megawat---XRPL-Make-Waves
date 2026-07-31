@@ -151,7 +151,36 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
-### ⚠ UNRESOLVED: the overlay pass finds the connect dialog standalone but not in a full sweep
+### RESOLVED: the dev server degrades under sweep load
+
+The overlay pass found the connect dialog when run on its own and reported zero
+inside a full sweep. Four hypotheses about the harness were wrong. It was the
+**environment**.
+
+The evidence that settled it: on a **freshly restarted** dev server,
+`auditOverlays(390)` completes in 58s and finds the 189×31 button. Run the same
+code against a server that has just absorbed 77 route loads and it hangs or
+returns nothing — and by then even a standalone call fails, which is what
+finally gave it away. Early in a session it worked; late in the same session,
+identical code did not.
+
+That explains every observation at once: standalone-early works, a 2-route
+sweep works, the full 77-combination sweep does not, and the overlay pass is
+the victim because it runs **last**.
+
+**So: restart the dev server, then call `auditOverlays(390)`.** It is not part
+of `runAudit()` and should not be — it needs a server that has not just been
+hammered. `runAudit()` emits `overlays-not-audited-here` on every run so the gap
+is in the output rather than in a document nobody opens.
+
+The general lesson is the one this whole loop keeps relearning: **when a check
+disagrees with itself, suspect the harness and its environment before the
+code.** Four rounds were spent on polling, hydration, swallowed errors and
+stale documents — all plausible, all wrong — because the failure looked like a
+logic bug. The tell was that the standalone path degraded *during* the session,
+which no logic bug does.
+
+### (historical) the four dead ends
 
 `auditOverlays(390)` called on its own reports
 `small-tap-target 189x31` for the connect dialog, reliably, three runs in a row.
@@ -176,13 +205,10 @@ So the dialog *is* being opened; the failure is inside `audit()` not seeing the
 button once it is there. That rules out the entire "cannot reach the modal"
 family and is where the next attempt should start.
 
-So **do not read a zero from a full sweep as proof the overlays are clean.** Run
-`auditOverlays(390)` directly, which does work. The cause is still unknown and
-this note stays until someone finds it.
-
-Recording it rather than quietly leaving a check that reports what you want to
-hear. A suite that is wrong in one known way you can work around; a suite that
-is wrong in a way nobody wrote down is just decoration.
+Kept as a record of what a wrong diagnosis looks like. A check that silently
+reports clean is worse than one that is absent, because absence is visible and
+a false zero is not — which is why `runAudit()` now announces the gap instead
+of quietly passing.
 
 ### A finding that appears in some runs is worse than one that never appears
 
