@@ -151,6 +151,49 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
+### The audit now reports 1 finding, and that is correct
+
+`small-tap-target · button · 189x31` on the Sell/connect overlay. It is the
+"Use a watch-only address instead" button at `lib/wallet.tsx:290`, out of scope
+for this rehaul and written up in [`wallet-tsx-handoff.md`](./wallet-tsx-handoff.md).
+
+Earlier sweeps reported zero. That was not because the app was clean — it was
+because the tap-target check exempted `display: inline` controls, and this
+button happens to be styled inline. Narrowing that exemption made a real defect
+visible. **A count that goes up after a check is fixed is the check working.**
+
+Leave it reporting until the button is fixed. Suppressing a true finding to keep
+a zero is how a suite becomes decorative.
+
+### Type is set in px, so it ignores the user's font-size setting
+
+**147 CSS declarations plus 88 inline in TSX use `px` for `font-size`. Two use
+anything relative.** `body` hardcodes `16px`, which overrides the user's own
+default.
+
+Browser **zoom** still scales px, so this is not a WCAG 1.4.4 failure. What it
+misses is the other control — a raised default font size, which only rem/em type
+responds to. Users who need larger text and reach for that setting rather than
+zoom get **no change at all**, and they are the group least likely to know zoom
+exists.
+
+**Not migrated, and the reason is a boundary rather than a judgement call.**
+Seven of those declarations are in `lib/wallet.tsx`. Converting the other 228
+would leave the connect modal as the only text in the app that ignores the
+setting — a permanent inconsistency baked into a 235-declaration rewrite of
+every text size in the product. That is not a change to make autonomously.
+
+`auditTextScale(routes, width)` exists in the harness for whoever takes it on.
+It is deliberately **not** part of `runAudit()`: it would report a known and
+accepted state on every run, and a check that always fails teaches people to
+skip the output. Run it during the migration, not before.
+
+⚠ Its first version filtered **for** `overflow: visible` when looking for
+clipped text — which is the one value that cannot clip. It reported two elements
+that render perfectly well. Clipping needs `hidden`/`clip`/`scroll`/`auto`. It
+also now diffs against the same measurement at the default root size, so
+pre-existing overflow is not blamed on the text scale.
+
 ### Audit the states the demo data cannot reach
 
 No vault in `vaults.ts` is `fundraising` or `active` — all six are `showcase`

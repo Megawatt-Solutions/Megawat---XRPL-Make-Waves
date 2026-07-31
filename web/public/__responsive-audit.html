@@ -49,6 +49,68 @@ const OVERLAYS = [
   { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
 ];
 
+// ── User font-size preference ────────────────────────────────────────────
+// Browser zoom scales everything including px, so a px-only stylesheet still
+// "works" under zoom. What it ignores is the OTHER control: a raised default
+// font size, which only rem/em type responds to. Users who need larger text
+// and reach for that setting rather than zoom get nothing at all.
+//
+// Two things are checked, because a migration to rem can fail in both
+// directions: type that still does not respond, and type that responds so
+// enthusiastically it overflows a fixed-height box.
+async function auditTextScale(routes, width) {
+  const findings = [];
+  for (const route of routes) {
+    await load("http://localhost:3000" + route, width, 900);
+    const d = stage.contentDocument, win = stage.contentWindow;
+    const sample = () => [...d.querySelectorAll("p, h1, h2, .btn, .page-sub, .tile-sub, .bottom-nav-item")]
+      .slice(0, 25).map((el) => parseFloat(win.getComputedStyle(el).fontSize));
+    const before = sample();
+
+    d.documentElement.style.fontSize = "24px"; // a common large-text setting
+    await new Promise((r) => setTimeout(r, 350));
+    const after = sample();
+    const responded = after.filter((v, i) => v > before[i] + 0.5).length;
+
+    // Text that the larger size pushes out of a box that actually CLIPS.
+    //
+    // The first version of this filtered FOR overflow:visible, which is exactly
+    // where content does not get clipped — it just paints outside its box. It
+    // duly reported two elements that render perfectly well. Clipping needs
+    // hidden/clip/scroll/auto; visible is the one value that cannot clip.
+    //
+    // Compared against the same measurement at the default root size, so
+    // pre-existing overflow is not attributed to the text scale.
+    const clipsNow = () => new Set(
+      [...d.querySelectorAll("body *")].filter((el) => {
+        const s = win.getComputedStyle(el);
+        const clips = /hidden|clip|scroll|auto/.test(s.overflowY) || /hidden|clip/.test(s.overflow);
+        return clips && el.clientHeight > 0 && el.scrollHeight > el.clientHeight + 2;
+      }).map(describe)
+    );
+    const clippedScaled = clipsNow();
+    const docOverflow = d.documentElement.scrollWidth > win.innerWidth + 1;
+
+    d.documentElement.style.fontSize = "";
+    await new Promise((r) => setTimeout(r, 250));
+    const clippedBase = clipsNow();
+
+    if (before.length && responded === 0) {
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "text-ignores-user-font-size",
+        detail: `0 of ${before.length} sampled elements responded to a 24px root` });
+    }
+    for (const el of clippedScaled) {
+      if (clippedBase.has(el)) continue; // already clipped before scaling; not this check's finding
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "fixed-box-clips-scaled-text", el });
+    }
+    if (docOverflow) {
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "scaled-text-overflows-page",
+        detail: `${d.documentElement.scrollWidth} > ${win.innerWidth}` });
+    }
+  }
+  return findings;
+}
+
 // ── Short viewports ──────────────────────────────────────────────────────
 // Every width in WIDTHS is audited at 800–900px tall, so a rotated phone —
 // about 390px — was never seen. That is where fixed chrome stops being a
