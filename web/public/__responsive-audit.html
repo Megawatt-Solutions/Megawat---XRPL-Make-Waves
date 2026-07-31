@@ -126,9 +126,14 @@ async function semantics() {
     return cs.display !== "none" && cs.visibility !== "hidden" && r.width > 0 && r.height > 0;
   };
   const headings = () => [...doc.querySelectorAll("h1,h2,h3,h4,h5,h6")].filter(vis);
+  // Poll rather than wait a fixed beat. A single 1200ms retry was enough when
+  // run alone and NOT enough during a 70-load sweep against a dev server that
+  // compiles on demand — so it reported no-h1 for a page whose h1 was there.
+  // An intermittently wrong check is worse than no check: it teaches you to
+  // dismiss the finding, which is exactly what you must not do to a real one.
   let hs = headings();
-  if (!hs.some((h) => h.tagName === "H1")) {
-    await new Promise((r) => setTimeout(r, 1200)); // async heading? give it a beat
+  for (let waited = 0; waited < 5000 && !hs.some((h) => h.tagName === "H1"); waited += 250) {
+    await new Promise((r) => setTimeout(r, 250));
     hs = headings();
   }
   const levels = hs.map((h) => +h.tagName[1]);

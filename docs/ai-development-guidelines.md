@@ -116,6 +116,36 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### The screens nobody designs
+
+The 404 was the framework's default — a bare "This page could not be found."
+inside our own nav, the one screen in the app that looked like it belonged to a
+different product. And it is not rare: vault URLs get shared and bookmarked, and
+a link to a vault that has been renamed or closed lands exactly there.
+
+`app/not-found.tsx` treats it as an **empty state, not an error** — nothing went
+wrong, the address just points at nothing — so it reuses the `.empty-state`
+idiom and spends its space on exits rather than on apologising.
+
+`app/error.tsx` is the root boundary. Spreadcast had one since it was built;
+the vaults half had none, so any runtime error on `/`, `/portfolio`,
+`/marketplace`, `/dashboard-v2` or a vault page fell through to the framework
+screen — no nav, no way back, no indication which half broke.
+
+**Be careful what an error boundary promises.** The first draft said "nothing
+was submitted and nothing changed on-chain". A boundary catches a *render*
+error and cannot know whether a transaction submitted a moment earlier went
+through. It can only speak for what it knows: this page failed to draw. Saying
+more is the same class of mistake as fabricating a number.
+
+**Test the boundary by actually throwing.** An untested error screen is the
+classic thing that turns out to be broken at the exact moment it is needed. Add
+a temporary route that throws, look at it, delete it in the same pass.
+
+⚠ Do not name that route `_something`. Folders prefixed with `_` are **private**
+in the App Router and are never routed, so the test silently renders the 404
+instead of the boundary and the check appears to fail for the wrong reason.
+
 ### Silent changes, and the `.sr-only` utility
 
 There was no way to say something to a screen reader without also drawing it,
