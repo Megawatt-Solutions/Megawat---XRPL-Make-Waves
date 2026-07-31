@@ -107,7 +107,7 @@ function DeviceCard({ group }: { group: DeviceGroup }) {
 function SiteOverview({ vault }: { vault: Vault }) {
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ fontWeight: 620, fontSize: 14, marginBottom: 8 }}>Site Overview</div>
+      <div style={{ fontWeight: 620, fontSize: 14, marginBottom: 8 }}>Site overview</div>
       <div className="rows">
         <div className="row"><span className="row-key">CapEx</span><span className="row-val num">{fmtCompact(vault.capex, vault.currency)}</span></div>
         <div className="row"><span className="row-key">Annual revenue</span><span className="row-val num accent">{vault.annualRevenueRange ? `${fmtCompact(vault.annualRevenueRange[0], vault.currency)}–${fmtCompact(vault.annualRevenueRange[1], vault.currency)}` : fmtCompact(vault.annualRevenue, vault.currency)}</span></div>

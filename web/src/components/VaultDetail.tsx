@@ -406,7 +406,7 @@ function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: n
   return (
     <div className="card">
       <div className="card-title">
-        Yield Breakdown
+        Yield breakdown
         <span className="muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
           <ClockIcon size={12} /> Updated {fmtAgo(updatedAgo)}
         </span>
@@ -442,7 +442,7 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
   return (
     <div className="card">
       <div className="card-title">
-        State of Charge
+        State of charge
         <span className={`badge ${charging ? "badge-active" : "badge-fundraising"}`}>
           {charging ? "↑ Charging" : snap.mode === "idle" ? "Idle" : "↓ Discharging"}
         </span>
@@ -486,14 +486,14 @@ function Mini({ label, value }: { label: string; value: string }) {
 function LatestMetricsCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof simulate> }) {
   return (
     <div className="card">
-      <div className="card-title">Latest BESS Metrics</div>
+      <div className="card-title">Latest BESS metrics</div>
       <div className="rows" style={{ marginTop: 6 }}>
-        <Row k="Gross Revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency)} />
-        <Row k="Net Revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency)} accent />
-        <Row k="Energy Charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
-        <Row k="Energy Discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
-        <Row k="Activation Events" v={fmtNum(snap.activations)} />
-        <Row k="Data Source" v={vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"} />
+        <Row k="Gross revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency)} />
+        <Row k="Net revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency)} accent />
+        <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+        <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
+        <Row k="Activation events" v={fmtNum(snap.activations)} />
+        <Row k="Data source" v={vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"} />
       </div>
     </div>
   );
@@ -518,7 +518,7 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
   ];
   return (
     <div className="card">
-      <div className="card-title">Use of Funds</div>
+      <div className="card-title">Use of funds</div>
       <div className="segbar" style={{ marginTop: 16 }}>
         {items.map((it) => (
           <span key={it.label} style={{ width: `${it.pct}%`, background: it.color }}>{it.pct >= 12 ? `${it.pct}%` : ""}</span>
@@ -542,7 +542,7 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
 function SiteDetailsCard({ vault }: { vault: Vault }) {
   return (
     <div className="card">
-      <div className="card-title">Project Details</div>
+      <div className="card-title">Project details</div>
       <div className="rows" style={{ marginTop: 6 }}>
         <Row k="Power / Energy" v={`${fmtPower(vault.spec.powerKw)} / ${fmtEnergy(vault.spec.energyKwh)}`} />
         <Row k="Chemistry" v={vault.spec.chemistry} />
@@ -559,7 +559,7 @@ function SiteDetailsCard({ vault }: { vault: Vault }) {
 function SiteOverviewCard({ vault }: { vault: Vault }) {
   return (
     <div className="card">
-      <div className="card-title">Site Overview</div>
+      <div className="card-title">Site overview</div>
       <div className="rows" style={{ marginTop: 6 }}>
         <Row k="CapEx" v={fmtCompact(vault.capex, vault.currency)} />
         <Row k="Annual revenue" v={vault.annualRevenueRange ? `${fmtCompact(vault.annualRevenueRange[0], vault.currency)}–${fmtCompact(vault.annualRevenueRange[1], vault.currency)}` : fmtCompact(vault.annualRevenue, vault.currency)} accent />
@@ -610,7 +610,7 @@ function PositionCard(props: {
 
   return (
     <div className="card">
-      <div className="card-title">Your Position</div>
+      <div className="card-title">Your position</div>
       <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "16px 0 6px" }}>
         <Donut
           size={112}
@@ -629,9 +629,9 @@ function PositionCard(props: {
       <div className="divider" />
       <div className="rows">
         <Row k="Your RLUSD" v={fmtMoney(rlusdBalance, "USD")} />
-        <Row k="Your Deposit" v={fmtMoney(deposited, "USD")} />
-        <Row k="Your Share" v={fmtPct(sharePct, 2)} />
-        <Row k="Claimable Yield" v={fmtMoney(claimable, "USD")} accent />
+        <Row k="Your deposit" v={fmtMoney(deposited, "USD")} />
+        <Row k="Your share" v={fmtPct(sharePct, 2)} />
+        <Row k="Claimable yield" v={fmtMoney(claimable, "USD")} accent />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 18, display: "grid", gap: 10 }}>
         {/* On a pipeline vault this was a second, identical disabled button

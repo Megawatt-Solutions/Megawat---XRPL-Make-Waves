@@ -51,11 +51,11 @@ export default function MarketplacePage() {
       </div>
 
       <div className="tile-grid">
-        <StatTile label="Open Positions" value={fmtNum(m.openPositions)} sub="Listed for sale" icon={<StoreIcon size={18} />} />
-        <StatTile label="Listed Value" value={fmtCompact(m.listedFaceValue, "USD")} sub="Face value" icon={<LayersIcon size={18} />} />
-        <StatTile label="Total Volume" value={fmtCompact(m.totalVolume, "USD")} sub="All-time secondary" icon={<CoinsIcon size={18} />} />
+        <StatTile label="Open positions" value={fmtNum(m.openPositions)} sub="Listed for sale" icon={<StoreIcon size={18} />} />
+        <StatTile label="Listed value" value={fmtCompact(m.listedFaceValue, "USD")} sub="Face value" icon={<LayersIcon size={18} />} />
+        <StatTile label="Total volume" value={fmtCompact(m.totalVolume, "USD")} sub="All-time secondary" icon={<CoinsIcon size={18} />} />
         <StatTile
-          label="Avg Premium"
+          label="Avg premium"
           value={<span className={m.avgPremiumBps >= 0 ? "" : "accent"}>{premiumStr(m.avgPremiumBps)}</span>}
           sub="Over face value"
           icon={<TrendingUpIcon size={18} />}
@@ -63,7 +63,7 @@ export default function MarketplacePage() {
       </div>
 
       <div className="section-head">
-        <div className="section-title">Open Listings <span className="section-count">{views.length}</span></div>
+        <div className="section-title">Open listings <span className="section-count">{views.length}</span></div>
         <span className="muted" style={{ fontSize: 13 }}>Settled in USDC</span>
       </div>
 

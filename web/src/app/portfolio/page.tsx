@@ -60,16 +60,16 @@ export default function PortfolioPage() {
       </div>
 
       <div className="tile-grid">
-        <StatTile label="Total Deposited" value={fmtCompact(m.totalDeposited, "USD")} sub={`${m.positionsCount} positions`} icon={<CoinsIcon size={18} />} />
-        <StatTile label="Claimable Yield" value={<span className="accent">{fmtMoney(totalClaimable, "EUR")}</span>} sub="Ready to claim" icon={<BoltIcon size={18} />} />
-        <StatTile label="Total Claimed" value={fmtMoney(m.totalClaimed, "EUR")} sub="Lifetime" icon={<ShieldIcon size={18} />} />
+        <StatTile label="Total deposited" value={fmtCompact(m.totalDeposited, "USD")} sub={`${m.positionsCount} positions`} icon={<CoinsIcon size={18} />} />
+        <StatTile label="Claimable yield" value={<span className="accent">{fmtMoney(totalClaimable, "EUR")}</span>} sub="Ready to claim" icon={<BoltIcon size={18} />} />
+        <StatTile label="Total claimed" value={fmtMoney(m.totalClaimed, "EUR")} sub="Lifetime" icon={<ShieldIcon size={18} />} />
         <StatTile label="Avg APY" value={<span className="accent">{fmtPct(bpsToPct(m.avgApyBps))}</span>} sub="Deposit-weighted" icon={<TrendingUpIcon size={18} />} />
       </div>
 
       {/* Growth chart */}
       <div className="card">
         <div className="card-title">
-          Portfolio Value
+          Portfolio value
           <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Principal + projected yield at current APY</span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "12px 0 6px" }}>
@@ -85,7 +85,7 @@ export default function PortfolioPage() {
 
       {/* Positions */}
       <div className="section-head">
-        <div className="section-title">Your Positions <span className="section-count">{POSITIONS.length}</span></div>
+        <div className="section-title">Your positions <span className="section-count">{POSITIONS.length}</span></div>
         <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
           Claim all
         </button>
