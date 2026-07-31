@@ -1260,6 +1260,33 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A header row over nothing, again — and a fixture in the wrong file
+
+`/spreadcast/log` rendered its **Weekly blockchain anchors** table as four
+column headers — WEEK / MERKLE ROOT / LEAVES / TX — over an empty body. On a
+section about tamper-proof records that reads as a broken feature rather than
+an early one.
+
+The marketplace had already fixed exactly this, and says so in place: *"was a
+header row over nothing… an empty marketplace is the normal early state, not an
+error."* Same idiom applied here — what is missing, why, and where the record
+does live meanwhile ("every prediction is still committed and revealed daily —
+open any day in the table above").
+
+**Two process notes, both about the fixture rather than the fix.**
+
+`anchors` is fetched, not static, so seeding `useState` was not enough: the
+effect's `setAnchors(d.anchors)` overwrote the seed on the next tick and the
+populated branch still never rendered. **A `useState` fixture is useless against
+anything that fetches** — the setter has to be suppressed too.
+
+More importantly: that fixture lived in **the same file as the real change**, so
+`git checkout --` would have destroyed both. This file already records losing
+work that way once. The revert was done surgically instead — two targeted
+replacements — and checked with `git diff --stat`, which showed **22 insertions
+and 0 deletions**. Zero deletions is the useful signal: it proves the original
+lines are byte-identical again, which "it looks right" never does.
+
 ### A timeline that read as though it ran backwards
 
 `/spreadcast/how` is the page whose entire job is explaining the rules, and its

@@ -5,6 +5,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ShieldIcon } from "@/components/Icons";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -120,6 +121,26 @@ export function ArchiveView() {
         Once a week, a fingerprint of every prediction and result is written to XRPL — so even email-only players
         get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
+      {/* Column headers describe rows. With no anchors written yet this
+          rendered WEEK / MERKLE ROOT / LEAVES / TX over nothing at all —
+          which on a page about tamper-proof records reads as though the
+          feature is broken rather than simply early. The marketplace already
+          made exactly this fix for exactly this reason ("was a header row over
+          nothing... an empty marketplace is the normal early state, not an
+          error"), so this uses the same idiom: say what is missing, why, and
+          where the record does live in the meantime. */}
+      {anchors.length === 0 ? (
+        <div className="panel sc-panel">
+          <div className="empty-state">
+            <ShieldIcon size={26} />
+            <div className="empty-state-title">No weekly anchor yet</div>
+            <p className="empty-state-body">
+              The first fingerprint is written once a full week of rounds has settled. Until then every prediction is
+              still committed and revealed daily — open any day in the table above to see the record.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
         <table className="sc-table sc-t-anchor">
           <thead>
@@ -142,6 +163,7 @@ export function ArchiveView() {
           </tbody>
         </table>
       </div>
+      )}
     </>
   );
 }
