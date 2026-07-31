@@ -1199,6 +1199,29 @@ also feeds min-content sizing, so a flex or grid parent may shrink instead of
 being held open by one long token. Verified: no clipping at 320/360/390, the
 heading wraps to two lines, and the leaderboard is untouched for normal names.
 
+That check is now `auditClipping()` in the harness, running inside
+`runAudit()`. Two traps were hit while writing it, both worth knowing:
+
+- **Comparing border boxes does not work.** A block element whose *inline*
+  content overflows keeps its own width, so `getBoundingClientRect()` is blind
+  to it. The content edge is `rect.left + el.scrollWidth`. The first version
+  compared rects and would have missed the very bug it was written to catch.
+- **It returned zero across 27 route/width pairs and looked like a pass.** It
+  was measuring nothing. A silent check and a correct check are
+  indistinguishable from the outside, so the canary has to be **three-state**:
+  silent at baseline, fires when a long unbroken string is forced into a
+  clipped box, silent again once the fix applies. One state proves nothing;
+  two can be luck.
+
+Run against the real app it found one defect in 27 pairs: on
+`/spreadcast/log`, `"137 / 150 / 176 / 244"` ellipsised to `"…176 / 2"`
+between 700 and 899px. The cell carried `.sc-mono`, whose truncation exists
+for merkle roots and tx hashes — unbreakable 34-64 char tokens where an
+ellipsis is right. Four short numbers joined by `" / "` are the opposite case.
+**One class was doing two jobs**, the same shape as `--border-2` serving both
+surface edges and control boundaries. When a rule is correct for one kind of
+content and wrong for another, split the class rather than tune the rule.
+
 **Test user-supplied fields with a string that has no break opportunity.** A
 long name with spaces wraps fine and proves nothing; the failure mode needs a
 single unbroken token. Display names come from a form with no `maxLength`, and
