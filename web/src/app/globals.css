@@ -157,6 +157,13 @@
      the thing rather than acknowledging your tap. */
   --t-ui: 0.15s;
 
+  /* The app's primary content column, shared by .page and the sticky bars so
+     their contents sit on one vertical line instead of the bars hugging the
+     window edges. Spreadcast narrows its own reading column to 1120; the
+     chrome deliberately does not follow, because a nav that moves when you
+     change section is more disorienting than one that is wide of the text. */
+  --shell-max: 1320px;
+
   /* ── Spacing ────────────────────────────────────────────────────────
      The scale that already exists, named so it stops growing.
 
@@ -243,7 +250,22 @@ button {
   align-items: center;
   gap: 30px;
   height: 58px;
-  padding: 0 26px;
+  /* Full-bleed background, content aligned to the page column.
+     -------------------------------------------------------------------
+     The bar spans the window — a sticky header that stops short of the
+     edges looks like a floating card — but its CONTENTS line up with
+     .page instead of hugging the viewport.
+
+     Measured at 2498px before this: the wordmark sat 655px left of the
+     content column and the wallet pill 656px right of it. On a large
+     monitor the primary account control was in the far corner while
+     everything the user was reading sat centre-screen.
+
+     Aligned to 1320 (the .page column) rather than to Spreadcast's
+     narrower 1120 reading width, because this bar is on every route and
+     persistent chrome that shifts position when you change section is
+     worse than chrome that is 100px wide of one section's text. */
+  padding: 0 max(26px, calc((100% - var(--shell-max)) / 2 + 28px));
   background: color-mix(in srgb, var(--mw-carbon) 88%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
@@ -2226,7 +2248,10 @@ button {
   align-items: center;
   gap: 12px;
   height: 44px;
-  padding: 0 26px;
+  /* Same inset as .nav directly above it — two stacked bars that disagree
+     about their left edge read as a mistake far more loudly than either
+     would alone. */
+  padding: 0 max(26px, calc((100% - var(--shell-max)) / 2 + 28px));
   background: color-mix(in srgb, var(--mw-carbon) 92%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);

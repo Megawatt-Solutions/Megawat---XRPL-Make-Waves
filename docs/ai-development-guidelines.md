@@ -434,6 +434,35 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### Full-bleed chrome, page-aligned contents
+
+The sticky bars spanned the window and so did their *contents*. Measured at
+2498px: the wordmark sat **655px** left of the content column and the wallet
+pill **656px** right of it. On a large monitor the primary account control was
+in the far corner while everything the user was reading sat centre-screen.
+
+The background should still span the window — a sticky header that stops short
+of the edges looks like a floating card. Only the contents move:
+
+```css
+padding: 0 max(26px, calc((100% - var(--shell-max)) / 2 + 28px));
+```
+
+Below ~1376px this resolves to the old 26px, so narrow and mid widths are
+untouched. Above it, the brand lands exactly on the content's left edge and the
+wallet pill on its right — verified at 1360/1440/1600/1920.
+
+**`--shell-max` is 1320, the `.page` column — not Spreadcast's 1120.** That
+section narrows its own reading width, and the chrome deliberately does not
+follow: a nav that shifts position when you change section is more disorienting
+than one that is 100px wide of one section's text. The section bar uses the same
+inset as the nav directly above it, because two stacked bars disagreeing about
+their left edge reads as a mistake far more loudly than either would alone.
+
+⚠ More padding means less room for nav items. Checked 1024 → 1920 for overflow
+in both bars before shipping; the nav had already been tightened once at
+1024–1180 for exactly this reason.
+
 ### The audit never scrolled
 
 Every check in the harness ran at `scrollY: 0`. That was harmless while
