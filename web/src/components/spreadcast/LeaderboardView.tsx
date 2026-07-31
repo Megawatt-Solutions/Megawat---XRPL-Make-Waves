@@ -72,6 +72,19 @@ export function LeaderboardView() {
           </button>
         </div>
       </div>
+      {/* The two filters above reload the table underneath. Sighted, that reads
+          as skeleton rows then results; to a screen reader nothing happened at
+          all, so the controls appear inert. This says what the filter did.
+
+          Polite, not assertive: it is the result of something the user just
+          did, not an interruption worth cutting across them for. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {rows == null
+          ? "Loading leaderboard"
+          : `${rows.length} ${rows.length === 1 ? "player" : "players"}, ${
+              scope === "week" ? "this week" : "this season"
+            }${verifiedOnly ? ", verified only" : ""}`}
+      </div>
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
         <table className="sc-table sc-t-lb">
           <thead>

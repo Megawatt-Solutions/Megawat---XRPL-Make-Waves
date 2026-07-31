@@ -40,9 +40,28 @@ export function SectionBar() {
 
       {!err && (
         <div className="sc-bar-status">
-          <span className="sc-bar-clock" title={isOpen ? "Time until entries close" : "Time until the next round opens"}>
+          {/* "07:13:29" on its own names nothing, and title= is unreliable —
+              touch never shows it and several readers skip it. The digits are
+              hidden from assistive tech and a spoken equivalent sits beside
+              them.
+
+              Deliberately NOT a live region. This re-renders every second, and
+              announcing it on each tick would talk over everything else on the
+              page continuously. It reads when navigated to, which is when the
+              answer is actually wanted. */}
+          <span className="sc-bar-clock">
             <span className={`sc-bar-dot${urgent ? " urgent" : ""}`} />
-            <span className="num">{countdown}</span>
+            <span className="num" aria-hidden="true">{countdown}</span>
+            <span className="sr-only">
+              {/* Between rounds the countdown is an em dash, which reads out as
+                  "dash until the next round opens". Only speak the digits when
+                  there are digits. */}
+              {/\d/.test(countdown)
+                ? `${countdown} ${isOpen ? "until entries close" : "until the next round opens"}`
+                : isOpen
+                  ? "Entries are open"
+                  : "Waiting for the next round to open"}
+            </span>
           </span>
           {streak != null && streak > 0 && (
             <span className="sc-bar-streak" title={`${streak}-day streak`}>
@@ -52,7 +71,8 @@ export function SectionBar() {
                   fill="currentColor"
                 />
               </svg>
-              <span className="num">{streak}</span>
+              <span className="num" aria-hidden="true">{streak}</span>
+              <span className="sr-only">{streak}-day streak</span>
             </span>
           )}
         </div>

@@ -116,6 +116,37 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### Silent changes, and the `.sr-only` utility
+
+There was no way to say something to a screen reader without also drawing it,
+so anything that changed without moving pixels changed silently.
+
+`.sr-only` uses `clip-path`, not `display:none` or `visibility:hidden` — both of
+those remove the element from the accessibility tree, which is the opposite of
+what it is for.
+
+Two rules it exists to serve:
+
+**A control that changes content must say what it changed.** The leaderboard's
+scope and verified-only filters reload the table beneath them. Sighted that
+reads as skeleton then rows; to a screen reader nothing happened, so the
+controls appear inert. A `role="status"` region now reports "12 players, this
+week, verified only". Polite, not assertive — it is the result of something the
+user just did, not an interruption worth cutting across them for.
+
+**A bare number is not a label.** The countdown was `07:13:29` in a span with a
+`title`, which touch never shows and several readers skip. The digits are now
+`aria-hidden` with a spoken equivalent beside them. Same for the streak chip,
+which announced as "3".
+
+⚠ Do **not** make the countdown a live region. It re-renders every second and
+would talk over the whole page continuously. It reads when navigated to, which
+is when the answer is wanted.
+
+⚠ Check the placeholder state of anything you give spoken text to. Between
+rounds the countdown is an em dash, and the first version of this announced
+"dash until the next round opens". Speak the digits only when there are digits.
+
 ### If it looks like a heading, it has to be one
 
 Four routes — `/`, `/portfolio`, `/marketplace`, `/dashboard-v2` — had **zero
