@@ -116,6 +116,41 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### The most important qualifier cannot be the last thing read
+
+Ljubljana and Metlika are `kind: "showcase"` — real sites Megawatt operates,
+published so the performance behind its numbers can be checked, and **not
+investable**. The page handled this carefully in places: the yield tile says
+"Gross yield / On capex / yr" rather than APY, and there is no deposit control.
+
+But the sentence that says the quiet part — "Not an investable vault" — lived in
+the *last card of the sidebar*, which on mobile stacks below everything else.
+Measured: the 12.2% headline sits at y=207 and that sentence sat at **y=3144**,
+roughly 3.7 phone screens further down, in 12px muted text. Someone arriving
+from a shared link read a full page of yield, revenue and capacity figures
+before learning none of it was buyable.
+
+The header pill now reads **"Showcase site · not investable"** instead of
+"Operated by Megawatt" — 268px from the top, above every stat tile. The operator
+detail moved into Site overview, where it was always the less urgent half.
+
+On a page that shows money, the qualifier belongs beside the number it
+qualifies. If a disclosure only works when someone scrolls, it does not work.
+
+### Audit the signed-out state — it is what a new visitor sees
+
+Every route was only ever audited signed **in**, because the dev browser has
+`mw.xrplAddress` in localStorage. That is not what a first-time visitor gets,
+and on several routes it is a completely different render tree — `/portfolio`
+returns an entirely different component.
+
+Clear `mw.xrplAddress` and `mw.xrplVia`, reload, and re-run. **Save and restore
+them**: that is the developer's own origin, not a fixture.
+
+⚠ And confirm the state actually changed before believing a clean result — check
+for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
+quietly ran signed-in reports zero findings just as convincingly.
+
 ### The audit only saw what was open
 
 For most of this rehaul every check ran against a route with everything closed.

@@ -93,8 +93,17 @@ export function VaultDetail({ vault }: { vault: Vault }) {
           </div>
 
           {isShowcase ? (
-            <span className="wallet-pill" style={{ cursor: "default" }}>
-              <span className="dot" style={{ background: "var(--blue)" }} /> Operated by Megawatt
+            /* This used to read "Operated by Megawatt", which says who runs the
+               site but not the thing a visitor most needs to know: that none of
+               the numbers below are buyable. That fact lived only in the last
+               card of the sidebar — which on mobile stacks below everything, so
+               it sat 3.7 phone screens under the 12.2% headline it qualifies.
+
+               A financial page must not put its most important qualifier last.
+               The operator line is still in Site overview; what belongs up here
+               beside the yield is what the yield does NOT entitle you to. */
+            <span className="wallet-pill" style={{ cursor: "default" }} title="A live site we operate, published for transparency. Not open for deposits.">
+              <span className="dot" style={{ background: "var(--blue)" }} /> Showcase site · not investable
             </span>
           ) : vault.addresses ? (
             <a className="wallet-pill" href={explorerAccount(vault.addresses.vault)} target="_blank" rel="noreferrer">
@@ -572,7 +581,12 @@ function SiteOverviewCard({ vault }: { vault: Vault }) {
         <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
           <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={17} /></span>
           <div style={{ fontSize: 12, color: "var(--text-2)" }}>
-            Off-chain showcase — one of our operational sites, shown for transparency. Not an investable vault.
+            {/* The header pill now carries "not investable" so it is read
+                before the numbers rather than after them. This keeps the
+                explanation — why the site is here at all — without repeating
+                the headline verdict twice on one page. */}
+            Off-chain showcase — one of our operational sites, published so the performance behind Megawatt&apos;s
+            numbers can be checked. Operated by Megawatt; deposits happen in the on-chain vaults.
           </div>
         </div>
       </div>
