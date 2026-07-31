@@ -434,6 +434,36 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### The vault card was examined and is sound
+
+Read the app's most-repeated object as a designed thing rather than measuring
+it for defects. It holds up:
+
+- Hierarchy exists through **colour**, not size — the yield is accent green on
+  operational vaults and `--text-2` on pipeline ones, which honestly signals
+  "this number is not live yet" without a second typographic level.
+- The two card types carry **different metrics on purpose** (Gross yield /
+  capacity / Annual revenue vs APY / capacity / TVL), which is right: a
+  committed site and a funded one are not compared on the same terms.
+- Status is a worded badge, never colour alone.
+
+One observation deliberately **not** treated as a defect: at 390px the
+"BESS Bucharest 01" card is 47px taller than its siblings, because it is the
+longest name+location pair and both wrap to two lines. At that width the cards
+are a single-column stack with gaps between them, so height differences are
+invisible. **Raggedness only exists where cards sit side by side** — and at
+768/1024/1440/1920 every row measured uniform.
+
+`auditCardRows()` guards the case that would matter, per ROW rather than per
+grid. Grid stretches its items by default so it passes today; it stops passing
+the moment someone sets `align-items: start` on a card grid, which is an easy
+and very visible mistake.
+
+⚠ The first canary for it **did not fire** — removing `align-items: stretch`
+changed nothing, because the cards happened to be equal height anyway. An
+unfired canary validates nothing. It needed a forced 60px height difference
+before it proved the check works.
+
 ### Full-bleed chrome, page-aligned contents
 
 The sticky bars spanned the window and so did their *contents*. Measured at

@@ -116,6 +116,41 @@ async function auditTextScale(routes, width) {
   return findings;
 }
 
+// Cards sharing a row must share a height.
+//
+// Grid stretches its items by default, so this passes today — the point is
+// that it stops passing the moment someone sets align-items: start on a card
+// grid, which is an easy and very visible mistake.
+//
+// Deliberately per-ROW, not per-grid. At 390px the cards are a single-column
+// stack with gaps between them, and differing heights there are invisible and
+// entirely normal — "BESS Bucharest 01" wraps to two lines and its card is 47px
+// taller than its siblings, which nobody can perceive in a vertical list.
+// Raggedness only exists where cards sit side by side.
+function auditCardRows(w) {
+  const d = stage.contentDocument;
+  const out = [];
+  for (const grid of d.querySelectorAll(".vault-grid, .tile-grid")) {
+    const rows = new Map();
+    for (const card of grid.children) {
+      const r = card.getBoundingClientRect();
+      if (r.height <= 0) continue;
+      const key = Math.round(r.top);
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push(Math.round(r.height));
+    }
+    for (const [, heights] of rows) {
+      if (heights.length < 2) continue; // one card is not a row
+      const spread = Math.max(...heights) - Math.min(...heights);
+      if (spread > 2) {
+        out.push({ kind: "ragged-card-row", el: describe(grid),
+          detail: `${spread}px between ${Math.min(...heights)} and ${Math.max(...heights)}` });
+      }
+    }
+  }
+  return out;
+}
+
 // ── Scrolled state ───────────────────────────────────────────────────────
 // Every other check in this file runs at scrollY 0. That was harmless while
 // `overflow-x: hidden` on html/body silently broke position:sticky, because
@@ -594,6 +629,7 @@ window.runAudit = async function (routes, widths) {
       let res = [];
       try { res = audit(w); } catch (e) { res = [{ kind: "audit-error", detail: String(e).slice(0, 90) }]; }
       for (const r of res) findings.push({ route, w, ...r });
+      try { for (const r of auditCardRows(w)) findings.push({ route, w, ...r }); } catch (e) { /* keep going */ }
       // Contrast only needs measuring once per route — it does not vary with
       // width — so run it on the first pass and skip the other six.
       if (w === widths[0]) {
