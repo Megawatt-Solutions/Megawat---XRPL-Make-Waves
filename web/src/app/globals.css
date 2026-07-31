@@ -624,6 +624,22 @@ button {
   font-size: 0.75rem;
   font-weight: 650;
   color: var(--accent-ink);
+  /* A label must never be able to change the bar's height. Both call sites
+     decide whether to print one from the segment's SHARE OF THE TOTAL
+     (`bps / total > 0.12`), but whether it FITS depends on absolute pixels —
+     at 320px the bar is ~270px, so a 12% segment is ~32px, "1.6%" wrapped to
+     two lines, and .segbar's `height: 30px; overflow: hidden` sliced 9px off
+     it. A percentage was deciding a question only pixels can answer. */
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Below this the widest non-dominant segment cannot hold four characters at
+   any sensible size, so the bar drops its inline labels and works as what it
+   still is — a proportion. Nothing is lost: both call sites render a legend
+   directly beneath listing every segment's label AND its value. */
+@media (max-width: 480px) {
+  .segbar > span { font-size: 0; }
 }
 
 /* â”€â”€â”€ Detail rows / lists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

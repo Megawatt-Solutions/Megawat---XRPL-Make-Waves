@@ -1260,6 +1260,38 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A percentage decided a question only pixels can answer
+
+`auditClippingVertical()` — added two passes ago and quiet ever since — earned
+itself on the vault detail page: the yield-breakdown `.segbar` was clipping its
+own content by 9px at 320 and 360, and nowhere else.
+
+The cause is a units mismatch worth recognising. Both `.segbar` call sites
+decide whether to print a label from the segment's **share of the total**
+(`bps / total > 0.12`). Whether a label *fits* depends on **absolute pixels**.
+At 320px the bar is ~270px wide, so a 12%-of-total segment is ~32px — too
+narrow for "1.6%", which wrapped to two lines totalling 34px inside a
+`height: 30px; overflow: hidden` bar, and lost 9px off the bottom.
+
+Two fixes, deliberately at different levels:
+
+- **Structural:** `white-space: nowrap; overflow: hidden` on the segment, so a
+  label can never change the bar's height again regardless of what any call
+  site decides. Verified by `scrollHeight === height` at every width.
+- **Editorial:** below 480px the labels are dropped entirely. The widest
+  non-dominant segment cannot hold four characters at any sensible size, and
+  both call sites render a legend directly beneath listing every label *and*
+  value — so the bar becomes what it still honestly is, a proportion.
+
+Worth noting what *didn't* get changed this pass. The vault grid was measured
+across eight widths on suspicion of an orphan-card problem: it goes 1→2 columns
+at ~900px and 2→3 at ~1180px, so at desktop the Active section leaves an empty
+track and Pipeline runs 3+1. That is real, and it is also **fine** — the cards
+keep one consistent width down the whole page, and forcing 2×2 would make
+pipeline cards visibly wider than the active cards above them. A measurement
+that says "this is acceptable" is a result; changing it would have been
+manufacturing work.
+
 ### The headline numbers did not mean what their labels said
 
 Following the previous entry's rule — *ask which other surfaces make the same
