@@ -1071,6 +1071,8 @@ A change is done when:
 - [ ] `npx tsc --noEmit` clean
 - [ ] `npm run build` clean
 - [ ] Looked at on a real page, at 360px and at desktop
+- [ ] If the surface is data-driven, checked the data isn't `[]` before believing a clean audit
+- [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
 - [ ] Scope check (§1.2) empty
 - [ ] No new raw hex or `rgba()` in components
 - [ ] No fabricated data on any path
@@ -1079,6 +1081,66 @@ A change is done when:
 - [ ] Secrets are in `web/.env` (gitignored), and `web/.env.example` lists any new key **by name only**
 
 ---
+
+### A `display: none` in a responsive collapse is a content decision
+
+When a wide table row stacks for a phone, the tempting move is to hide the
+columns that no longer fit. Both data surfaces here did exactly that, and both
+were wrong in the same way:
+
+- `.mk-row` hid Premium, Est. APY **and the ask total** below 700px. The phone
+  showed a vault name, a share count and a **Buy** button — and never the price
+  that button charged.
+- `.pf-row` hid APY, and stacked deposited and claimable as two unlabelled
+  money figures, because the labels lived in a `.drow-head` that the same media
+  query set to `display: none`.
+
+Narrow does not mean *less informative*. It means *differently arranged*. The
+rule: when a collapse removes a column, say where that content went. If the
+answer is "nowhere", it is a bug, not a breakpoint.
+
+The pattern that fixed both, and the one to reuse:
+
+1. Wrap the middle metrics in one element (`.mk-meta`, `.pf-meta`).
+2. `display: contents` on that wrapper at desktop widths — the children fall
+   straight back into the original grid tracks, so the wide layout is unchanged
+   and needs no re-verification.
+3. In the stacked layout, that same wrapper becomes `grid-area: meta` with
+   `display: flex; justify-content: space-between` — one labelled metric strip
+   on the row's own line.
+4. Labels ride in the row as `.row-lbl` spans, `display: none` above 700px
+   where the column header already says it.
+
+Two details that cost time:
+
+- **Inline `style={{ textAlign: "right" }}` cannot be overridden by a media
+  query.** If a value's alignment has to change when the row stacks, that
+  alignment has to live in CSS. Moved to
+  `.mk-meta > :first-child, .pf-meta > :first-child`.
+- **`display: contents` is safe here only because the wrapper is a plain
+  `div`** with no semantics to erase. Do not reach for it on anything that
+  carries a role.
+
+### Empty demo data hides whole layouts from every audit
+
+`LISTINGS` and `POSITIONS` are both `[]`. Sweeping `/marketplace` at seven
+widths therefore reported a clean page at every one of them — `.mk-head` was
+`display: none` everywhere and `.mk-row` never existed. **Two breakpoints of
+row CSS had never once rendered**, in this browser or any other, and the audit
+could not tell the difference between "correct" and "absent".
+
+So: before trusting a pass over a data-driven surface, check that the data is
+non-empty. If it isn't, populate it temporarily from the real interface in
+`src/lib/types.ts` (not from what the screen appears to show — see the
+`GrowthPoint.yield` mistake), audit, then revert with `git checkout --` and
+confirm with `git status`. Writing the file back through PowerShell flips CRLF
+to LF and leaves it modified with an empty content diff; `git checkout --` is
+what actually restores it.
+
+Portfolio additionally gates on a connected wallet, so its rows stay invisible
+even with data present. `localStorage` keys `mw.xrplAddress` / `mw.xrplVia`
+control that. Capture the previous values first and restore them after —
+leaving the dev session in an unexpected auth state has already cost one pass.
 
 ### Clickable rows are a list, not a table
 

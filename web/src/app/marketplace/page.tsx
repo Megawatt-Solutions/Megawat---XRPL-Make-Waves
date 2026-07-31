@@ -95,7 +95,7 @@ export default function MarketplacePage() {
         )}
         {views.map((lv) => (
           <div key={lv.listing.id} className="drow mk-row">
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            <div className="mk-c-id" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
                 {lv.vault.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
               </span>
@@ -104,16 +104,32 @@ export default function MarketplacePage() {
                 <div className="muted num" style={{ fontSize: 12 }}>{fmtAddress(lv.listing.seller)} · {lv.listing.listedAtDaysAgo}d ago</div>
               </div>
             </div>
-            <div style={{ textAlign: "right" }} className="num">
+            <div style={{ textAlign: "right" }} className="num mk-c-shares">
+              <span className="row-lbl">Shares</span>
               {fmtNum(lv.listing.shares)}
               <div className="muted" style={{ fontSize: 12 }}>{fmtMoney(lv.listing.pricePerShare, "USD")}/sh</div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <span className={`badge ${lv.premiumBps >= 0 ? "badge-fundraising" : "badge-active"}`}>{premiumStr(lv.premiumBps)}</span>
+            {/* Premium, APY and the ask total used to be `display: none` below
+                700px, which meant a phone showed a Buy button and never the
+                price it charged. They now share a `meta` strip on the row's
+                own line — the same three numbers, wrapped instead of dropped.
+                `display: contents` puts them straight back into the six-column
+                grid above 700px, so the desktop row is untouched. */}
+            <div className="mk-meta">
+              <div>
+                <span className="row-lbl">Premium</span>
+                <span className={`badge ${lv.premiumBps >= 0 ? "badge-fundraising" : "badge-active"}`}>{premiumStr(lv.premiumBps)}</span>
+              </div>
+              <div style={{ textAlign: "right" }} className="num accent">
+                <span className="row-lbl">Est. APY</span>
+                {fmtPct(bpsToPct(lv.estApyBps))}
+              </div>
+              <div style={{ textAlign: "right", fontWeight: 650 }} className="num">
+                <span className="row-lbl">Ask</span>
+                {fmtMoney(lv.askTotal, "USD")}
+              </div>
             </div>
-            <div style={{ textAlign: "right" }} className="num accent">{fmtPct(bpsToPct(lv.estApyBps))}</div>
-            <div style={{ textAlign: "right", fontWeight: 650 }} className="num">{fmtMoney(lv.askTotal, "USD")}</div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div className="mk-c-buy" style={{ display: "flex", justifyContent: "flex-end" }}>
               <button className="btn btn-accent btn-sm" onClick={() => buy(lv)}>Buy</button>
             </div>
           </div>

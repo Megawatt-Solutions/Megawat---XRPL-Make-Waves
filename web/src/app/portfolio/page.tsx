@@ -121,7 +121,7 @@ export default function PortfolioPage() {
               href={`/vault/${v.id}`}
               className="drow pf-row prow"
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div className="pf-c-id" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                 <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
                   {v.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
                 </span>
@@ -130,10 +130,23 @@ export default function PortfolioPage() {
                   <div className="muted" style={{ fontSize: 12 }}><Flag code={v.flag} size={12} /> {v.location} · {fmtNum(p.shares)} {v.symbol}</div>
                 </div>
               </div>
-              <div style={{ textAlign: "right" }} className="num">{fmtMoney(p.deposited, "USD")}</div>
-              <div style={{ textAlign: "right" }} className={`num ${p.claimable > 0 ? "accent" : "muted"}`}>{fmtMoney(p.claimable, v.currency)}</div>
-              <div style={{ textAlign: "right" }} className="num">{fmtPct(bpsToPct(v.apyBps))}</div>
-              <div style={{ display: "flex", justifyContent: "flex-end", color: "var(--muted)" }}><ChevronRightIcon size={16} /></div>
+              {/* Below 700px the column headers are gone, so these carry their
+                  own. Without them a phone showed two unlabelled money figures
+                  stacked on the right — deposited and claimable are not
+                  guessable from each other. APY was hidden outright; it now
+                  sits on the row's third line rather than vanishing. */}
+              <div className="pf-meta">
+              <div className="num">
+                <span className="row-lbl">Deposited</span>{fmtMoney(p.deposited, "USD")}
+              </div>
+              <div style={{ textAlign: "right" }} className={`num ${p.claimable > 0 ? "accent" : "muted"}`}>
+                <span className="row-lbl">Claimable</span>{fmtMoney(p.claimable, v.currency)}
+              </div>
+              <div style={{ textAlign: "right" }} className="num">
+                <span className="row-lbl">APY</span>{fmtPct(bpsToPct(v.apyBps))}
+              </div>
+              </div>
+              <div className="pf-c-chev" style={{ display: "flex", justifyContent: "flex-end", color: "var(--muted)" }}><ChevronRightIcon size={16} /></div>
             </Link>
           );
         })}

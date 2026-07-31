@@ -2664,37 +2664,71 @@ button {
 .mk-row, .mk-head { grid-template-columns: 1.9fr 1fr 0.9fr 0.8fr 1fr 86px; }
 .pf-row, .pf-head { grid-template-columns: 2.1fr 1fr 1fr 0.8fr 26px; }
 
-@media (max-width: 700px) {
-  /* Column headers stop meaning anything once the row stacks. */
-  .mk-head, .pf-head { display: none; }
+/* The middle metrics of each row are wrapped in one element so they can move
+   as a group when the row stacks. `display: contents` dissolves that wrapper
+   at desktop widths, so its children land in the same grid tracks they always
+   did — the wide layout is byte-for-byte what it was. */
+.mk-meta, .pf-meta { display: contents; }
+/* Alignment for the leading metric lives here rather than inline, because the
+   stacked layout below needs to override it and an inline style cannot be. */
+.mk-meta > :first-child, .pf-meta > :first-child { text-align: right; }
 
-  /* Identity on the left, the number that matters on the right, and the
-     action on its own full-width line where it can actually be tapped. */
+/* Column headers supply the labels above 700px, so in-row labels are dead
+   weight there. */
+.row-lbl { display: none; }
+
+@media (max-width: 700px) {
+  /* Column headers stop meaning anything once the row stacks — the labels
+     move into the rows instead. */
+  .mk-head, .pf-head { display: none; }
+  .row-lbl {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+
+  /* Identity and share count on the first line, the three metrics that decide
+     the trade on the second, and the action full-width on its own where it can
+     actually be tapped. */
   .mk-row {
     grid-template-columns: 1fr auto;
     grid-template-areas: "id ask" "meta meta" "buy buy";
-    row-gap: 10px;
+    row-gap: 12px;
     padding: 16px 0;
   }
-  .mk-row > :nth-child(1) { grid-area: id; }
-  .mk-row > :nth-child(2) { grid-area: ask; text-align: right; }
-  .mk-row > :nth-child(3),
-  .mk-row > :nth-child(4),
-  .mk-row > :nth-child(5) { display: none; }
-  .mk-row > :nth-child(6) { grid-area: buy; }
-  .mk-row > :nth-child(6) .btn { width: 100%; }
+  .mk-c-id { grid-area: id; }
+  .mk-c-shares { grid-area: ask; }
+  .mk-c-buy { grid-area: buy; }
+  .mk-c-buy .btn { width: 100%; }
 
   .pf-row {
-    grid-template-columns: 1fr auto 20px;
-    grid-template-areas: "id val chev" "id sub chev";
-    row-gap: 2px;
+    grid-template-columns: 1fr 20px;
+    grid-template-areas: "id chev" "meta chev";
+    row-gap: 12px;
     padding: 14px 0;
   }
-  .pf-row > :nth-child(1) { grid-area: id; }
-  .pf-row > :nth-child(2) { grid-area: val; text-align: right; }
-  .pf-row > :nth-child(3) { grid-area: sub; text-align: right; }
-  .pf-row > :nth-child(4) { display: none; }
-  .pf-row > :nth-child(5) { grid-area: chev; }
+  .pf-c-id { grid-area: id; }
+  .pf-c-chev { grid-area: chev; align-self: center; }
+
+  /* One shared metric strip for both surfaces: labelled figures spread across
+     the row's own line. Baseline alignment keeps the numbers on a line even
+     when one of them is a badge. */
+  .mk-meta, .pf-meta {
+    grid-area: meta;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+  }
+  /* The leading metric anchors the left edge; right-aligning its label over a
+     shrink-to-fit box just makes the two ragged against each other. */
+  .mk-meta > :first-child, .pf-meta > :first-child { text-align: left; }
 }
 
 .sc-commit-head {
