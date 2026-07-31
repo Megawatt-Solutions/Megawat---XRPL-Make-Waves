@@ -65,7 +65,7 @@ export default function MarketplacePage() {
 
       <div className="section-head">
         <h2 className="section-title">Open listings <span className="section-count">{views.length}</span></h2>
-        <span className="muted" style={{ fontSize: 13 }}>Settled in USDC</span>
+        <span className="muted" style={{ fontSize: "0.8125rem" }}>Settled in USDC</span>
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
@@ -101,14 +101,14 @@ export default function MarketplacePage() {
                 {lv.vault.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
               </span>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{lv.vault.name}</div>
-                <div className="muted num" style={{ fontSize: 12 }}>{fmtAddress(lv.listing.seller)} · {lv.listing.listedAtDaysAgo}d ago</div>
+                <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{lv.vault.name}</div>
+                <div className="muted num" style={{ fontSize: "0.75rem" }}>{fmtAddress(lv.listing.seller)} · {lv.listing.listedAtDaysAgo}d ago</div>
               </div>
             </div>
             <div style={{ textAlign: "right" }} className="num mk-c-shares">
               <span className="row-lbl">Shares</span>
               {fmtNum(lv.listing.shares)}
-              <div className="muted" style={{ fontSize: 12 }}>{fmtMoney(lv.listing.pricePerShare, "USD")}/sh</div>
+              <div className="muted" style={{ fontSize: "0.75rem" }}>{fmtMoney(lv.listing.pricePerShare, "USD")}/sh</div>
             </div>
             {/* Premium, APY and the ask total used to be `display: none` below
                 700px, which meant a phone showed a Buy button and never the
@@ -214,8 +214,8 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
                     color: "var(--text)",
                   }}
                 >
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
-                  <span className="muted num" style={{ fontSize: 12 }}>{fmtNum(p.shares)} {v.symbol}</span>
+                  <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{v.name}</span>
+                  <span className="muted num" style={{ fontSize: "0.75rem" }}>{fmtNum(p.shares)} {v.symbol}</span>
                 </button>
               );
             })}
@@ -245,7 +245,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
           <div className="row"><span className="row-key">Your ask</span><span className="row-val num accent">{fmtMoney(askTotal, "USD")}</span></div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", margin: "10px 0 2px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.75rem", color: "var(--muted)", margin: "10px 0 2px" }}>
           <CheckIcon size={14} /> Your {vault?.symbol} shares are held in marketplace escrow until sold or delisted.
         </div>
 

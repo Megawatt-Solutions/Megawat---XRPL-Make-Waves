@@ -68,7 +68,7 @@ export default async function ResultOgImage({ params }: { params: Promise<{ day:
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ display: "flex", fontSize: 24, color: CONDUIT, letterSpacing: "0.16em" }}>
+          <div style={{ display: "flex", fontSize: "1.5rem", color: CONDUIT, letterSpacing: "0.16em" }}>
             SETTLED RESULT · SI DAY-AHEAD · {day}
           </div>
 
@@ -78,20 +78,20 @@ export default async function ResultOgImage({ params }: { params: Promise<{ day:
                instead of under it — legible by luck rather than by layout. */
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
-                <div style={{ fontSize: 128, fontWeight: 700, color: PAPER, letterSpacing: "-0.04em" }}>
+                <div style={{ fontSize: "8rem", fontWeight: 700, color: PAPER, letterSpacing: "-0.04em" }}>
                   {spread}
                 </div>
-                <div style={{ fontSize: 40, color: CONDUIT }}>€/MWh</div>
+                <div style={{ fontSize: "2.5rem", color: CONDUIT }}>€/MWh</div>
               </div>
-              <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: accent }}>
+              <div style={{ display: "flex", fontSize: "2.5rem", fontWeight: 700, color: accent }}>
                 {name} · {label}
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: PAPER }}>Spreadcast</div>
+            <div style={{ display: "flex", fontSize: "4rem", fontWeight: 700, color: PAPER }}>Spreadcast</div>
           )}
 
-          <div style={{ display: "flex", fontSize: 26, color: CONDUIT, maxWidth: 900 }}>
+          <div style={{ display: "flex", fontSize: "1.625rem", color: CONDUIT, maxWidth: 900 }}>
             The gap between the day&apos;s highest and lowest electricity price — the number grid batteries earn
             on.
           </div>
@@ -101,7 +101,7 @@ export default async function ResultOgImage({ params }: { params: Promise<{ day:
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
             <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" fill={GREEN} />
           </svg>
-          <div style={{ fontSize: 22, color: PAPER, letterSpacing: "0.16em" }}>
+          <div style={{ fontSize: "1.375rem", color: PAPER, letterSpacing: "0.16em" }}>
             MEGAWATT · SPREADCAST · FREE DAILY GAME
           </div>
         </div>

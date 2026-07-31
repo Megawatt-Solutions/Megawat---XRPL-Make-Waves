@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <span className="dot pulse" style={{ background: "var(--accent)" }} />
           Active vaults <span className="section-count">{active.length}</span>
         </h2>
-        <span className="muted" style={{ fontSize: 13 }}>Earning & operational</span>
+        <span className="muted" style={{ fontSize: "0.8125rem" }}>Earning & operational</span>
       </div>
       <div className="vault-grid">
         {active.map((v) => (
@@ -84,7 +84,7 @@ export default function DashboardPage() {
               <span className="dot" style={{ background: "var(--amber)" }} />
               Fundraising <span className="section-count">{fundraising.length}</span>
             </h2>
-            <span className="muted" style={{ fontSize: 13 }}>Open for deposits</span>
+            <span className="muted" style={{ fontSize: "0.8125rem" }}>Open for deposits</span>
           </div>
           <div className="vault-grid">
             {fundraising.map((v) => (
@@ -101,7 +101,7 @@ export default function DashboardPage() {
               <span className="dot" style={{ background: "var(--gray)" }} />
               Pipeline <span className="section-count">{pipeline.length}</span>
             </h2>
-            <span className="muted" style={{ fontSize: 13 }}>Committed · not yet open</span>
+            <span className="muted" style={{ fontSize: "0.8125rem" }}>Committed · not yet open</span>
           </div>
           <div className="vault-grid">
             {pipeline.map((v) => (

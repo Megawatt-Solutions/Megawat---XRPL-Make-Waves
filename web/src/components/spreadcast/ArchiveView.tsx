@@ -116,7 +116,7 @@ export function ArchiveView() {
       </div>
 
       <h2>Weekly blockchain anchors</h2>
-      <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
+      <p className="muted" style={{ fontSize: "0.8125rem", marginBottom: 10 }}>
         Once a week, a fingerprint of every prediction and result is written to XRPL — so even email-only players
         get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
@@ -134,9 +134,9 @@ export function ArchiveView() {
             {anchors.map((a) => (
               <tr key={a.week}>
                 <td className="sc-mono">{a.week}</td>
-                <td className="sc-mono muted" style={{ fontSize: 11 }}>{a.root}</td>
+                <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{a.root}</td>
                 <td className="num">{a.leaves}</td>
-                <td className="sc-mono muted" style={{ fontSize: 11 }}>{a.txHash}</td>
+                <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{a.txHash}</td>
               </tr>
             ))}
           </tbody>
@@ -229,7 +229,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
             <span className="sc-chip-range"> · {r.outcomeLabel}</span>
           </span>
         </td>
-        <td className="sc-mono muted" style={{ fontSize: 11 }}>{r.boundaries.join(" / ")}</td>
+        <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{r.boundaries.join(" / ")}</td>
         <td>
           <span className="sc-tag">{r.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED"}</span>{" "}
           <span className="sc-tag">{r.resolution}</span>
@@ -259,7 +259,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                     );
                   })}
                 </div>
-                <p className="muted" style={{ fontSize: 11, margin: "4px 0 12px" }}>
+                <p className="muted" style={{ fontSize: "0.6875rem", margin: "4px 0 12px" }}>
                   {detail.values.length} published values ({detail.resolution}) → 24 hourly means · min{" "}
                   {min.toFixed(2)} / max {max.toFixed(2)} €/MWh
                 </p>
@@ -291,16 +291,16 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                             {p.band}
                             {p.correct ? " ✓" : ""}
                           </td>
-                          <td className="sc-mono muted" style={{ fontSize: 10 }}>{p.hash.slice(0, 20)}…</td>
-                          <td className="sc-mono muted" style={{ fontSize: 10 }}>{p.salt.slice(0, 16)}…</td>
-                          <td className="sc-mono muted" style={{ fontSize: 10 }}>{p.txHash ? `${p.txHash.slice(0, 18)}…` : "—"}</td>
+                          <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.hash.slice(0, 20)}…</td>
+                          <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.salt.slice(0, 16)}…</td>
+                          <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.txHash ? `${p.txHash.slice(0, 18)}…` : "—"}</td>
                           <td className="num">{p.points}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {detail.reveal.length > 12 && (
-                    <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+                    <p className="muted" style={{ fontSize: "0.6875rem", marginTop: 6 }}>
                       + {detail.reveal.length - 12} more — full record at{" "}
                       <span className="sc-mono">/api/spreadcast/archive/{r.day}</span>
                     </p>

@@ -70,13 +70,13 @@ export default function PortfolioPage() {
       <div className="card">
         <div className="card-title">
           Portfolio value
-          <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Principal + projected yield at current APY</span>
+          <span className="muted" style={{ fontSize: "0.75rem", fontWeight: 400 }}>Principal + projected yield at current APY</span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "12px 0 6px" }}>
-          <div className="num" style={{ fontSize: 30, fontWeight: 690, letterSpacing: "-0.03em" }}>
+          <div className="num" style={{ fontSize: "1.875rem", fontWeight: 690, letterSpacing: "-0.03em" }}>
             {fmtMoney(m.currentValue, "USD", 0)}
           </div>
-          <div className="accent" style={{ fontSize: 13, fontWeight: 600 }}>
+          <div className="accent" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
             +{fmtMoney(m.lifetimeYield, "EUR")} yield
           </div>
         </div>
@@ -140,8 +140,8 @@ export default function PortfolioPage() {
                   {v.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
                 </span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</div>
-                  <div className="muted" style={{ fontSize: 12 }}><Flag code={v.flag} size={12} /> {v.location} · {fmtNum(p.shares)} {v.symbol}</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{v.name}</div>
+                  <div className="muted" style={{ fontSize: "0.75rem" }}><Flag code={v.flag} size={12} /> {v.location} · {fmtNum(p.shares)} {v.symbol}</div>
                 </div>
               </div>
               {/* Below 700px the column headers are gone, so these carry their

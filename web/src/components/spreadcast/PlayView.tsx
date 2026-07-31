@@ -362,7 +362,7 @@ export function PlayView() {
             </div>
           </div>
         </div>
-        <p style={{ fontSize: 13, color: "var(--muted)" }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--muted)" }}>
           Prices come from the ENTSO-E transparency platform — the same published data the market settles on.
         </p>
       </Sheet>
@@ -494,7 +494,7 @@ export function PlayView() {
                 {/* htmlFor, not a bare <label>. Without it this was a label
                     element attached to nothing: the input had no accessible
                     name, and clicking the words did not focus the field. */}
-                <label className="muted" style={{ fontSize: 13 }} htmlFor="sc-exact">
+                <label className="muted" style={{ fontSize: "0.8125rem" }} htmlFor="sc-exact">
                   Exact swing (optional tiebreaker):
                 </label>
                 <input
@@ -505,7 +505,7 @@ export function PlayView() {
                   value={exact}
                   onChange={(e) => setExact(e.target.value)}
                 />
-                <span className="muted" style={{ fontSize: 12 }}>€/MWh</span>
+                <span className="muted" style={{ fontSize: "0.75rem" }}>€/MWh</span>
               </div>
               {/* On mobile this docks flush against the bottom tab bar, so the
                   CTA and the nav read as one assembly rather than a button
@@ -564,7 +564,7 @@ export function PlayView() {
                             </a>
                             <button
                               onClick={() => setSignFlow(null)}
-                              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: 11, textDecoration: "underline" }}
+                              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: "0.6875rem", textDecoration: "underline" }}
                             >
                               cancel
                             </button>
@@ -634,7 +634,7 @@ export function PlayView() {
                   </span>
                 ))}
               </div>
-              <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+              <p className="muted" style={{ fontSize: "0.6875rem", marginTop: 6 }}>
                 daily price swings on the Slovenian market · colored by today&apos;s bands · data: ENTSO-E via
                 Energy-Charts
               </p>
@@ -647,7 +647,7 @@ export function PlayView() {
               <div className="sc-result-strip">
                 <div>
                   <div className="sc-result-num">{latest.spread.toFixed(2)} €</div>
-                  <div className="muted" style={{ fontSize: 12 }}>price swing</div>
+                  <div className="muted" style={{ fontSize: "0.75rem" }}>price swing</div>
                 </div>
                 <span
                   className="sc-band-chip"
@@ -692,7 +692,7 @@ export function PlayView() {
               <div className="sc-readout" role="status" aria-live="polite">
                 {hourTip ?? "Hourly prices, 00–23 · tap a bar for the hour"}
               </div>
-              <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+              <p className="muted" style={{ fontSize: "0.6875rem", marginTop: 6 }}>
                 blue = price went negative · full details under Results
               </p>
             </div>
@@ -752,7 +752,7 @@ export function PlayView() {
                 {shellAddress && (
                   // Don't imply the connected wallet already plays — /join is
                   // email-based. Just set the expectation honestly.
-                  <p className="sc-notice" style={{ fontSize: 12 }}>
+                  <p className="sc-notice" style={{ fontSize: "0.75rem" }}>
                     You&apos;re connected as <span className="sc-mono">{fmtAddress(shellAddress)}</span> — you can link
                     it right after, to become prize-eligible.
                   </p>
@@ -835,7 +835,7 @@ export function PlayView() {
               const label = i === 0 ? `< ${b[0]}` : i === 4 ? `≥ ${b[3]}` : `${b[i - 1]} – ${b[i]}`;
               const names = ["Calm", "Steady", "Lively", "Swingy", "Wild"];
               return (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: "0.8125rem" }}>
                   <span style={{ color: `var(${BAND_VARS[i]})`, fontWeight: 700 }}>{names[i]}</span>
                   <span className="sc-mono muted">{label} €/MWh</span>
                 </div>

@@ -131,7 +131,7 @@
      500-weight mono, uppercase, +0.16em. Mono floors at 9px. */
   --font: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono: var(--font-jetbrains-mono), "SFMono-Regular", ui-monospace, Menlo, monospace;
-  --eyebrow-size: 12px;
+  --eyebrow-size: 0.75rem;
   --eyebrow-weight: 500;
   --eyebrow-tracking: 0.16em;
 
@@ -224,7 +224,7 @@ body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  font-size: 16px; /* brand: body never below 16px */
+  font-size: 1rem; /* brand: body never below 16px */
   line-height: 1.625; /* brand body 16/26 */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -276,7 +276,7 @@ button {
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 0.875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -325,7 +325,7 @@ button {
   cursor: pointer;
   transition: all var(--t-ui) var(--ease);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 .wallet-pill:hover {
@@ -356,7 +356,7 @@ button {
   border: none;
   padding: 10px 16px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -381,14 +381,14 @@ button {
    set here anyway; margin is reset so the heading tags do not introduce the
    browser's default spacing and shift the layout they inherited. */
 .page-title {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 680;
   letter-spacing: -0.025em;
   margin: 0;
 }
 .page-sub {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
   margin-top: 3px;
 }
 
@@ -406,7 +406,7 @@ button {
   padding: 24px;
 }
 .card-title {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 620;
   letter-spacing: -0.01em;
   display: flex;
@@ -418,7 +418,7 @@ button {
 /* â”€â”€â”€ Label / caps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .caps {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -462,22 +462,22 @@ button {
   color: var(--accent);
 }
 .tile-value {
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: 680;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin-top: 6px;
 }
 .tile-value.sm {
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 .tile-sub {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 4px;
 }
 .tile-delta {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 550;
   color: var(--accent);
   margin-top: 4px;
@@ -491,7 +491,7 @@ button {
   gap: 8px;
   padding: 11px 18px;
   border-radius: var(--r-control);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 620;
   cursor: pointer;
   transition: all var(--t-ui) var(--ease);
@@ -531,7 +531,7 @@ button {
 }
 .btn-sm {
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   border-radius: var(--r-control);
 }
 
@@ -544,7 +544,7 @@ button {
   padding: 3px 8px;
   border: 1px solid transparent;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -604,7 +604,7 @@ button {
 .segbar > span {
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 650;
   color: var(--accent-ink);
 }
@@ -620,7 +620,7 @@ button {
   justify-content: space-between;
   padding: 11px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 0.875rem;
   gap: 12px;
 }
 .row:last-child {
@@ -649,11 +649,11 @@ button {
   gap: 11px;
 }
 .legend-name {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 .legend-desc {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 1px;
   max-width: 280px;
@@ -698,12 +698,12 @@ button {
   color: var(--accent);
 }
 .vault-name {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 640;
   letter-spacing: -0.01em;
 }
 .vault-loc {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -714,12 +714,12 @@ button {
   margin-bottom: 16px;
 }
 .vm-value {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 .vm-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--muted);
   margin-top: 1px;
 }
@@ -739,7 +739,7 @@ button {
    used real headings throughout — the same seam the capitalisation pass found,
    showing up in the document outline. */
 .section-title {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 640;
   letter-spacing: -0.015em;
   display: flex;
@@ -748,7 +748,7 @@ button {
   margin: 0;
 }
 .section-count {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   background: var(--card);
   border: 1px solid var(--border);
@@ -807,7 +807,7 @@ button {
   background: none;
   border: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-family: inherit;
   text-decoration: underline;
   cursor: pointer;
@@ -838,7 +838,7 @@ button {
   background: none;
   border: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   cursor: pointer;
   border-radius: var(--r-control);
   transition: color var(--t-ui) var(--ease);
@@ -856,7 +856,7 @@ button {
   animation: popIn 0.22s var(--ease);
 }
 .modal-title {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 660;
   letter-spacing: -0.01em;
 }
@@ -866,7 +866,7 @@ button {
   margin-bottom: 16px;
 }
 .field-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-2);
   margin-bottom: 7px;
   display: flex;
@@ -877,7 +877,7 @@ button {
   padding: 12px 14px;
   border: 1px solid var(--border-2);
   border-radius: var(--r-control);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 550;
   background: var(--bg);
   color: var(--text);
@@ -907,7 +907,7 @@ button {
   align-items: flex-start;
   gap: 6px;
   margin-top: 7px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--red);
 }
@@ -922,7 +922,7 @@ button {
   border-radius: var(--r-full);
   background: color-mix(in srgb, var(--red) 18%, transparent);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
 }
 .input-suffix {
@@ -934,7 +934,7 @@ button {
   top: 50%;
   transform: translateY(-50%);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -944,7 +944,7 @@ button {
   align-items: center;
   gap: 7px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 18px;
@@ -962,7 +962,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--accent);
 }
 .empty {
@@ -984,7 +984,7 @@ button {
 }
 .empty-state > svg { color: var(--text-2); opacity: 0.55; }
 .empty-state-title {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 620;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -1017,13 +1017,13 @@ button {
   background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 .sc-next-step-title {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 640;
   letter-spacing: -0.015em;
 }
 .sc-next-step-sub {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-2);
   max-width: 46ch;
 }
@@ -1050,7 +1050,7 @@ button {
   border: 1px solid var(--border-2);
   background: var(--card);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -1062,7 +1062,7 @@ button {
   border-color: var(--accent);
 }
 .sc-share-said {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--accent);
 }
 
@@ -1086,7 +1086,7 @@ button {
 }
 .sc-result-day {
   margin-top: 8px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--muted);
 }
 .sc-result-figure {
@@ -1109,12 +1109,12 @@ button {
 .sc-result-band {
   display: inline-flex;
   margin-top: 14px;
-  font-size: 14px;
+  font-size: 0.875rem;
   padding: 7px 13px;
 }
 .sc-result-lede {
   margin-top: 20px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.55;
   color: var(--text-2);
   max-width: 60ch;
@@ -1135,7 +1135,7 @@ button {
   min-width: 0;
 }
 .sc-result-meta dt {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: var(--eyebrow-weight);
   letter-spacing: var(--eyebrow-tracking);
   text-transform: uppercase;
@@ -1143,7 +1143,7 @@ button {
 }
 .sc-result-meta dd {
   margin: 5px 0 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -1155,7 +1155,7 @@ button {
 }
 .sc-result-foot {
   margin-top: 20px;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.6;
   color: var(--muted);
   max-width: 62ch;
@@ -1177,7 +1177,7 @@ button {
   border-radius: var(--r-control);
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 620;
   text-decoration: none;
   transform: translateY(-160%);
@@ -1223,7 +1223,7 @@ button {
 
 .empty-state-body {
   max-width: 46ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.6;
   color: var(--text-2);
 }
@@ -1242,7 +1242,7 @@ button {
 }
 @media (max-width: 480px) {
   .empty-state { padding: 32px 4px 30px; }
-  .empty-state-body { font-size: 13px; }
+  .empty-state-body { font-size: 0.8125rem; }
 }
 
 /* â”€â”€â”€ Toasts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1265,7 +1265,7 @@ button {
   color: var(--text);
   padding: 13px 18px;
   border-radius: var(--r-row);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.28s ease;
@@ -1399,7 +1399,7 @@ button {
   display: grid;
   place-items: center;
   font-weight: 680;
-  font-size: 17px;
+  font-size: 1.0625rem;
   letter-spacing: -0.02em;
   z-index: 1;
 }
@@ -1430,7 +1430,7 @@ button {
   border-left: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -1460,7 +1460,7 @@ button {
   text-align: center;
   color: var(--accent);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
   letter-spacing: -0.01em;
   margin-bottom: 14px;
 }
@@ -1471,7 +1471,7 @@ button {
   text-align: center;
 }
 .site-prod-v {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 680;
   letter-spacing: -0.02em;
 }
@@ -1505,7 +1505,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 620;
   cursor: pointer;
   transition: all var(--t-ui) var(--ease);
@@ -1541,7 +1541,7 @@ button {
     padding: 7px 0;
     border-radius: var(--r-control);
     color: var(--muted);
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 550;
     transition: color var(--t-ui) var(--ease), background var(--t-ui) var(--ease);
   }
@@ -1616,7 +1616,7 @@ button {
 }
 .v2-metric-top svg { flex-shrink: 0; opacity: 0.9; }
 .v2-metric-value {
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: 640;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -1627,20 +1627,20 @@ button {
 }
 .v2-metric-unit {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-2);
   letter-spacing: 0.08em;
 }
 .v2-metric-sub {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 10px;
 }
 .v2-projected {
   border-radius: var(--r-control);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 7%, transparent);
@@ -1674,7 +1674,7 @@ button {
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 550;
   cursor: pointer;
 }
@@ -1685,7 +1685,7 @@ button {
 .alloc-heads span {
   text-align: center;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1725,7 +1725,7 @@ button {
   padding: 10px 0;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1765,7 +1765,7 @@ button {
   background: rgba(255, 255, 255, 0.035);
   border-radius: var(--r-control);
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .v2-vault { border-bottom: 1px solid var(--border); transition: background var(--t-ui) var(--ease); }
 .v2-vault:hover { background: var(--card); }
@@ -1859,8 +1859,8 @@ button {
   z-index: 6;
 }
 .globe-pin:hover .globe-tip { opacity: 1; bottom: 24px; }
-.globe-tip-name { font-size: 13px; font-weight: 620; }
-.globe-tip-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.globe-tip-name { font-size: 0.8125rem; font-weight: 620; }
+.globe-tip-sub { font-size: 0.6875rem; color: var(--muted); margin-top: 1px; }
 
 /* â•â•â• Institutional chrome (v2) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
@@ -1877,7 +1877,7 @@ button {
   padding: 9px 14px;
   margin-bottom: 26px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1895,7 +1895,7 @@ button {
   gap: 14px;
   margin: 34px 0 14px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1977,7 +1977,7 @@ button {
   border-radius: 2px;
   border: 1px solid var(--border-2);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 0.5625rem;
   color: var(--muted);
 }
 /* Status dot now sits inline with the location it describes. */
@@ -1995,10 +1995,10 @@ button {
 .site-row:hover { background: rgba(255, 255, 255, 0.025); }
 .site-row .dot { flex-shrink: 0; }
 .site-id { min-width: 0; flex: 1; }
-.site-name { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; display: block; }
+.site-name { font-size: 0.8125rem; font-weight: 600; letter-spacing: -0.01em; display: block; }
 .site-loc {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2007,7 +2007,7 @@ button {
 }
 .site-num {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -2022,7 +2022,7 @@ button {
   border-top: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -2037,7 +2037,7 @@ button {
   gap: 10px 24px;
   flex-wrap: wrap;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2053,7 +2053,7 @@ button {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 16px 4px color-mix(in srgb, var(--accent) 95%, transparent);
 }
 .globe-pin.selected .globe-tip { opacity: 1; bottom: 26px; }
-.globe-tip-status { text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+.globe-tip-status { text-transform: uppercase; font-size: 0.625rem; letter-spacing: 0.06em; }
 .net-hint {
   text-align: center;
   margin-top: 4px;
@@ -2108,7 +2108,7 @@ button {
   border: 1px solid var(--border-2);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2146,7 +2146,7 @@ button {
 .chain-opt-name {
   display: block;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2154,7 +2154,7 @@ button {
 .chain-opt-sub {
   display: block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2180,11 +2180,11 @@ button {
 @media (min-width: 981px) and (max-width: 1180px) {
   .nav { padding: 0 16px; gap: 16px; }
   .nav-link { padding: 0 9px; letter-spacing: 0.1em; }
-  .nav-brand { font-size: 13px; letter-spacing: 0.1em; }
+  .nav-brand { font-size: 0.8125rem; letter-spacing: 0.1em; }
 }
 @media (max-width: 560px) {
   .nav { padding: 0 12px; gap: 10px; }
-  .nav-brand { font-size: 13px; letter-spacing: 0.1em; gap: 8px; }
+  .nav-brand { font-size: 0.8125rem; letter-spacing: 0.1em; gap: 8px; }
   /* Network tag and avatar are decoration; the address is the payload. */
   .chain-net { display: none; }
   .wallet-avatar { display: none; }
@@ -2227,10 +2227,10 @@ button {
   max-width: 1120px;
 }
 
-.sc h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px; }
+.sc h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px; }
 .sc h1 span { color: var(--accent); }
-.sc h2 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
-.sc-sub { color: var(--text-2); font-size: 14px; margin-bottom: 24px; max-width: 640.98px; }
+.sc h2 { font-size: 0.9375rem; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
+.sc-sub { color: var(--text-2); font-size: 0.875rem; margin-bottom: 24px; max-width: 640.98px; }
 .sc-mono { font-family: var(--mono); }
 .sc-panel { padding: 20px 22px; }
 
@@ -2297,7 +2297,7 @@ button {
   align-items: center;
   gap: 7px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
   white-space: nowrap;
@@ -2321,7 +2321,7 @@ button {
   border: 1px solid var(--border);
   color: var(--sc-b3, var(--amber));
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   white-space: nowrap;
 }
 
@@ -2350,7 +2350,7 @@ button {
   padding: 3px 8px;
   border: 1px solid var(--border-2);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2368,15 +2368,15 @@ button {
   padding: 10px 13px;
   width: 100%;
   outline: none;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-family: inherit;
   margin: 0;
 }
 .sc-field:focus { border-color: var(--accent); }
 .sc-field::placeholder { color: var(--muted); }
 
-.sc-err { color: var(--red); font-size: 13px; }
-.sc-notice { color: var(--text-2); font-size: 13px; }
+.sc-err { color: var(--red); font-size: 0.8125rem; }
+.sc-notice { color: var(--text-2); font-size: 0.8125rem; }
 
 .sc-play-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 /* .sc-countdown removed — the section bar owns the clock now (§2.1). */
@@ -2406,15 +2406,15 @@ button {
 .sc-band-card.sel .sc-band-bar { opacity: 1; }
 .sc-band-name {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--bc);
   margin-bottom: 4px;
 }
-.sc-band-range { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
-.sc-band-unit { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+.sc-band-range { font-family: var(--mono); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.sc-band-unit { font-family: var(--mono); font-size: 0.5625rem; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
 
 /* minmax(0, 1fr) not 1fr: a plain fr track has an automatic minimum of
    min-content, so one unbreakable string anywhere inside (a commit hash, an
@@ -2428,12 +2428,12 @@ button {
 .sc-exact-row .sc-field { width: 140px; }
 
 .sc-result-strip { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-.sc-result-num { font-family: var(--mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.sc-result-num { font-family: var(--mono); font-size: 1.625rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
 .sc-commit-box {
   border-radius: var(--r-control);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   word-break: break-all;
   background: var(--surface);
   border: 1px dashed var(--border-2);
@@ -2457,18 +2457,18 @@ button {
   cursor: pointer;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .sc-seg button.on { background: var(--card-2); color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
 
-.sc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sc-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .sc-table th {
   text-align: left;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--muted);
@@ -2484,7 +2484,7 @@ button {
 .sc-tag {
   border-radius: var(--r-full);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   border: 1px solid var(--border-2);
@@ -2505,7 +2505,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--border-2);
   border-radius: var(--r-control);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .sc-wallet-row .sc-mono {
   overflow: hidden;
@@ -2572,7 +2572,7 @@ button {
 .sc-settle-x:hover { color: var(--text); background: var(--card-2); }
 .sc-settle-num {
   font-family: var(--mono);
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -2580,7 +2580,7 @@ button {
   line-height: 1.1;
 }
 .sc-settle-num small {
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   color: var(--muted);
   margin-left: 8px;
@@ -2591,9 +2591,9 @@ button {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
-.sc-settle-pts { color: var(--accent); font-family: var(--mono); font-size: 12px; }
+.sc-settle-pts { color: var(--accent); font-family: var(--mono); font-size: 0.75rem; }
 
 /* ─── Locked status strip ─────────────────────────────────────────
    Replaces the picker once a pick exists, so "done" reads as done.
@@ -2618,14 +2618,14 @@ button {
 .sc-locked-id { flex: 1; min-width: 0; }
 .sc-locked-band {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .sc-locked-range {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -2684,7 +2684,7 @@ button {
   .row-lbl {
     display: block;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -2751,7 +2751,7 @@ button {
   min-height: 44px;
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
@@ -2766,7 +2766,7 @@ button {
   border: 1px solid var(--border);
   border-left: 2px solid var(--accent);
   border-radius: var(--r-control);
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-2);
 }
 
@@ -2775,7 +2775,7 @@ button {
 .sc-band-chip {
   display: inline-block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.06em;
   padding: 3px 8px;
@@ -2792,18 +2792,18 @@ button {
 .sc-how-h {
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 11px !important;
+  font-size: 0.6875rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.sc-how-grid p, .sc-how-grid li { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+.sc-how-grid p, .sc-how-grid li { font-size: 0.875rem; color: var(--text-2); line-height: 1.6; }
 .sc-how-grid ul { padding-left: 18px; }
-.sc-timeline { display: flex; flex-direction: column; gap: 9px; font-size: 14px; color: var(--text-2); }
+.sc-timeline { display: flex; flex-direction: column; gap: 9px; font-size: 0.875rem; color: var(--text-2); }
 .sc-timeline .t { display: flex; gap: 14px; align-items: baseline; }
 .sc-timeline-tz {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -2816,7 +2816,7 @@ button {
   min-width: 62px;
   flex-shrink: 0;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 .sc-timeline .t span { min-width: 0; }
@@ -2855,10 +2855,10 @@ button {
 .sc-arch-detail > td { max-width: 0; }
 
 @media (max-width: 640.98px) {
-  .sc-table { font-size: 13px; }
+  .sc-table { font-size: 0.8125rem; }
   .sc-table th,
   .sc-table td { padding: 10px 10px; white-space: nowrap; }
-  .sc-table th { font-size: 9px; letter-spacing: 0.1em; }
+  .sc-table th { font-size: 0.5625rem; letter-spacing: 0.1em; }
 
   .sc-table td.sc-mono { max-width: 120px; }
 
@@ -2942,7 +2942,7 @@ button {
   padding-top: 14px;
   border-top: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -2980,9 +2980,9 @@ button {
     border-radius: 3px;
     opacity: 1;
   }
-  .sc-band-name { grid-area: name; margin-bottom: 0; font-size: 11px; }
+  .sc-band-name { grid-area: name; margin-bottom: 0; font-size: 0.6875rem; }
   .sc-band-hint { grid-area: hint; }
-  .sc-band-range { grid-area: range; text-align: right; font-size: 14px; }
+  .sc-band-range { grid-area: range; text-align: right; font-size: 0.875rem; }
   .sc-band-unit { grid-area: unit; text-align: right; margin-top: 0; }
   .sc-play-grid, .sc-how-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2991,7 +2991,7 @@ button {
 .chain-net {
   border-radius: var(--r-control);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 500;
   letter-spacing: 0.1em;
   color: var(--accent);
@@ -3014,16 +3014,16 @@ button {
 }
 .sc-prizebar .amount {
   font-family: var(--mono);
-  font-size: 26px;
+  font-size: 1.625rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
 }
-.sc-prizebar .amount small { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; }
+.sc-prizebar .amount small { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; }
 .sc-prizebar .label {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -3036,7 +3036,7 @@ button {
 }
 .sc-prize-split span {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   border: 1px solid var(--border-2);
   padding: 3px 7px;
@@ -3047,7 +3047,7 @@ button {
 .sc-prize-split span.top { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .sc-prize-amt {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 500;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
@@ -3057,7 +3057,7 @@ button {
 .sc-hist { display: flex; align-items: flex-end; gap: 3px; height: 96px; margin-top: 14px; }
 .sc-hist span { flex: 1; min-height: 3px; opacity: 0.85; }
 .sc-hist span:hover, .sc-hist span:focus-visible { opacity: 1; }
-.sc-hist-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; }
+.sc-hist-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 0.6875rem; }
 
 /* Chart readout — replaces the hover tooltip on touch. Reserves its own line
    so the layout doesn't shift as the value changes, and is a live region so
@@ -3066,7 +3066,7 @@ button {
   min-height: 20px;
   margin-top: 8px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -3088,7 +3088,7 @@ button {
    app uses for anything that is content rather than a label. */
 .sc-band-hint {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--muted);
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
@@ -3106,7 +3106,7 @@ button {
   border: 1px solid var(--border-2);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   padding: 5px 9px;
@@ -3206,14 +3206,14 @@ button {
    went unnoticed: the page simply weighed differently depending on which
    kind of vault you opened. One size, on the brand's h3 step. */
 .card-hero-num {
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 690;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin-top: 14px;
 }
 @media (max-width: 480px) {
-  .card-hero-num { font-size: 26px; }
+  .card-hero-num { font-size: 1.625rem; }
 }
 
 /* ─── Skeletons ───────────────────────────────────────────────────
@@ -3407,13 +3407,13 @@ button {
 }
 .vsl-label {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.vsl-value { font-size: 16px; font-weight: 620; letter-spacing: -0.01em; }
-.vsl-unit { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: -4px; }
+.vsl-value { font-size: 1rem; font-weight: 620; letter-spacing: -0.01em; }
+.vsl-unit { font-family: var(--mono); font-size: 0.625rem; color: var(--muted); margin-left: -4px; }
 
 /* ─── Spreadcast cross-sell strip ─────────────────────────────────
    The only thing the vaults half gets back from the game. Full-bleed
@@ -3459,8 +3459,8 @@ button {
   text-transform: uppercase;
   color: var(--accent);
 }
-.scs-title { font-size: 18px; font-weight: 650; letter-spacing: -0.015em; margin-top: 6px; }
-.scs-sub { font-size: 13px; color: var(--text-2); margin-top: 4px; max-width: 52ch; }
+.scs-title { font-size: 1.125rem; font-weight: 650; letter-spacing: -0.015em; margin-top: 6px; }
+.scs-sub { font-size: 0.8125rem; color: var(--text-2); margin-top: 4px; max-width: 52ch; }
 .scs-clock {
   flex-shrink: 0;
   text-align: right;
@@ -3471,11 +3471,11 @@ button {
      shift stacked on the one this component used to cause. */
   min-height: 46px;
 }
-.scs-clock .num { font-size: 22px; font-weight: 500; }
+.scs-clock .num { font-size: 1.375rem; font-weight: 500; }
 .scs-clock small {
   display: block;
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -3483,7 +3483,7 @@ button {
 @media (max-width: 560px) {
   .scs-body { padding: 16px; gap: 12px; }
   .scs-clock { text-align: left; }
-  .scs-clock .num { font-size: 18px; }
+  .scs-clock .num { font-size: 1.125rem; }
 }
 
 /* ═══ Sheet primitive ═════════════════════════════════════════════
@@ -3543,7 +3543,7 @@ button {
   margin-bottom: 5px;
 }
 .sheet-title {
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 660;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -3569,7 +3569,7 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0 18px 18px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.6;
   color: var(--text-2);
 }
@@ -3621,10 +3621,10 @@ button {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
-.pf-step-title { color: var(--text); font-weight: 600; font-size: 15px; }
-.pf-step-body { font-size: 14px; margin-top: 2px; }
+.pf-step-title { color: var(--text); font-weight: 600; font-size: 0.9375rem; }
+.pf-step-body { font-size: 0.875rem; margin-top: 2px; }
 .pf-value {
   display: block;
   margin-top: 8px;
@@ -3633,7 +3633,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--r-control);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-2);
   word-break: break-all;
 }
@@ -3732,7 +3732,7 @@ button {
 .ob-step { animation: obStepFwd 0.26s var(--ease); }
 .ob-sheet[data-dir="back"] .ob-step { animation-name: obStepBack; }
 .ob-title {
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 660;
   letter-spacing: -0.02em;
   line-height: 1.22;
@@ -3740,7 +3740,7 @@ button {
 }
 .ob-lede {
   margin-top: 10px;
-  font-size: 16px; /* brand floor */
+  font-size: 1rem; /* brand floor */
   line-height: 1.6;
   color: var(--text-2);
 }
@@ -3751,7 +3751,7 @@ button {
   gap: 11px;
   padding: 11px 0;
   border-top: 1px solid var(--border);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
 }
 .ob-point:first-child { border-top: 0; }
@@ -3817,16 +3817,16 @@ button {
   .ob-head { padding: 20px 24px 12px; }
   .ob-body { padding: 0 24px 6px; }
   .ob-foot { padding: 16px 24px 20px; }
-  .ob-title { font-size: 24px; }
+  .ob-title { font-size: 1.5rem; }
 }
 
 /* 320px floor: shed the Back label so the CTA never wraps. */
 @media (max-width: 359px) {
   .ob-head, .ob-body, .ob-foot { padding-left: 14px; padding-right: 14px; }
-  .ob-title { font-size: 20px; }
+  .ob-title { font-size: 1.25rem; }
   .ob-back-label { display: none; }
   .ob-back { padding-left: 13px; padding-right: 13px; }
-  .ob-next { font-size: 13px; }
+  .ob-next { font-size: 0.8125rem; }
 }
 
 @keyframes obSheetIn {

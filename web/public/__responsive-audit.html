@@ -722,6 +722,21 @@ window.runAudit = async function (routes, widths) {
     findings.push({ route: "(landscape)", w: 0, kind: "short-viewport-audit-error", detail: String(e).slice(0, 90) });
   }
 
+  // Text scaling (WCAG 1.4.4). This function existed, fully written, for
+  // several passes and was never wired in — so it was never once run, and the
+  // thing it would have caught immediately (every font size in the app was px,
+  // so a larger browser default font did nothing at all) went unnoticed the
+  // whole time. A check nobody calls is not a check.
+  //
+  // Kept to three routes: it reloads each one twice and the dev server slows
+  // badly under sustained sweeps.
+  hud.textContent = "auditing text scale…";
+  try {
+    for (const f of await auditTextScale(routes.slice(0, 3), 390)) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(text scale)", w: 390, kind: "text-scale-audit-error", detail: String(e).slice(0, 90) });
+  }
+
   // Overlays are NOT run from here — call auditOverlays(390) yourself.
   //
   // Embedded in this sweep it was both slow (minutes, sometimes not finishing)

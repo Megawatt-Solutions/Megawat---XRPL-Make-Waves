@@ -85,10 +85,10 @@ export function VaultDetail({ vault }: { vault: Vault }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h1 style={{ fontSize: 24, fontWeight: 690, letterSpacing: "-0.025em" }}>{vault.name}</h1>
+              <h1 style={{ fontSize: "1.5rem", fontWeight: 690, letterSpacing: "-0.025em" }}>{vault.name}</h1>
               <span className="dot" style={{ background: STATUS_DOT[vault.status], boxShadow: `0 0 8px ${STATUS_DOT[vault.status]}` }} />
             </div>
-            <div className="muted" style={{ fontSize: 14, marginTop: 3 }}>
+            <div className="muted" style={{ fontSize: "0.875rem", marginTop: 3 }}>
               <Flag code={vault.flag} size={13} /> {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isShowcase ? "gross" : "APY"}
             </div>
           </div>
@@ -304,14 +304,14 @@ function ClaimCard({ vault, claimable, distributed, claimed, currency, onClaim }
       <div className="num card-hero-num">
         {fmtMoney(distributed, currency)}
       </div>
-      <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+      <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 4 }}>
         Total claimed: {fmtMoney(claimed, currency)}
       </div>
       <button className="btn btn-accent btn-block" style={{ marginTop: 18 }} onClick={onClaim} disabled={claimable <= 0}>
         {claimable > 0 ? `Claim ${fmtMoney(claimable, currency)}` : "No yield to claim"}
       </button>
       <div className="divider" />
-      <div className="muted" style={{ fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+      <div className="muted" style={{ fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
         <ClockIcon size={14} /> Next distribution in{" "}
         <strong style={{ color: "var(--text)" }}>{fmtDuration(nextDistributionSec(vault))}</strong>
       </div>
@@ -329,7 +329,7 @@ function RevenueCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof si
       <div className="num card-hero-num">
         {fmtMoney(snap.grossYtd, vault.currency, 0)}
       </div>
-      <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>Gross revenue · year to date</div>
+      <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>Gross revenue · year to date</div>
       {/* The thesis, in one row: this revenue comes from the day-ahead spread,
           which is the exact number Spreadcast asks you to predict. */}
       <VaultSpreadLine />
@@ -359,7 +359,7 @@ function FundraisingCard({ progress, deposited, raised, target, currency, disabl
             Pipeline <span className="badge badge-soon">Not yet open</span>
           </div>
           <div className="num card-hero-num">{fmtCompact(target, currency)}</div>
-          <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
+          <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>
             target raise · opens for fundraising next quarter
           </div>
           <div className="divider" />
@@ -383,7 +383,7 @@ function FundraisingCard({ progress, deposited, raised, target, currency, disabl
             Fundraising <span className="badge badge-fundraising">{Math.round(progress * 100)}% funded</span>
           </div>
           <div className="num card-hero-num">{fmtCompact(raised, currency)}</div>
-          <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
+          <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>
             raised of {fmtCompact(target, currency)} target
           </div>
           <div className="progress" style={{ marginTop: 16 }}>
@@ -417,7 +417,7 @@ function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: n
     <div className="card">
       <div className="card-title">
         Yield breakdown
-        <span className="muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
+        <span className="muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
           <ClockIcon size={12} /> Updated {fmtAgo(updatedAgo)}
         </span>
       </div>
@@ -471,12 +471,12 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
       <div className="divider" />
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
-          <div className="num" style={{ fontWeight: 650, fontSize: 15 }}>{(snap.roundTripEff * 100).toFixed(1)}%</div>
-          <div className="muted" style={{ fontSize: 12 }}>Round-trip efficiency</div>
+          <div className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{(snap.roundTripEff * 100).toFixed(1)}%</div>
+          <div className="muted" style={{ fontSize: "0.75rem" }}>Round-trip efficiency</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div className="num" style={{ fontWeight: 650, fontSize: 15 }}>{fmtNum(snap.cycles)}</div>
-          <div className="muted" style={{ fontSize: 12 }}>Lifetime cycles</div>
+          <div className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{fmtNum(snap.cycles)}</div>
+          <div className="muted" style={{ fontSize: "0.75rem" }}>Lifetime cycles</div>
         </div>
       </div>
     </div>
@@ -486,8 +486,8 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-      <span className="muted" style={{ fontSize: 13 }}>{label}</span>
-      <span className="num" style={{ fontWeight: 650, fontSize: 15 }}>{value}</span>
+      <span className="muted" style={{ fontSize: "0.8125rem" }}>{label}</span>
+      <span className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{value}</span>
     </div>
   );
 }
@@ -581,7 +581,7 @@ function SiteOverviewCard({ vault }: { vault: Vault }) {
       <div style={{ marginTop: "auto", paddingTop: 16 }}>
         <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
           <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={17} /></span>
-          <div style={{ fontSize: 12, color: "var(--text-2)" }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>
             {/* The header pill now carries "not investable" so it is read
                 before the numbers rather than after them. This keeps the
                 explanation — why the site is here at all — without repeating
@@ -672,8 +672,8 @@ function LegendItem({ color, name, value, pct }: { color: string; name: string; 
     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
       <span className="dot" style={{ background: color, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{name} · <span className="num">{value}</span></div>
-        <div className="muted num" style={{ fontSize: 12 }}>{pct.toFixed(2)}%</div>
+        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{name} · <span className="num">{value}</span></div>
+        <div className="muted num" style={{ fontSize: "0.75rem" }}>{pct.toFixed(2)}%</div>
       </div>
     </div>
   );
@@ -781,7 +781,7 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
                   display: "inline-flex", alignItems: "center", minHeight: 34,
                   background: "var(--accent-dim)", color: "var(--accent)", border: "none",
                   borderRadius: "var(--r-control)", padding: "0 11px",
-                  fontSize: 11, fontWeight: 700, cursor: "pointer", marginLeft: 6,
+                  fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", marginLeft: 6,
                 }}
               >
                 MAX
@@ -802,7 +802,7 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
           <Row k="Projected APY" v={fmtPct(bpsToPct(vault.apyBps))} accent />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.75rem", color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>
           {kycOk ? <CheckIcon size={14} /> : <ShieldIcon size={14} />}
           {kycOk ? "KYC verified — eligible to deposit" : "KYC verification required to deposit"}
         </div>

@@ -78,7 +78,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <div className="progress">
             <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: "0.75rem" }}>
             <span className="accent" style={{ fontWeight: 600 }}>{Math.round(progress * 100)}% funded</span>
             <span className="muted num">
               {fmtCompact(vault.raised, vault.currency)} / {fmtCompact(vault.capex, vault.currency)}
@@ -86,7 +86,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
           </div>
         </div>
       ) : vault.status === "coming_soon" ? (
-        <div className="muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}>
+        <div className="muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 7 }}>
           <BoltIcon size={13} /> Opens for fundraising next quarter
         </div>
       ) : (

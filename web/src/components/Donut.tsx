@@ -49,8 +49,8 @@ export function Donut({ segments, size = 124, thickness = 13, centerLabel, cente
       {(centerLabel || centerSub) && (
         <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>
           <div>
-            {centerLabel && <div style={{ fontWeight: 680, fontSize: 18, letterSpacing: "-0.02em" }} className="num">{centerLabel}</div>}
-            {centerSub && <div className="muted" style={{ fontSize: 11 }}>{centerSub}</div>}
+            {centerLabel && <div style={{ fontWeight: 680, fontSize: "1.125rem", letterSpacing: "-0.02em" }} className="num">{centerLabel}</div>}
+            {centerSub && <div className="muted" style={{ fontSize: "0.6875rem" }}>{centerSub}</div>}
           </div>
         </div>
       )}

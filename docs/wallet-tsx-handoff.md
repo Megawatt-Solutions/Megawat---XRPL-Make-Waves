@@ -249,3 +249,27 @@ The fix mirrors `VaultDetail`'s `DepositModal` exactly:
 
 `web/src/components/useDialog.ts` already exists and is used by three dialogs,
 so this is an import and three attributes, not new logic to review.
+
+---
+
+## 6. Seven px font sizes block text scaling (found 2026-07-31)
+
+The app was migrated from px to rem type sizes so that a raised browser default
+font size actually enlarges the interface (WCAG 1.4.4). 151 CSS declarations,
+one custom property and 89 inline `fontSize` values were converted; the 7
+inline `fontSize` values in `wallet.tsx` were left alone by the standing
+instruction.
+
+They are the only text in the app that still ignores the user's setting. The
+conversion is `fontSize: N` → `fontSize: "<N/16>rem"`, e.g.
+
+```diff
+- style={{ fontSize: 12 }}
++ style={{ fontSize: "0.75rem" }}
+```
+
+Every value in the codebase divided cleanly by 16, so this is exact and cannot
+shift rendering at the default root size. Verify the same way the main
+migration was: capture computed font sizes before and after and require them to
+be identical at a 16px root, then set the root to 32px and require the sizes to
+double.

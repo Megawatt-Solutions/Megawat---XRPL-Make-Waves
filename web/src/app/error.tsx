@@ -61,7 +61,7 @@ export default function VaultsError({
           {error.digest && (
             /* The digest is the only handle support has on a production error;
                the stack is stripped from the client build. */
-            <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+            <p className="muted" style={{ fontSize: "0.75rem", marginTop: 6 }}>
               Reference <span className="num">{error.digest}</span>
             </p>
           )}

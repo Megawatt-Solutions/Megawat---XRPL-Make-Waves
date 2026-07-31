@@ -54,7 +54,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
           <div style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(135deg, var(--accent), #3aa9ff)", flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 650, fontSize: 15 }} className="num">{fmtAddress(profile.address, 8, 6)}</span>
+              <span style={{ fontWeight: 650, fontSize: "0.9375rem" }} className="num">{fmtAddress(profile.address, 8, 6)}</span>
               <button onClick={copy} style={iconBtn} aria-label="Copy address">
                 {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
               </button>
@@ -62,7 +62,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 <ExternalLinkIcon size={14} />
               </a>
             </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 2 }}>
               XRPL · Mainnet · {profile.via === "xaman" ? "Xaman sign-in" : "watch-only"}
               {profile.funded ? "" : " · unfunded (1 XRP base reserve)"}
             </div>
@@ -85,9 +85,9 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 {accredited ? <VerifiedIcon size={20} /> : <ShieldIcon size={20} />}
               </span>
               <div>
-                <div style={{ fontWeight: 620, fontSize: 14 }}>{KYC_LABEL[profile.kycLevel]}</div>
+                <div style={{ fontWeight: 620, fontSize: "0.875rem" }}>{KYC_LABEL[profile.kycLevel]}</div>
                 {profile.kycIssuer && (
-                  <div className="muted" style={{ fontSize: 12 }}>
+                  <div className="muted" style={{ fontSize: "0.75rem" }}>
                     {profile.kycIssuer}
                     {profile.kycIssuedAt ? ` · ${fmtDate(profile.kycIssuedAt)}` : ""}
                   </div>
@@ -124,7 +124,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {!profile.rlusdTrustline && (
-          <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+          <p className="muted" style={{ fontSize: "0.75rem", marginTop: 10 }}>
             Vault deposits settle in RLUSD — you&apos;ll be asked to set the RLUSD trustline when fundraising
             opens.
           </p>

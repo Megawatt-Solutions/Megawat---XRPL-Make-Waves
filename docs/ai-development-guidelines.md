@@ -1077,6 +1077,7 @@ A change is done when:
 - [ ] Every new form control has a `<label htmlFor>`, not a `div` that looks like one
 - [ ] Every non-submit `<button>` inside a form has `type="button"`
 - [ ] Any new overlay uses `Sheet` or `useDialog` — never a bare `.overlay` + `.modal`
+- [ ] New type sizes are `rem`, never `px` — px ignores the user's font-size setting
 - [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
 - [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
@@ -1153,6 +1154,48 @@ something you already know.** A sheet whose `top` equals the viewport height
 exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
+
+### Every font size was px, so the browser's font-size setting did nothing
+
+`auditTextScale()` sat fully written in the harness for several passes without
+ever being wired into `runAudit()`. The first time it was run it returned the
+same verdict on all four routes it was pointed at: **0 of 45 sampled elements
+responded to a 24px root**. Every `font-size` in the app was px — 151 in
+`globals.css`, 96 inline in TSX — and `body { font-size: 16px }` pinned the
+root preference outright. Browser zoom still worked; a raised *default font
+size*, which is what people with low vision actually set, did nothing at all.
+
+Converted mechanically: 151 CSS declarations, the one `--eyebrow-size` custom
+property, and 89 inline `fontSize` values in TSX (the 7 in `wallet.tsx` are out
+of scope by standing instruction). Every value divided cleanly by 16, so the
+transform is exact — no rounding drift, and none was expected or found.
+
+Two things made this safe to do in one sweep, and both are worth repeating for
+any large mechanical change:
+
+- **A before/after equality check, not a spot check.** Computed `font-size` was
+  captured for ~1,050 elements across four route/width pairs *before* the
+  change and compared after. All identical. That is what makes "240 edits, zero
+  visual change" a measurement rather than a hope.
+- **A positive control.** Zero findings after a big change is exactly what a
+  broken check also returns. Re-running the audit and getting "clean" proved
+  nothing on its own; setting the root to 32px and confirming a **median scale
+  ratio of exactly 2.00** is what proved the text now scales.
+
+At 200% on four routes at 390px: no clipping, no horizontal overflow. A 20-way
+route × width regression sweep on a production build was also clean.
+
+**A trap worth knowing**, which cost most of this pass: `getComputedStyle(el)
+.fontSize` on a few container elements (`.connect-btn`, `.vault-card`) kept
+reporting the unscaled value while an identical `0.6875rem` probe injected
+beside them reported the scaled one. It reproduced on a production build, so it
+was not dev-server staleness. The elements were rendering correctly the whole
+time — `.connect-btn`'s box grew 38px→56px and `.vault-card`'s 197px→855px.
+**Box geometry was the trustworthy signal; the computed-style reading was not.**
+The one leaf that genuinely never scaled, `.chain-btn-name`, is `display: none`
+at that width, and a hidden element does not get restyled.
+
+`auditTextScale` now runs inside `runAudit()` on the first three routes.
 
 ### The two dialogs that handled money had no dialog behaviour
 
