@@ -16,13 +16,16 @@ export default function DashboardPage() {
 
   return (
     <main className="page">
-      <SpreadcastStrip />
       <div className="page-head">
         <div className="page-title">Vaults</div>
         <div className="page-sub">
           Invest in real battery energy storage systems, earn yield, and trade your position.
         </div>
       </div>
+
+      {/* Cross-sell sits AFTER the page identifies itself — a promo should not
+          be the first thing above a page's own title. */}
+      <SpreadcastStrip />
 
       <div className="tile-grid">
         <StatTile

@@ -37,7 +37,6 @@ export default function DashboardV2Page() {
 
   return (
     <main className="page">
-      <SpreadcastStrip />
       {/* Status ribbon */}
       <div className="ribbon">
         <div className="ribbon-group">
@@ -56,10 +55,14 @@ export default function DashboardV2Page() {
       <div className="page-head">
         <div className="page-title">Protocol Overview</div>
         <div className="page-sub">
-          Institutional access to distributed battery storage — value locked, staking yield, and deployed
+          Institutional access to distributed battery storage — value locked, depositor yield, and deployed
           capacity across the vault network.
         </div>
       </div>
+
+      {/* Cross-sell sits AFTER the page identifies itself — a promo should
+          not be the first thing above a page's own title. */}
+      <SpreadcastStrip />
 
       {/* 01 — Hero metrics */}
       <SectionHead index="01" name="Protocol metrics" meta="Updated per block" />
@@ -79,7 +82,7 @@ export default function DashboardV2Page() {
 
           <div className="v2-metric">
             <div className="v2-metric-top">
-              <span className="caps">Staking APY</span>
+              <span className="caps">Depositor APY</span>
               <Sparkline data={apySpark} width={64} height={20} fill={false} />
             </div>
             <div className="v2-metric-value num">
@@ -116,10 +119,10 @@ export default function DashboardV2Page() {
       </div>
 
       {/* 02 — Charts */}
-      <SectionHead index="02" name="Performance" meta="TVL & staking APY — historical" />
+      <SectionHead index="02" name="Performance" meta="TVL & depositor APY — historical" />
       <div className="v2-charts">
         <OverviewChart type="tvl" title="Total Value Locked" />
-        <OverviewChart type="apy" title="Staking APY" />
+        <OverviewChart type="apy" title="Depositor APY" />
       </div>
 
       {/* 03 — Global network */}
