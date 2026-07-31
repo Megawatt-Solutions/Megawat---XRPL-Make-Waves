@@ -92,7 +92,7 @@ export default function PortfolioPage() {
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
-        <div className="drow-head pf-head caps" hidden={POSITIONS.length === 0}>
+        <div className="drow-head pf-head caps" aria-hidden="true" hidden={POSITIONS.length === 0}>
           <span>Vault</span>
           <span style={{ textAlign: "right" }}>Deposited</span>
           <span style={{ textAlign: "right" }}>Claimable</span>
@@ -120,6 +120,20 @@ export default function PortfolioPage() {
               key={p.vaultId}
               href={`/vault/${v.id}`}
               className="drow pf-row prow"
+              // These rows are a list of links, not a table — see the note in
+              // ai-development-guidelines.md on why role="row" would be worse.
+              // The consequence is that no value in the row is associated with
+              // the header above it, so the link's own name has to carry them:
+              // without this it announces "BESS Ljubljana 01 SI Ljubljana,
+              // Slovenia · 24,000 mwLJU01 $24,000.00 €812.44 12.2%" — four
+              // bare figures in a row. Starts with the visible vault name so
+              // the name still contains the label (WCAG 2.5.3).
+              aria-label={
+                `${v.name}, ${v.location}. ` +
+                `Deposited ${fmtMoney(p.deposited, "USD")}, ` +
+                `claimable ${fmtMoney(p.claimable, v.currency)}, ` +
+                `APY ${fmtPct(bpsToPct(v.apyBps))}.`
+              }
             >
               <div className="pf-c-id" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                 <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>

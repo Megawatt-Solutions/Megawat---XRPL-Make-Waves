@@ -1185,11 +1185,27 @@ The right fix is to treat them as what they are: a list of links, each of whose
 deposited, $340 claimable, 8.2% APY"), with the header row `aria-hidden` since
 it labels columns that do not semantically exist.
 
-Not done yet, and deliberately: `POSITIONS` and the marketplace listings are
-both empty in the current demo data, so there is nothing to verify a naming
-strategy against. Designing accessible names for rows that do not exist is how
-you ship something that reads badly the day real data arrives. **Do this in the
-same change that gives either surface real rows.**
+**Done.** It was deferred while `POSITIONS` and `LISTINGS` were empty, on the
+grounds that a naming strategy you cannot read back is one you cannot verify.
+The temporary-fixture technique above removes that objection, so the names were
+written and then actually read at 390px and 1024px:
+
+- Portfolio rows are `<Link>`s carrying
+  `"BESS Ljubljana 01, Ljubljana, Slovenia. Deposited $24,000.00, claimable
+  €812.44, APY 12.2%."` — previously the name was the raw text content,
+  `"…24,000 mwLJU01 $24,000.00 €812.44 12.2%"`, four bare figures in a row.
+- Marketplace Buy buttons carry `"Buy 12,500 shares of BESS Ljubljana 01 for
+  $12,125.00"`. Every listing previously rendered a button whose entire name
+  was "Buy", so a screen reader heard "Buy, button" once per row with nothing
+  to distinguish them.
+- Both `.drow-head` strips are `aria-hidden="true"`: they label columns that do
+  not semantically exist, so they were pure noise.
+
+Note the ordering constraint that made both names safe: the visible label comes
+**first** in the accessible name ("Buy …", "BESS Ljubljana 01, …"). WCAG 2.5.3
+requires the accessible name to contain the visible label, and speech-input
+users say what they see — `aria-label` replaces the content name outright, so
+putting the description first would have broken "click Buy".
 
 ## 7. Known gaps — good next candidates
 

@@ -70,7 +70,7 @@ export default function MarketplacePage() {
       <div className="card" style={{ padding: "8px 20px" }}>
         {/* Column headers describe rows — with no rows they describe nothing,
             so they'd sit as a stray strip above the empty state on desktop. */}
-        <div className="drow-head mk-head caps" hidden={views.length === 0}>
+        <div className="drow-head mk-head caps" aria-hidden="true" hidden={views.length === 0}>
           <span>Vault · Seller</span>
           <span style={{ textAlign: "right" }}>Shares</span>
           <span style={{ textAlign: "right" }}>Premium</span>
@@ -130,7 +130,18 @@ export default function MarketplacePage() {
               </div>
             </div>
             <div className="mk-c-buy" style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn btn-accent btn-sm" onClick={() => buy(lv)}>Buy</button>
+              {/* Every listing renders a button whose only text is "Buy", so a
+                  screen reader hears "Buy, button" once per row with nothing to
+                  tell them apart. The name says which listing and what it
+                  costs; "Buy" stays first so the accessible name still contains
+                  the visible label (WCAG 2.5.3). */}
+              <button
+                className="btn btn-accent btn-sm"
+                onClick={() => buy(lv)}
+                aria-label={`Buy ${fmtNum(lv.listing.shares)} shares of ${lv.vault.name} for ${fmtMoney(lv.askTotal, "USD")}`}
+              >
+                Buy
+              </button>
             </div>
           </div>
         ))}
