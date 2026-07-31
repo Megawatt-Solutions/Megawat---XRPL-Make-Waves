@@ -522,7 +522,24 @@ export function PlayView() {
                   colliding with chrome. Static on desktop. */}
               {state.user ? (
                 <div className="sc-cta-dock">
-                  <button className="btn btn-accent btn-block" onClick={submit} disabled={busy || sel == null}>
+                  {/* Disabled until a band is picked. Sighted users have five
+                      large cards directly above and the reason is obvious; a
+                      screen-reader user meets a dimmed button and is told only
+                      that it is unavailable. VaultDetail's deposit modal
+                      states the rule this follows — "a disabled button with no
+                      stated reason is a dead end" — so the reason is attached
+                      when, and only when, it applies. */}
+                  {sel == null && (
+                    <span id="sc-submit-hint" className="sr-only">
+                      Pick one of the five bands above to enable this.
+                    </span>
+                  )}
+                  <button
+                    className="btn btn-accent btn-block"
+                    onClick={submit}
+                    disabled={busy || sel == null}
+                    aria-describedby={sel == null ? "sc-submit-hint" : undefined}
+                  >
                     {state.mine ? "Update prediction" : "Lock in prediction"}
                   </button>
                 </div>
@@ -531,7 +548,24 @@ export function PlayView() {
               )}
                 </>
               )}
-              {msg && <p className={msg.kind === "err" ? "sc-err" : "sc-notice"} style={{ marginTop: 10 }}>{msg.text}</p>}
+              {/* Always mounted, and a live region. This paragraph carries the
+                  entire result of the game's core action — "Prediction locked
+                  in", "Locked — your prediction is now on XRPL mainnet", "Pick
+                  a band first", "Sign request declined in Xaman" — and it had
+                  no role and no aria-live at all, so pressing Lock in
+                  prediction announced nothing whatsoever. Mounted rather than
+                  conditional for the reason recorded on the deposit blocker:
+                  a region inserted with its text already in place is announced
+                  unreliably. Empty it collapses to nothing, so this costs no
+                  layout. */}
+              <p
+                className={msg?.kind === "err" ? "sc-err" : "sc-notice"}
+                style={{ marginTop: msg ? 10 : 0 }}
+                role="status"
+                aria-live="polite"
+              >
+                {msg?.text ?? ""}
+              </p>
 
               {commit && state.user && (
                 <div className="sc-commit-box">
@@ -767,7 +801,13 @@ export function PlayView() {
                     it right after, to become prize-eligible.
                   </p>
                 )}
-                {acctMsg && <p className={acctMsg.kind === "err" ? "sc-err" : "sc-notice"}>{acctMsg.text}</p>}
+                <p
+                  className={acctMsg?.kind === "err" ? "sc-err" : "sc-notice"}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {acctMsg?.text ?? ""}
+                </p>
               </form>
             </div>
           ) : (
@@ -803,7 +843,13 @@ export function PlayView() {
                         {connecting ? "Connecting…" : "Connect wallet"}
                       </button>
                     )}
-                    {acctMsg && <p className={acctMsg.kind === "err" ? "sc-err" : "sc-notice"}>{acctMsg.text}</p>}
+                    <p
+                  className={acctMsg?.kind === "err" ? "sc-err" : "sc-notice"}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {acctMsg?.text ?? ""}
+                </p>
                   </div>
                 </>
               ) : (

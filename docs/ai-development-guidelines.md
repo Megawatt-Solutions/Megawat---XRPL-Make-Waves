@@ -1260,6 +1260,43 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Spreadcast's core action announced nothing at all
+
+Applying the previous entry's rule — mount the region, toggle its contents —
+across the app found three conditionally-rendered status paragraphs in
+`PlayView`, and they were worse than the deposit case: **none of them had a
+role or `aria-live` at all.**
+
+That one paragraph carries the entire result of the game's core action:
+
+- "Prediction locked in — you can change it until close."
+- "Locked — your prediction is now on XRPL mainnet."
+- "Sign request declined in Xaman." / "Sign request expired — try again."
+- every API error from `/predict`
+
+A screen-reader user pressed **Lock in prediction** and heard nothing. The same
+was true of the join and wallet-link results (`acctMsg`, rendered in two
+mutually-exclusive branches). All three are now mounted `role="status"
+aria-live="polite"` regions that collapse to zero height when empty, so the fix
+costs no layout.
+
+**The populated path is reasoned, not clicked** — and the reason is worth
+recording. Triggering a real message means submitting a prediction to the live
+account, which is not something an audit should do. The one message that
+*doesn't* touch the network, `"Pick a band first."`, turns out to be
+unreachable: `submit` has a single call site and that button is
+`disabled={busy || sel == null}`, exactly when the guard would fire. So the
+canary could not be made to fire safely. Verified structurally instead —
+mounted, empty, `polite`, same DOM node across a click, zero height — and the
+in-place text update follows from React reconciling the same element.
+
+That dead guard surfaced one more thing. The CTA is disabled with no stated
+reason, which is the pattern `VaultDetail` already names as a dead end. Sighted
+users have five large band cards immediately above and the reason is obvious; a
+screen-reader user meets a dimmed button and is told only that it is
+unavailable. It now carries an `aria-describedby` hint **only while disabled**,
+removed the moment a band is chosen.
+
 ### The same shape on the money path — and a live region that was late
 
 Taking the previous entry's rule to the other dialog that changes size: the
