@@ -1081,6 +1081,7 @@ A change is done when:
 - [ ] Responsive rules that hide a label clip it (`.sr-only`), never `display: none`
 - [ ] A chart never draws a segment for a zero value
 - [ ] A control identified by its border uses `--border-control`, not `--border-2`
+- [ ] Any field rendering user-supplied text survives a 50-char unbroken token
 - [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
 - [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
@@ -1172,6 +1173,38 @@ something you already know.** A sheet whose `top` equals the viewport height
 exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
+
+### A document-level overflow sweep cannot see clipped user content
+
+Every responsive sweep so far asked "does the document overflow?". The answer
+was no, and it stayed no while the Spreadcast profile panel was **cutting the
+user's own display name in half**.
+
+With a 54-character unbroken name, the `<h2>` laid out to 433px inside 227px of
+space; `.panel { overflow: hidden }` clipped the rest. No wrap, no ellipsis,
+just a name truncated mid-word — at 320, 360 and 390px. The page never
+overflowed because the panel absorbed it, which is exactly why a document-level
+check could never find it.
+
+**Two different questions:** "does the page scroll sideways" and "is anything
+being cut off inside a box". The audit's `clipped-content` rule asks the second
+one, but only for `overflow-x`; this was vertical-ish clipping of an
+over-wide inline box inside `overflow: hidden`. The reliable per-element test
+is `el.scrollWidth > el.clientWidth` on everything, not just the document.
+
+Fixed with `overflow-wrap: anywhere` on `.sc-panel h2`, `.sc-notice` and
+`.sc-table td` — the three places that render user-supplied strings (display
+name, email, leaderboard names). `anywhere` rather than `break-word` because it
+also feeds min-content sizing, so a flex or grid parent may shrink instead of
+being held open by one long token. Verified: no clipping at 320/360/390, the
+heading wraps to two lines, and the leaderboard is untouched for normal names.
+
+**Test user-supplied fields with a string that has no break opportunity.** A
+long name with spaces wraps fine and proves nothing; the failure mode needs a
+single unbroken token. Display names come from a form with no `maxLength`, and
+emails legitimately reach 60+ characters of unbroken domain. Whether the name
+field should also gain a cap is a product call — the backend may already have
+one, so it was not guessed at here.
 
 ### Keyboard order is clean — and two audit instruments were not
 

@@ -2414,6 +2414,24 @@ button {
 .sc-err { color: var(--red); font-size: 0.8125rem; }
 .sc-notice { color: var(--text-2); font-size: 0.8125rem; }
 
+/* ─── User-supplied text ──────────────────────────────────────────
+   User-supplied text has no length limit and no guaranteed break
+   opportunity. A display name is typed into a form with no maxlength, and an
+   email can be 60+ characters of unbroken domain.
+
+   Measured with a 54-character unbroken name in the Spreadcast profile panel:
+   the <h2> laid out to 433px inside 227px of space and .panel's
+   `overflow: hidden` cut it off — no wrap, no ellipsis, the user's own name
+   simply truncated mid-word at every phone width. The page itself never
+   overflowed, which is why a document-level sweep had never caught it.
+
+   `anywhere` rather than `break-word` on purpose: it also feeds the
+   min-content size, so a flex or grid parent is allowed to shrink the box
+   instead of being held open by one long token. */
+.sc-panel h2,
+.sc-notice,
+.sc-table td { overflow-wrap: anywhere; }
+
 .sc-play-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 /* .sc-countdown removed — the section bar owns the clock now (§2.1). */
 
