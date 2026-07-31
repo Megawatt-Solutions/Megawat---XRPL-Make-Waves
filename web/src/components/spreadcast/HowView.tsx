@@ -10,8 +10,9 @@ export function HowView() {
         <div className="panel sc-panel">
           <h2 className="sc-how-h">THE DAILY QUESTION</h2>
           <p>
-            Every day, one question: <b>how big will tomorrow&apos;s electricity price swing be?</b> The swing is the
-            gap between the day&apos;s highest and lowest hourly price on Slovenia&apos;s electricity market, in €/MWh.
+            Every day, one question: <b>how big will tomorrow&apos;s electricity price swing be?</b>{" "}
+            The swing is the gap between the day&apos;s highest and lowest hourly price on Slovenia&apos;s electricity
+            market, in €/MWh.
           </p>
           <p style={{ marginTop: 10 }}>
             You pick one of five bands, from Calm to Wild. Bands adjust every Monday to recent prices, so each one
@@ -21,11 +22,15 @@ export function HowView() {
 
         <div className="panel sc-panel">
           <h2 className="sc-how-h">THE CLOCK</h2>
+          {/* Timezone stated once, not four times. Repeating it per row was
+              both noise and a layout bug — "11:45 Ljubljana time" wrapped to
+              three lines in a 92px column. */}
+          <p className="sc-timeline-tz">All times Ljubljana · CET in winter, CEST in summer</p>
           <div className="sc-timeline">
-            <div className="t"><b>15:00 Ljubljana time</b><span>Predictions open for the day after tomorrow.</span></div>
-            <div className="t"><b>11:45 Ljubljana time</b><span>Predictions close — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
-            <div className="t"><b>~13:00 Ljubljana time</b><span>Auction results publish.</span></div>
-            <div className="t"><b>15:00 Ljubljana time</b><span>Results are scored automatically from the official published prices.</span></div>
+            <div className="t"><b>15:00</b><span>Predictions open for the day after tomorrow.</span></div>
+            <div className="t"><b>11:45</b><span>Predictions close — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
+            <div className="t"><b>~13:00</b><span>Auction results publish.</span></div>
+            <div className="t"><b>15:00</b><span>Results are scored automatically from the official published prices.</span></div>
           </div>
         </div>
 
