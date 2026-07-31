@@ -3906,6 +3906,27 @@ button {
   .ob-sheet {
     max-width: 520px;
     max-height: min(680px, calc(100vh - 48px));
+    /* Hold one height across all four steps.
+       The steps are not the same size — measured at 1280x800 the bodies run
+       305/302/307/122 and the footers 101/101/101/159, because the wallet step
+       trades bullet points for an extra button. A CENTRED dialog re-centres
+       when its height changes, so the primary CTA sat at y=588 for three steps
+       and then jumped to y=525 on the fourth.
+
+       That is not merely jarring. Step 4's sheet ends at y=569, so the spot
+       the CTA had occupied for three clicks is now outside the sheet and on
+       the scrim — and a press there dismisses the flow. Click "next" three
+       times in the same place and the fourth click closes the onboarding you
+       were part-way through.
+
+       .ob-body is `flex: 1 1 auto`, so it absorbs the slack and the footer
+       stops moving. min() so a short window still obeys the max-height above
+       instead of overflowing it.
+
+       The phone layout never had this bug — a bottom sheet is anchored to the
+       viewport bottom, so its footer is fixed by construction. Measured: CTA
+       at y=803 on all four steps. Hence desktop-only. */
+    min-height: min(470px, calc(100vh - 48px));
     border: 1px solid var(--border-2);
     border-radius: var(--r-surface);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);

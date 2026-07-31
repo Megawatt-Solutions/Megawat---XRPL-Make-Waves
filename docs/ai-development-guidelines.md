@@ -1260,6 +1260,41 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A centred dialog that changes height moves its own button onto the scrim
+
+The onboarding had been audited repeatedly — focus trap, state machine, layout
+at nine viewports — and passed every time. Actually *looking* at it, one step at
+a time, found something none of those checks asked about: **does the primary
+button stay in one place?**
+
+It does not, on desktop. Measured at 1280×800, the CTA sat at y=588 for three
+steps and jumped to **y=525** on the fourth. The steps genuinely differ — bodies
+of 305/302/307/**122** and footers of 101/101/101/**159**, because the wallet
+step trades bullet points for an extra button — and a *centred* dialog
+re-centres when its height changes.
+
+The severity is not "jarring". Step 4's sheet ends at y=569, so the spot the CTA
+had occupied for three consecutive clicks is now **outside the sheet, over
+`.ob-scrim`** — verified with `elementFromPoint`. A press there dismisses the
+flow. **Click "next" three times in the same place and the fourth click closes
+the onboarding you were half-way through.**
+
+Fixed with `min-height: min(470px, calc(100vh - 48px))` on the desktop dialog.
+`.ob-body` is `flex: 1 1 auto`, so it absorbs the slack and the footer stops
+moving; the `min()` keeps a short window obeying the existing max-height instead
+of overflowing it. Verified 0px movement at 1280×800, 1024×768, 981×700,
+1440×900 and 1280×520.
+
+**The phone layout never had this bug**, and the reason is worth keeping: a
+bottom sheet is anchored to the viewport bottom, so its footer is fixed *by
+construction* — measured at y=803 on all four steps, before and after. Its sheet
+heights still vary (514/557/540/365) and that is correct; it grows upward from a
+fixed edge. Centring is what converts a height change into a moving target.
+
+**Generalises to any multi-step centred dialog.** If the content differs between
+steps and the container is vertically centred, every control moves. Either pin
+the height or anchor the dialog to an edge.
+
 ### The failure pages were missed by the title work
 
 `layout.tsx` explains why per-route titles were added: *"browser history was a
