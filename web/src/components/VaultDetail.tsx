@@ -637,6 +637,18 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   const valid = amt > 0 && !tooMuch && !overCap && kycOk;
   const maxAmt = Math.min(rlusdBalance, remaining);
 
+  // A disabled button with no stated reason is a dead end: the user types an
+  // amount, the CTA greys out, and nothing says which of four conditions
+  // failed. Name the blocker, and only once they've typed something.
+  const blocker = !kycOk
+    ? "Complete KYC verification to deposit."
+    : tooMuch
+    ? `That's more than your balance of ${fmtMoney(rlusdBalance, "USD")} RLUSD.`
+    : overCap
+    ? `This vault has ${fmtMoney(remaining, "USD")} of room left.`
+    : null;
+  const showBlocker = amount.trim() !== "" && !!blocker;
+
   const submit = () => {
     posthog.capture("deposit_completed", {
       vault_id: vault.id,
@@ -662,12 +674,26 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
             <span className="muted num">Balance: {fmtMoney(rlusdBalance, "USD")} RLUSD</span>
           </div>
           <div className="input-suffix">
-            <input className="input" inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingRight: 92 }} />
+            <input
+              className={`input${showBlocker ? " invalid" : ""}`}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              aria-invalid={showBlocker}
+              aria-describedby={showBlocker ? "deposit-blocker" : undefined}
+              style={{ paddingRight: 92 }}
+            />
             <span className="suffix">
               RLUSD{" "}
               <button onClick={() => setAmount(String(maxAmt))} style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "none", padding: "3px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginLeft: 4 }}>MAX</button>
             </span>
           </div>
+          {showBlocker && (
+            <p className="field-error" id="deposit-blocker" role="alert">
+              {blocker}
+            </p>
+          )}
         </div>
 
         <div className="rows" style={{ marginBottom: 4 }}>

@@ -675,6 +675,43 @@ button {
 .input:focus {
   border-color: var(--accent);
 }
+/* Inputs had exactly one state beyond default. A money field in particular
+   needs to show that it is wrong, and say why. */
+.input.invalid,
+.sc-field.invalid {
+  border-color: color-mix(in srgb, var(--red) 60%, transparent);
+}
+.input.invalid:focus,
+.sc-field.invalid:focus { border-color: var(--red); }
+.input:disabled,
+.sc-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--card-2);
+}
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--red);
+}
+.field-error::before {
+  content: "!";
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--red) 18%, transparent);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+}
 .input-suffix {
   position: relative;
 }
