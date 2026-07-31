@@ -311,6 +311,59 @@ function auditClipping(d, win) {
   return uniq;
 }
 
+/**
+ * The vertical half of auditClipping: text cut off at the BOTTOM of a
+ * fixed-height box. Same shape, same traps, same three-state canary
+ * requirement — see auditClipping above.
+ *
+ * SUPPRESSION: .odo-* is excluded. The odometer is a digit reel, and clipping
+ * IS its mechanism: each position holds the full "0..9,0" strip inside a 1em
+ * window and slides it with a transform. It reports ~300px of "cut" content on
+ * every run and always will. A suppression with a stated reason is honest; a
+ * check that cries wolf every run gets ignored, which costs more than the
+ * false negative. Elements with -webkit-line-clamp are skipped for the same
+ * reason: that truncation is deliberate.
+ *
+ * (Auditing the odometer for this DID surface a real bug, just not a visual
+ * one — with the whole strip in the DOM and no aria, a screen reader read the
+ * entire reel. It is aria-hidden now with the value stated in text.)
+ */
+function auditClippingVertical(d, win) {
+  const clipsY = (cs) => /hidden|clip/.test(cs.overflowY) || /hidden|clip/.test(cs.overflow);
+  const scrollsY = (cs) => /auto|scroll/.test(cs.overflowY) || /auto|scroll/.test(cs.overflow);
+  // No regex on purpose: this file has already had a word-boundary escape
+  // silently become a literal backspace (0x08) on its way through a
+  // generator, which left the test matching nothing and the suppression
+  // doing nothing at all. String.includes cannot be mangled that way.
+  const suppressed = (el) => (el.className || "").toString().includes("odo-");
+  const out = [];
+  for (const el of d.querySelectorAll("body *")) {
+    if (el.getClientRects().length === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (!(el.textContent || "").trim()) continue;
+    if (suppressed(el)) continue;
+    const cs = win.getComputedStyle(el);
+    if (scrollsY(cs)) continue;
+    if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") continue;
+    let node = el, clipper = null;
+    while (node && node !== d.documentElement) {
+      const ncs = win.getComputedStyle(node);
+      if (scrollsY(ncs)) { clipper = null; break; }
+      if (clipsY(ncs)) { clipper = node; break; }
+      node = node.parentElement;
+    }
+    if (!clipper || suppressed(clipper)) continue;
+    const cut = Math.round((r.top + el.scrollHeight) - clipper.getBoundingClientRect().bottom);
+    if (cut > 1) out.push({ kind: "content-cut-off-vertically", cutBy: cut,
+      el: describe(el), clipper: describe(clipper),
+      text: (el.textContent || "").trim().slice(0, 34) });
+  }
+  const seen = new Set(), uniq = [];
+  for (const o of out) { const k = o.el + "|" + o.clipper; if (!seen.has(k)) { seen.add(k); uniq.push(o); } }
+  return uniq;
+}
+
 async function waitFor(selector, timeout = 5000) {
   const d = stage.contentDocument;
   for (let waited = 0; waited < timeout; waited += 150) {
@@ -780,6 +833,7 @@ window.runAudit = async function (routes, widths) {
   hud.textContent = "auditing clipped content…";
   try {
     for (const f of auditClipping(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditClippingVertical(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
   } catch (e) {
     findings.push({ route: "(clipping)", w: 0, kind: "clipping-audit-error", detail: String(e).slice(0, 90) });
   }

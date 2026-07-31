@@ -1222,6 +1222,44 @@ ellipsis is right. Four short numbers joined by `" / "` are the opposite case.
 surface edges and control boundaries. When a rule is correct for one kind of
 content and wrong for another, split the class rather than tune the rule.
 
+`auditClippingVertical()` is the other half — text cut off at the *bottom* of
+a fixed-height box. It found no real defects in 36 route/width pairs, but
+auditing the one thing it did flag found a serious bug of a different kind.
+
+**The odometer clipped by design, and that is exactly what broke it for screen
+readers.** `.odo-reel` is a 1em window over a `0 1 2 3 4 5 6 7 8 9 0` strip
+that slides on a transform — the clipping *is* the mechanism, so it reports
+~300px of "cut" content forever. But the whole strip is real text in the DOM,
+and the component had no aria at all, so a headline metric was announced as
+eight repetitions of "zero one two three four five six seven eight nine zero".
+Now `aria-hidden` on the machinery with the value stated once in an `.sr-only`
+span: `"$328,793.42"`.
+
+The accessible text is refreshed from the component's existing rAF loop, on the
+same frame and from the same `value` as the digits. That invariant is what
+makes it correct — it cannot drift from what is on screen, and if rAF is paused
+neither advances. Which matters, because:
+
+**A hidden tab freezes `requestAnimationFrame` completely, not just CSS
+animations.** Measured: 0 rAF ticks in 3 seconds, reel transform frozen at
+`translateY(-3em)`. `settleAnimations()` does not help — it finishes CSS/WAAPI
+animations, not rAF loops. Anything rAF-driven simply cannot be observed in the
+audit harness; verify it by reasoning about the invariant instead, and say so.
+
+**Suppressions need their own canary.** `.odo-*` is excluded from the vertical
+check, with the reason stated in the code — a check that cries wolf every run
+gets ignored, which costs more than the false negative. But a suppression that
+is too broad silently mutes real findings, so it is canaried the same way: the
+odometer must be silent *while* a clip forced onto a neighbouring element is
+still caught.
+
+**Generated code needs reading back.** That suppression did nothing for its
+first two runs. Written through a heredoc, the `` word boundary in
+`/odo-/` became a literal backspace character — the file contained
+`/odo-/`, which matches nothing. `cat -A` showed it as `/^Hodo-/`. It now
+uses `String.includes`, which has no escapes to mangle, and the whole file was
+scanned for stray control characters.
+
 **Test user-supplied fields with a string that has no break opportunity.** A
 long name with spaces wraps fine and proves nothing; the failure mode needs a
 single unbroken token. Display names come from a form with no `maxLength`, and
