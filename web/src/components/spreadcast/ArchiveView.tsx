@@ -70,11 +70,11 @@ export function ArchiveView() {
         <table className="sc-table sc-t-results">
           <thead>
             <tr>
-              <th>DELIVERY DAY</th>
-              <th className="num">SWING €/MWh</th>
-              <th>BAND</th>
-              <th>BOUNDARIES</th>
-              <th>SOURCE</th>
+              <th scope="col">DELIVERY DAY</th>
+              <th scope="col" className="num">SWING €/MWh</th>
+              <th scope="col">BAND</th>
+              <th scope="col">BOUNDARIES</th>
+              <th scope="col">SOURCE</th>
             </tr>
           </thead>
           <tbody>
@@ -106,10 +106,10 @@ export function ArchiveView() {
         <table className="sc-table sc-t-anchor">
           <thead>
             <tr>
-              <th>WEEK</th>
-              <th>MERKLE ROOT</th>
-              <th className="num">LEAVES</th>
-              <th>TX</th>
+              <th scope="col">WEEK</th>
+              <th scope="col">MERKLE ROOT</th>
+              <th scope="col" className="num">LEAVES</th>
+              <th scope="col">TX</th>
             </tr>
           </thead>
           <tbody>
@@ -182,12 +182,12 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                   <table className="sc-table sc-t-reveal">
                     <thead>
                       <tr>
-                        <th>PLAYER</th>
-                        <th className="num">BAND</th>
-                        <th>COMMIT HASH</th>
-                        <th>SALT (REVEALED)</th>
-                        <th>COMMIT TX</th>
-                        <th className="num">PTS</th>
+                        <th scope="col">PLAYER</th>
+                        <th scope="col" className="num">BAND</th>
+                        <th scope="col">COMMIT HASH</th>
+                        <th scope="col">SALT (REVEALED)</th>
+                        <th scope="col">COMMIT TX</th>
+                        <th scope="col" className="num">PTS</th>
                       </tr>
                     </thead>
                     <tbody>

@@ -42,7 +42,7 @@ export default function MarketplacePage() {
     <main className="page">
       <div className="page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="page-title">Marketplace</div>
+          <h1 className="page-title">Marketplace</h1>
           <div className="page-sub">Buy and sell vault positions — exit early or pick up yield at a discount.</div>
         </div>
         <button className="btn btn-accent" onClick={() => (connected ? setShowSell(true) : connect())}>
@@ -63,7 +63,7 @@ export default function MarketplacePage() {
       </div>
 
       <div className="section-head">
-        <div className="section-title">Open listings <span className="section-count">{views.length}</span></div>
+        <h2 className="section-title">Open listings <span className="section-count">{views.length}</span></h2>
         <span className="muted" style={{ fontSize: 13 }}>Settled in USDC</span>
       </div>
 

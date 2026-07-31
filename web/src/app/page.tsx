@@ -17,7 +17,7 @@ export default function DashboardPage() {
   return (
     <main className="page">
       <div className="page-head">
-        <div className="page-title">Vaults</div>
+        <h1 className="page-title">Vaults</h1>
         <div className="page-sub">
           Invest in real battery energy storage systems, earn yield, and trade your position.
         </div>
@@ -55,10 +55,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="section-head">
-        <div className="section-title">
+        <h2 className="section-title">
           <span className="dot pulse" style={{ background: "var(--accent)" }} />
           Active vaults <span className="section-count">{active.length}</span>
-        </div>
+        </h2>
         <span className="muted" style={{ fontSize: 13 }}>Earning & operational</span>
       </div>
       <div className="vault-grid">
@@ -70,10 +70,10 @@ export default function DashboardPage() {
       {fundraising.length > 0 && (
         <>
           <div className="section-head">
-            <div className="section-title">
+            <h2 className="section-title">
               <span className="dot" style={{ background: "var(--amber)" }} />
               Fundraising <span className="section-count">{fundraising.length}</span>
-            </div>
+            </h2>
             <span className="muted" style={{ fontSize: 13 }}>Open for deposits</span>
           </div>
           <div className="vault-grid">
@@ -87,10 +87,10 @@ export default function DashboardPage() {
       {pipeline.length > 0 && (
         <>
           <div className="section-head">
-            <div className="section-title">
+            <h2 className="section-title">
               <span className="dot" style={{ background: "var(--gray)" }} />
               Pipeline <span className="section-count">{pipeline.length}</span>
-            </div>
+            </h2>
             <span className="muted" style={{ fontSize: 13 }}>Committed · not yet open</span>
           </div>
           <div className="vault-grid">

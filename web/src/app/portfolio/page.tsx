@@ -24,7 +24,7 @@ export default function PortfolioPage() {
     return (
       <main className="page">
         <div className="page-head">
-          <div className="page-title">Portfolio</div>
+          <h1 className="page-title">Portfolio</h1>
           <div className="page-sub">Track your deposits, yield, and positions.</div>
         </div>
         {/* This is where a curious visitor hits a wall, so it should say what
@@ -55,7 +55,7 @@ export default function PortfolioPage() {
   return (
     <main className="page">
       <div className="page-head">
-        <div className="page-title">Portfolio</div>
+        <h1 className="page-title">Portfolio</h1>
         <div className="page-sub">Track your deposits, yield, and positions across all vaults.</div>
       </div>
 
@@ -85,7 +85,7 @@ export default function PortfolioPage() {
 
       {/* Positions */}
       <div className="section-head">
-        <div className="section-title">Your positions <span className="section-count">{POSITIONS.length}</span></div>
+        <h2 className="section-title">Your positions <span className="section-count">{POSITIONS.length}</span></h2>
         <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
           Claim all
         </button>

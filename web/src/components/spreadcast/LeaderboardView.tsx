@@ -76,14 +76,15 @@ export function LeaderboardView() {
         <table className="sc-table sc-t-lb">
           <thead>
             <tr>
-              <th>#</th>
-              <th>PLAYER</th>
-              <th>WALLET</th>
-              <th className="num">POINTS</th>
-              <th className="num">PLAYED</th>
-              <th className="num">HIT RATE</th>
-              <th className="num">STREAK</th>
-              <th className="num">TIEBREAK ERR</th>
+              {/* Reads as "number sign" otherwise, which names nothing. */}
+              <th scope="col" aria-label="Rank">#</th>
+              <th scope="col">PLAYER</th>
+              <th scope="col">WALLET</th>
+              <th scope="col" className="num">POINTS</th>
+              <th scope="col" className="num">PLAYED</th>
+              <th scope="col" className="num">HIT RATE</th>
+              <th scope="col" className="num">STREAK</th>
+              <th scope="col" className="num">TIEBREAK ERR</th>
             </tr>
           </thead>
           <tbody>

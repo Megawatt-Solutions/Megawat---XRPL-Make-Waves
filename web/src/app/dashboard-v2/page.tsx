@@ -53,7 +53,7 @@ export default function DashboardV2Page() {
       </div>
 
       <div className="page-head">
-        <div className="page-title">Protocol overview</div>
+        <h1 className="page-title">Protocol overview</h1>
         <div className="page-sub">
           Institutional access to distributed battery storage — value locked, depositor yield, and deployed
           capacity across the vault network.

@@ -109,6 +109,74 @@ function audit(w) {
   return [...seen.values()];
 }
 
+// ── Document semantics ───────────────────────────────────────────────────
+// Added after a scan found four routes — /, /portfolio, /marketplace and
+// /dashboard-v2 — with ZERO headings of any level. Everything that looked like
+// a heading was a styled div, so a screen reader had no outline to navigate
+// and the page announced as one undifferentiated run of text.
+//
+// Heading presence is checked with a retry, because a heading rendered after a
+// fetch resolves is absent at first paint and reporting that is a lie about
+// the markup. /spreadcast tripped exactly this during development.
+async function semantics() {
+  const doc = stage.contentDocument, win = stage.contentWindow;
+  const out = [];
+  const vis = (el) => {
+    const cs = win.getComputedStyle(el), r = el.getBoundingClientRect();
+    return cs.display !== "none" && cs.visibility !== "hidden" && r.width > 0 && r.height > 0;
+  };
+  const headings = () => [...doc.querySelectorAll("h1,h2,h3,h4,h5,h6")].filter(vis);
+  let hs = headings();
+  if (!hs.some((h) => h.tagName === "H1")) {
+    await new Promise((r) => setTimeout(r, 1200)); // async heading? give it a beat
+    hs = headings();
+  }
+  const levels = hs.map((h) => +h.tagName[1]);
+  const h1s = levels.filter((l) => l === 1).length;
+  if (h1s === 0) out.push({ kind: "no-h1" });
+  if (h1s > 1) out.push({ kind: "multiple-h1", detail: String(h1s) });
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] - levels[i - 1] > 1) {
+      out.push({ kind: "heading-level-skipped",
+        detail: `h${levels[i - 1]} -> h${levels[i]} at "${hs[i].textContent.trim().slice(0, 26)}"` });
+    }
+  }
+  if (!doc.querySelector("main")) out.push({ kind: "no-main-landmark" });
+  if (!doc.documentElement.getAttribute("lang")) out.push({ kind: "no-lang" });
+  // Several nav landmarks coexist here (main bar, mobile tabs, section bar).
+  // Unlabelled they all announce as "navigation" and cannot be told apart.
+  const navs = [...doc.querySelectorAll("nav")].filter(vis);
+  if (navs.length > 1 && navs.some((n) => !n.getAttribute("aria-label"))) {
+    out.push({ kind: "nav-landmark-unlabelled", detail: `${navs.length} <nav>` });
+  }
+  for (const el of doc.querySelectorAll("input,select,textarea")) {
+    if (!vis(el)) continue;
+    const lab = el.id ? doc.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
+    if (!(lab || el.closest("label") || el.getAttribute("aria-label") ||
+          el.getAttribute("aria-labelledby") || el.getAttribute("placeholder"))) {
+      out.push({ kind: "control-no-label", el: describe(el) });
+    }
+  }
+  for (const el of doc.querySelectorAll("button,a[href],[role=button]")) {
+    if (!vis(el)) continue;
+    const n = (el.getAttribute("aria-label") || el.getAttribute("title") ||
+      el.getAttribute("aria-labelledby") || el.textContent || "").trim();
+    if (!n) out.push({ kind: "no-accessible-name", el: describe(el) });
+  }
+  for (const t of doc.querySelectorAll("table")) {
+    if (!vis(t)) continue;
+    const ths = [...t.querySelectorAll("th")];
+    if (!ths.length) out.push({ kind: "table-no-th", el: describe(t) });
+    else if (ths.some((th) => !th.getAttribute("scope"))) out.push({ kind: "th-no-scope", el: describe(t) });
+  }
+  const ids = {};
+  for (const el of doc.querySelectorAll("[id]")) ids[el.id] = (ids[el.id] || 0) + 1;
+  for (const k in ids) if (ids[k] > 1) out.push({ kind: "duplicate-id", detail: k });
+  const seen = new Map();
+  for (const v of out) { const k = v.kind + "|" + (v.el || v.detail || ""); if (!seen.has(k)) seen.set(k, v); }
+  return [...seen.values()];
+}
+
 // ── Text contrast (WCAG 2.2 AA, 1.4.3) ──────────────────────────────────
 // Added after a scan found 238 failing pieces of text across nine routes —
 // every eyebrow, tile subtitle, table header and timestamp in the app — all
@@ -186,6 +254,9 @@ window.runAudit = async function (routes, widths) {
         let cr = [];
         try { cr = contrast(); } catch (e) { cr = [{ kind: "contrast-error", detail: String(e).slice(0, 90) }]; }
         for (const r of cr) findings.push({ route, w, ...r });
+        let sem = [];
+        try { sem = await semantics(); } catch (e) { sem = [{ kind: "semantics-error", detail: String(e).slice(0, 90) }]; }
+        for (const r of sem) findings.push({ route, w, ...r });
       }
     }
   }

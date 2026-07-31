@@ -116,6 +116,36 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### If it looks like a heading, it has to be one
+
+Four routes — `/`, `/portfolio`, `/marketplace`, `/dashboard-v2` — had **zero
+headings of any level**. "Vaults", "Active vaults", "Fundraising", "Pipeline"
+were all `<div className="section-title">`: styled to read as headings, and
+invisible to the outline a screen reader navigates by. Those users had no way
+to know what the page was or to jump between its sections.
+
+Spreadcast, written later in this rehaul, used real headings throughout — the
+same vaults↔Spreadcast seam the capitalisation pass found, showing up in the
+document outline instead of in the copy.
+
+`.page-title` is `<h1>`, `.section-title` is `<h2>`. Both reset `margin: 0`,
+since the classes already set size and weight and only the browser's default
+heading margins would have shifted the layout.
+
+Related, same pass: multiple `<nav>` landmarks are on screen at once (main bar,
+mobile tabs, Spreadcast's section bar). Unlabelled they all announce as
+"navigation" and cannot be told apart — each now carries an `aria-label`. Table
+headers carry `scope="col"`. The leaderboard's `#` column reads as "number
+sign" without an `aria-label`, so it has one.
+
+`runAudit()` now checks all of this (`no-h1`, `heading-level-skipped`,
+`nav-landmark-unlabelled`, `th-no-scope`, `control-no-label`, `duplicate-id`).
+
+⚠ It retries once before reporting a missing `h1`. A heading rendered after a
+fetch resolves is genuinely absent at first paint, and reporting that is a lie
+about the markup — `/spreadcast` tripped exactly this, reporting `no-h1` for a
+page whose `h1` was present and visible a few hundred milliseconds later.
+
 ### A brand colour is specified against a surface — check which one
 
 The brand's Conduit grey (`#737373`) is defined for secondary text. Measured

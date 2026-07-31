@@ -30,7 +30,11 @@ export function TopNav() {
 
   return (
     <>
-      <nav className="nav">
+      {/* Two, sometimes three, <nav> landmarks are on screen at once (this,
+          the mobile tab bar, and Spreadcast's section bar). Unlabelled they
+          all announce as plain "navigation", so the landmark list a screen
+          reader user navigates by cannot tell them apart. */}
+      <nav className="nav" aria-label="Main">
         <Link href="/" className="nav-brand">
           <BrandMark height={15} color="var(--accent)" />
           Megawatt
@@ -64,7 +68,7 @@ export function TopNav() {
       </nav>
 
       {/* Mobile bottom tab bar */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" aria-label="Sections">
         {LINKS.map((l) => {
           const Icon = l.icon;
           return (

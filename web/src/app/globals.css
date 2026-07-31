@@ -280,10 +280,15 @@ button {
 .page-head {
   margin-bottom: 24px;
 }
+/* These two are <h1> and <h2>. They were divs, which left four routes with no
+   document outline at all — see the note on section-title. Size and weight are
+   set here anyway; margin is reset so the heading tags do not introduce the
+   browser's default spacing and shift the layout they inherited. */
 .page-title {
   font-size: 24px;
   font-weight: 680;
   letter-spacing: -0.025em;
+  margin: 0;
 }
 .page-sub {
   color: var(--muted);
@@ -630,6 +635,13 @@ button {
   justify-content: space-between;
   margin: 34px 0 16px;
 }
+/* <h2>. Screen readers navigate by heading, and on the vaults side there was
+   nothing to navigate: /, /portfolio, /marketplace and /dashboard-v2 each had
+   zero headings of any level. "Vaults", "Active vaults", "Fundraising" and
+   "Pipeline" all looked like headings and were divs, so the page announced
+   itself as one undifferentiated run of text. Spreadcast, written later, had
+   used real headings throughout — the same seam the capitalisation pass found,
+   showing up in the document outline. */
 .section-title {
   font-size: 17px;
   font-weight: 640;
@@ -637,6 +649,7 @@ button {
   display: flex;
   align-items: center;
   gap: 9px;
+  margin: 0;
 }
 .section-count {
   font-size: 12px;
