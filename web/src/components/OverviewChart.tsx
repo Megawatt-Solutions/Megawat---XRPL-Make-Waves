@@ -106,6 +106,38 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
     return { data, options };
   }, [type, range, t]);
 
+  /**
+   * Text alternative for the canvas (WCAG 1.1.1).
+   *
+   * react-chartjs-2 puts role="img" on the canvas and no name, which is worse
+   * than leaving it alone: it inserts an element into the accessibility tree
+   * that announces as "image" and says nothing. Either name it or hide it.
+   *
+   * Named, because this chart is content rather than decoration. The summary
+   * carries what a sighted reader takes from the shape in one glance — where
+   * it started, where it ended, and which way it went — not a reading of every
+   * point, which would be unusable.
+   */
+  const summary = useMemo(() => {
+    const series = data.datasets[0]?.data as number[] | undefined;
+    if (!series?.length) return `${title}: no data for this range.`;
+    const first = series[0];
+    const last = series[series.length - 1];
+    const fmt = (n: number) => (type === "tvl" ? fmtCompact(n, "USD") : `${n.toFixed(2)}%`);
+    const dir = last > first ? "rising" : last < first ? "falling" : "flat";
+    // labelsFor() blanks most entries on purpose so the x-axis shows ~6 ticks,
+    // so the LAST label is almost always "". Taking it verbatim produced
+    // "Jan to ." — a broken sentence read aloud. Use the outermost non-empty
+    // labels instead.
+    const named = (data.labels as string[] | undefined)?.filter((l) => l && l.trim()) ?? [];
+    const span = named.length > 1 ? `${named[0]} to ${named[named.length - 1]}` : named[0] ?? "";
+    const sets = data.datasets.length > 1
+      ? ` Series: ${data.datasets.map((ds) => ds.label).join(", ")}.`
+      : "";
+    const period = span ? `${span}. ` : "";
+    return `${title}, ${range} range. ${period}${dir} from ${fmt(first)} to ${fmt(last)}.${sets}`;
+  }, [data, title, type, range]);
+
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
@@ -120,7 +152,7 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
         </div>
       </div>
       <div style={{ height: 240 }}>
-        <Line data={data} options={options} />
+        <Line data={data} options={options} aria-label={summary} role="img" />
       </div>
     </div>
   );

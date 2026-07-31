@@ -434,6 +434,35 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### A canvas says nothing unless you make it
+
+`/dashboard-v2` renders three canvases. All three were unreachable to a screen
+reader, and two were worse than unlabelled:
+
+`react-chartjs-2` puts `role="img"` on its canvas and **no name**. That is worse
+than leaving it alone — it inserts an element into the accessibility tree that
+announces "image" and then says nothing at all. **Name it or hide it; never
+`role="img"` with no label.**
+
+- **The two charts are content**, so they are named. The summary carries what a
+  sighted reader takes from the shape in one glance — the range, the direction,
+  the start and end values, the series names. Not a reading of every point,
+  which would be unusable.
+- **The globe is decoration**, so it is `aria-hidden`. Every fact it draws is
+  already text in the six `.globe-pin` tooltips beside it: name, country, power,
+  status. Describing the drawing on top of that is noise. The pins are siblings,
+  not children — a canvas cannot have DOM children — so hiding it does not hide
+  them.
+
+⚠ **Read the label you generated.** The first version emitted *"Total Value
+Locked, ALL range, Jan to . rising from $0 to $2.38M."* — `labelsFor()` blanks
+most entries on purpose so the x-axis shows about six ticks, so the *last* label
+is almost always `""`. It renders fine and reads as a broken sentence. The
+summary now takes the outermost **non-empty** labels.
+
+Verified it also tracks a range switch live, since it is derived rather than
+written once.
+
 ### The vault card was examined and is sound
 
 Read the app's most-repeated object as a designed thing rather than measuring

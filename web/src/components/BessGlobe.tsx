@@ -171,7 +171,17 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         onPointerEnter={() => (hoveringRef.current = true)}
         onPointerLeave={() => { hoveringRef.current = false; endDrag(); }}
       >
-        <canvas ref={canvasRef} className="globe-canvas" />
+        {/* Hidden from assistive tech rather than labelled (WCAG 1.1.1).
+            The canvas is a decorative rendering: it carries no information
+            that is not already text in the .globe-pin tooltips beside it —
+            every site's name, country, power and status. Describing the
+            drawing on top of that is noise, and a canvas with role="img" and
+            no name (which is what it had) is worse still: an element in the
+            accessibility tree that announces "image" and says nothing.
+
+            The pins are siblings, not children — a canvas cannot have DOM
+            children — so hiding this does not hide them. */}
+        <canvas ref={canvasRef} className="globe-canvas" aria-hidden="true" />
         <div className="globe-pins">
           {MARKERS.map((m, i) => (
             <div
