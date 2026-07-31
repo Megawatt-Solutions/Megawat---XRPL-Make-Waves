@@ -809,6 +809,10 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* A flex column stretches every child to the widest one, so a stack
+     ending in "Address copied" rendered that as a 466px bar to match
+     the deposit receipt above it. Each toast should be its own size. */
+  align-items: flex-end;
 }
 .toast {
   background: var(--toast);
@@ -821,6 +825,9 @@ button {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.28s ease;
   min-width: 240px;
+  /* Messages carry amounts and token symbols, so they can run long.
+     Cap the line length rather than letting one grow across the page. */
+  max-width: min(400px, calc(100vw - 44px));
 }
 .toast-success {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
@@ -1097,8 +1104,8 @@ button {
   .bottom-nav-item.active { color: var(--accent); }
   /* Both of these must clear the tab bar â€” one number, not two that agree by luck */
   .page { padding-bottom: calc(var(--nav-h-safe) + 22px); }
-  .toasts { bottom: calc(var(--nav-h-safe) + 12px); left: 16px; right: 16px; }
-  .toast { min-width: 0; }
+  .toasts { bottom: calc(var(--nav-h-safe) + 12px); left: 16px; right: 16px; align-items: stretch; }
+  .toast { min-width: 0; max-width: none; }
 }
 
 /* Prevent horizontal overflow on small screens */
@@ -2744,28 +2751,33 @@ body { overflow-x: hidden; }
 /* ─── Focus and press states ──────────────────────────────────────
    The app had exactly two :focus rules and one :active. Every button,
    tab and row was hover-only — invisible to a keyboard, and with no
-   feedback at all on touch, where :hover never fires. */
-.btn:focus-visible,
-.btn-sm:focus-visible,
-.connect-btn:focus-visible,
-.wallet-pill:focus-visible,
-.chain-btn:focus-visible,
-.chain-opt:focus-visible,
-.seg-btn:focus-visible,
-.v2-tab:focus-visible,
-.nav-link:focus-visible,
-.bottom-nav-item:focus-visible,
-.sc-bar-tab:focus-visible,
-.sc-band-card:focus-visible,
-.sc-seg button:focus-visible,
-.site-row:focus-visible,
-.sc-arch-row:focus-visible,
-.perf-toggle:focus-visible,
-.sc-settle-x:focus-visible,
-.drow:focus-visible {
+   feedback at all on touch, where :hover never fires.
+
+   This was first fixed with an explicit list of 18 class names, which
+   is the wrong shape for the problem: an allowlist only covers what
+   someone remembered to add, and it silently missed .vault-card — the
+   primary target on the home page — plus .nav-brand and the Spreadcast
+   cross-sell. A keyboard user tabbing the vault grid saw nothing move.
+
+   One baseline instead. Anything focusable is covered the day it is
+   written, not the day someone notices it isn't. Opt out deliberately
+   (see the sheet containers below, which take focus programmatically
+   and should not draw a ring for it).
+
+   No border-radius here. The old rule set it to --r-control, which
+   reshapes the ELEMENT, not just the ring — every 16px card would snap
+   to 6px corners while focused. Browsers already draw the outline
+   following each element's own radius, so the correct value is none. */
+:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: var(--r-control);
+}
+/* A field in an error state keeps a red border, so an accent ring around
+   it would say "fine" and "broken" at the same time. Match the ring to
+   the state the field is actually in. */
+.input.invalid:focus-visible,
+.sc-field.invalid:focus-visible {
+  outline-color: var(--red);
 }
 /* Touch has no hover, so pressing needs to acknowledge itself. */
 .btn:active:not(:disabled),
