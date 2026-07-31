@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { allocation, vaultGroups } from "@/lib/protocol";
 import type { VaultRow } from "@/lib/protocol";
-import { fmtCompact, fmtPct, fmtNum, bpsToPct } from "@/lib/format";
+import { fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
 import { Flag } from "./Flag";
 
@@ -69,7 +69,7 @@ export function VaultsOverview() {
         </div>
         <div className="muted" style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
           Total: <span className="num" style={{ color: "var(--text)", fontWeight: 650 }}>{fmtCompact(alloc.total, "USD")}</span>
-          <span className="section-count" style={{ marginLeft: 8 }}>{totalCount} vaults</span>
+          <span className="section-count" style={{ marginLeft: 8 }}>{plural(totalCount, "vault")}</span>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export function VaultsOverview() {
             <div key={g.group}>
               <div className="v2-row v2-group" style={{ gridTemplateColumns: COLS }}>
                 <span style={{ fontFamily: "var(--mono)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "0.6875rem" }}>
-                  {g.group === "deployed" ? "Total Deployed" : "Total Pipeline"} <span className="muted">{g.count} vaults</span>
+                  {g.group === "deployed" ? "Total Deployed" : "Total Pipeline"} <span className="muted">{plural(g.count, "vault")}</span>
                 </span>
                 <span className="num">{fmtCompact(g.total, "USD")}</span>
                 <span className="num">{fmtPct(bpsToPct(g.blendedApyBps))}</span>

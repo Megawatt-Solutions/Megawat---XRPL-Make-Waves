@@ -5,7 +5,7 @@ import { GrowthChart } from "@/components/GrowthChart";
 import { useWallet, useToast } from "@/lib/wallet";
 import { POSITIONS, portfolioMetrics, growthSeries } from "@/lib/portfolio";
 import { getVault } from "@/lib/vaults";
-import { fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct } from "@/lib/format";
+import { fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import {
   CoinsIcon, BoltIcon, ShieldIcon, TrendingUpIcon, ChevronRightIcon,
   SunIcon, BatteryIcon, WalletIcon, BriefcaseIcon,
@@ -60,13 +60,33 @@ export default function PortfolioPage() {
       </div>
 
       <div className="tile-grid">
-        <StatTile label="Total deposited" value={fmtCompact(m.totalDeposited, "USD")} sub={`${m.positionsCount} positions`} icon={<CoinsIcon size={18} />} />
+        <StatTile label="Total deposited" value={fmtCompact(m.totalDeposited, "USD")} sub={plural(m.positionsCount, "position")} icon={<CoinsIcon size={18} />} />
         <StatTile label="Claimable yield" value={<span className="accent">{fmtMoney(totalClaimable, "EUR")}</span>} sub="Ready to claim" icon={<BoltIcon size={18} />} />
         <StatTile label="Total claimed" value={fmtMoney(m.totalClaimed, "EUR")} sub="Lifetime" icon={<ShieldIcon size={18} />} />
-        <StatTile label="Avg APY" value={<span className="accent">{fmtPct(bpsToPct(m.avgApyBps))}</span>} sub="Deposit-weighted" icon={<TrendingUpIcon size={18} />} />
+        {/* A deposit-weighted average with no deposits is undefined, not 0.0%.
+            Same distinction as the marketplace's avg premium: the tiles either
+            side are genuine zeros (nothing deposited, nothing claimable) and
+            stay as they are. */}
+        <StatTile
+          label="Avg APY"
+          value={m.positionsCount === 0
+            ? <span className="muted">&mdash;</span>
+            : <span className="accent">{fmtPct(bpsToPct(m.avgApyBps))}</span>}
+          sub={m.positionsCount === 0 ? "No deposits yet" : "Deposit-weighted"}
+          icon={<TrendingUpIcon size={18} />}
+        />
       </div>
 
-      {/* Growth chart */}
+      {/* Growth chart — only once there is something to plot.
+          growthSeries() returns 18 months of { principal: 0, interest: 0 }
+          until deposits exist, and Chart.js given an all-zero dataset scales
+          the axis symmetrically about zero: the y-axis read $1, $1, $1, $0,
+          $0, $-0, $-0, $-1, $-1 — repeated labels and NEGATIVE money on a
+          portfolio that has never held anything. On a financial product that
+          does not read as "no data yet", it reads as broken. The empty state
+          below already says what is missing and what to do, so this card
+          simply waits its turn. */}
+      {POSITIONS.length > 0 && (
       <div className="card">
         <div className="card-title">
           Portfolio value
@@ -82,6 +102,7 @@ export default function PortfolioPage() {
         </div>
         <GrowthChart data={growth} />
       </div>
+      )}
 
       {/* Positions */}
       <div className="section-head">

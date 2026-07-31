@@ -79,3 +79,14 @@ export function fmtDate(iso: string): string {
     year: "numeric",
   });
 }
+
+/** A count with its noun agreeing: "1 position", "2 positions", "0 positions".
+ *
+ *  English pluralises on n !== 1, so zero takes the plural — "0 positions" is
+ *  right and "0 position" is not. Added after the portfolio tile read
+ *  "1 positions"; that only showed up once a fixture put a single position in,
+ *  which is the general hazard with count strings — the empty and the many
+ *  cases both look fine and the one case is the one nobody sees. */
+export function plural(n: number, one: string, many = one + "s"): string {
+  return `${fmtNum(n)} ${n === 1 ? one : many}`;
+}

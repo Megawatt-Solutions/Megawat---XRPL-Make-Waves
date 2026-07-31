@@ -7,7 +7,7 @@ import { VaultsOverview } from "@/components/VaultsOverview";
 import { NetworkPanel } from "@/components/NetworkPanel";
 import { Sparkline } from "@/components/Sparkline";
 import { PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
-import { fmtPct, bpsToPct, fmtMoney, fmtCompact } from "@/lib/format";
+import { fmtPct, bpsToPct, fmtMoney, fmtCompact, plural } from "@/lib/format";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
@@ -120,7 +120,7 @@ export default function DashboardV2Page() {
               {CAPACITY.mw.toFixed(1)} <span className="v2-metric-unit">MW</span>
             </div>
             <div className="v2-metric-sub">
-              {CAPACITY.mwh.toFixed(1)} MWh storage across {CAPACITY.sites} sites
+              {CAPACITY.mwh.toFixed(1)} MWh storage across {plural(CAPACITY.sites, "site")}
             </div>
           </div>
 

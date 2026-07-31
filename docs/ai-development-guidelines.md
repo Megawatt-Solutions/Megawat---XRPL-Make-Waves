@@ -1260,6 +1260,33 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A chart of zeros is worse than no chart
+
+Continuing the "look at what actually ships" lens, Portfolio was rendering its
+**Portfolio value** card with an empty dataset. `growthSeries()` returns 18
+months of `{ principal: 0, interest: 0 }` — the source comment says so
+outright, "none until XRPL fundraising opens" — and Chart.js given an all-zero
+series scales its axis symmetrically about zero. The result was a y-axis
+reading `$1, $1, $1, $0, $0, $-0, $-0, $-1, $-1`: repeated labels, and
+**negative money on a portfolio that has never held anything**.
+
+On a financial product that does not read as "no data yet", it reads as broken
+— and it sat directly above a perfectly good "No positions yet" empty state
+that already said the true thing. The card now waits until there is something
+to plot.
+
+Also dashed: **Avg APY**, deposit-weighted over zero deposits. Same
+undefined-versus-zero distinction as the marketplace's avg premium; the
+neighbouring "$0 deposited" and "€0.00 claimable" are genuine zeros and stayed.
+
+**The single case is the one nobody sees.** Verifying the populated path with a
+fixture — mandatory here, since gating the card changed control flow — is what
+surfaced `"1 positions"`. Empty reads fine ("0 positions"), many reads fine
+("6 vaults"), and exactly one is the case that never appears in demo data or in
+an empty shipped state. There is now a `plural()` helper in `lib/format.ts`,
+applied where a count can realistically be 1. English pluralises on `n !== 1`,
+so zero takes the plural and `"0 positions"` is correct.
+
 ### The shipped app is mostly empty — look at it that way
 
 `LISTINGS`, `POSITIONS` and `investableVaults()` are all empty, so what a real
