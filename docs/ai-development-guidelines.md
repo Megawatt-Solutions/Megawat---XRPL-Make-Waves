@@ -1260,6 +1260,47 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The headline numbers did not mean what their labels said
+
+Following the previous entry's rule — *ask which other surfaces make the same
+claim* — to the largest numbers in the product.
+
+`lib/protocol.ts` is explicit about what "TVL" is:
+
+```ts
+/** Value of the two real operational systems (Ljubljana + Metlika capex). */
+export const OPERATIONAL_VALUE = VAULTS.filter((v) => v.kind === "showcase")…
+// TVL = the operational systems (not tied to any chain).
+tvl: OPERATIONAL_VALUE,
+```
+
+So **$2.44M "Total Value Locked" is company-owned capex, not user deposits** —
+of which there are none. In this sector TVL is read as depositor money. The
+landing tile's sub-line read `"2 active · 0 fundraising"`, which reinforces
+exactly the wrong reading: *two vaults you can be in*. It now reads
+`"2 operational sites · none open for deposit yet"`.
+
+Likewise `cumulativeYield` — described in the source as "Ljubljana ~2 yrs +
+Metlika ~11 months of revenue" — was subtitled **"Depositor yield and protocol
+fees, realtime"**. Depositor yield, with no depositors. Now "Revenue earned by
+the operating sites to date", which is both true and still a strong claim.
+
+Fixing those two made dashboard-v2 contradict *itself*: its page subtitle
+enumerated "value locked, depositor yield" 60px above tiles that now said
+something else. Corrected to match.
+
+Two judgement calls worth being explicit about:
+
+- **The headline labels were left alone.** Renaming "Total Value Locked" is a
+  positioning decision that belongs to the founders, not to a design pass. The
+  sub-lines carry the correction instead — the number is no longer misreadable,
+  and the naming question is raised rather than silently answered.
+- **"Depositor yield 74%" in Yield Composition was left alone and is correct.**
+  It names how revenue is *split*, which is a statement about the model, not a
+  claim that anyone has been paid. Same words, different claim — checked by
+  switching to that tab rather than assuming, since a blanket find-and-replace
+  would have broken it.
+
 ### A qualifier fixed on the detail page never reached the card
 
 `VaultDetail` carries a long comment explaining why "Showcase site · not

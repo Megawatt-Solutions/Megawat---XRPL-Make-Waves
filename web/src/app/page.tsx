@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { StatTile } from "@/components/StatTile";
 import { VaultCard } from "@/components/VaultCard";
 import { VAULTS, dashboardMetrics, vaultsByStatus } from "@/lib/vaults";
-import { fmtCompact, fmtNum } from "@/lib/format";
+import { fmtCompact, fmtNum, plural } from "@/lib/format";
 import { CoinsIcon, ShieldIcon, LayersIcon, BoltIcon } from "@/components/Icons";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
@@ -38,10 +38,17 @@ export default function DashboardPage() {
       <SpreadcastStrip />
 
       <div className="tile-grid">
+        {/* This figure is the capex of the two sites Megawatt operates —
+            lib/protocol.ts is explicit: "TVL = the operational systems (not
+            tied to any chain)". No user has deposited anything. In this sector
+            TVL is read as depositor money, so the sub-line has to say whose
+            value it is; "2 active · 0 fundraising" read as "two vaults you can
+            be in", which is the opposite of the truth. Wording follows the
+            dashboard's own tile, which already framed this correctly. */}
         <StatTile
           label="Total Value Locked"
           value={fmtCompact(m.tvl, "USD")}
-          sub={`${m.activeCount} active · ${m.fundraisingCount} fundraising`}
+          sub={`${plural(m.activeCount, "operational site")} · none open for deposit yet`}
           icon={<CoinsIcon size={18} />}
         />
         <StatTile

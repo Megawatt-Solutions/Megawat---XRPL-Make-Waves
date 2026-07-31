@@ -61,8 +61,19 @@ export default function DashboardV2Page() {
 
       <div className="page-head">
         <h1 className="page-title">Protocol overview</h1>
+        {/* The subtitle enumerates the metrics below it, so it has to match
+            them. It said "value locked, depositor yield" while the tiles show
+            operational-site capex and site revenue — and once those subs were
+            corrected, the page contradicted itself within 60px. The positioning
+            claim in the first clause is untouched; only the list of what this
+            page actually shows changed.
+
+            NB "Depositor yield" in VaultsOverview's Yield Composition is a
+            different and correct use: it names how revenue is SPLIT (74% to
+            depositors), which is a statement about the model, not a claim that
+            anyone has been paid. */}
         <div className="page-sub">
-          Institutional access to distributed battery storage — value locked, depositor yield, and deployed
+          Institutional access to distributed battery storage — operational value, site revenue, and deployed
           capacity across the vault network.
         </div>
       </div>
@@ -131,7 +142,11 @@ export default function DashboardV2Page() {
             <div className="v2-metric-value">
               <Odometer startValue={PROTOCOL.cumulativeYield} ratePerSecond={0.05} />
             </div>
-            <div className="v2-metric-sub">Depositor yield and protocol fees, realtime</div>
+            {/* Not depositor yield: there are no depositors. protocol.ts describes
+                this figure as "Ljubljana ~2 yrs + Metlika ~11 months of revenue"
+                — what the sites have earned, which is the honest and still
+                impressive claim. */}
+            <div className="v2-metric-sub">Revenue earned by the operating sites to date</div>
           </div>
         </div>
       </div>
