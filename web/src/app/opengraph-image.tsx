@@ -21,6 +21,12 @@ const GREEN = "#42e7aa";
 const PAPER = "#ffffff";
 const CONDUIT = "#9c9c9c";
 
+// Sizes in this file are px on purpose, against the rem convention used
+// everywhere else. This renders through Satori to a fixed 1200x630 raster:
+// there is no viewer, no root element and no user font-size setting for a
+// rem to be relative to. Satori does resolve rem — verified, the card came
+// out correct — but depending on that buys nothing and invites the next
+// person to think the root scale affects this image. It does not.
 export default async function OpengraphImage() {
   return new ImageResponse(
     (
@@ -51,7 +57,7 @@ export default async function OpengraphImage() {
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
               <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" fill={GREEN} />
             </svg>
-            <div style={{ fontSize: "2.5rem", fontWeight: 700, color: PAPER, letterSpacing: "0.14em" }}>
+            <div style={{ fontSize: 40, fontWeight: 700, color: PAPER, letterSpacing: "0.14em" }}>
               MEGAWATT
             </div>
           </div>
@@ -63,7 +69,7 @@ export default async function OpengraphImage() {
             style={{
               display: "flex",
               flexDirection: "column",
-              fontSize: "4.25rem",
+              fontSize: 68,
               fontWeight: 700,
               color: PAPER,
               lineHeight: 1.05,
@@ -74,13 +80,13 @@ export default async function OpengraphImage() {
             <div style={{ display: "flex", color: GREEN }}>Onchain yield</div>
           </div>
 
-          <div style={{ fontSize: "1.6875rem", color: CONDUIT, maxWidth: 820, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 27, color: CONDUIT, maxWidth: 820, lineHeight: 1.4 }}>
             Real battery storage sites across Europe. Deposit RLUSD, earn a share of what they make on the
             day-ahead market.
           </div>
         </div>
 
-        <div style={{ display: "flex", fontSize: "1.375rem", color: CONDUIT, letterSpacing: "0.16em" }}>
+        <div style={{ display: "flex", fontSize: 22, color: CONDUIT, letterSpacing: "0.16em" }}>
           NO TOKEN · NO EMISSIONS · JUST ENERGY REVENUE
         </div>
       </div>
