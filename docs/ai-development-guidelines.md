@@ -599,11 +599,13 @@ would bury the output in noise — but a sticky bar landing on another sticky ba
 or a docked CTA sitting on the tab bar, has no legitimate case. Canaried by
 pinning `.sc-bar` to `top: 0`, which reproduces a 44px collision with the nav.
 
-**Still unobserved:** `.sc-cta-dock` is the third sticky element, and it only
-renders before a pick is committed. Its `bottom: var(--nav-h-safe)` was written
-when sticky was broken, so that fix has never actually been exercised. It will
-behave as designed or it will not — nobody has seen it either way. Check it
-during an open round.
+**Now observed:** `.sc-cta-dock` is the third sticky element, and its
+`bottom: var(--nav-h-safe)` was written while sticky was broken app-wide, so
+the fix went years unexercised. It has since been reached by overriding the
+round state and audited across seven viewports — it never collides with the tab
+bar, and its sticky rule is a no-op at most phone sizes because the panel is
+shorter than the screen. Full write-up below under
+"`.sc-cta-dock` — audited, correct, and mostly inert by design".
 
 ### `overflow-x: hidden` broke the sticky nav, and hid the bugs it looked like it solved
 
@@ -1219,35 +1221,56 @@ Recorded so future work starts informed rather than rediscovering:
 | Wallet bind is one tap, not zero | Automatic bind on connect needs `src/lib/wallet.tsx` |
 | `web/.env.example` is incomplete | Missing `SPREADCAST_API_URL`, `SPREADCAST_API_TOKEN`, `SESSION_SECRET`, `XRPL_ANCHOR_ADDRESS`. This directly caused a wasted debugging session |
 | Brand guidelines PDF unread | `docsend.com/view/quvyymw2ctm37f5n` — may specify clear-space and spacing rules not captured here |
-| `.sc-cta-dock` still unobserved | The third sticky element. See below — it needs an **open round** to render, so it can only be audited before 11:45 Ljubljana time |
-
-### `.sc-cta-dock` cannot be audited on demand, and a synthetic one proves nothing
+### `.sc-cta-dock` — audited, correct, and mostly inert by design
 
 It renders only inside the band picker, which renders only while a round is
-open. Outside that window `/spreadcast` shows "Between rounds — today's results
-are being tallied" and the dock does not exist at any viewport. Temporarily
-forcing `{state.user ? …}` to `{true ? …}` does **not** help: the gate that
+open, so outside that window it does not exist at any viewport. Forcing
+`{state.user ? …}` to `{true ? …}` does **not** reach it — the gate that
 matters is the round, not the session.
 
-Injecting a synthetic `.sc-cta-dock` into `.sc-panel` and measuring it was
-tried and the results were discarded. Two things went wrong, both worth
-knowing:
+It was reached by temporarily overriding `useRound()`'s `state.open` and
+`isOpen` in `PlayView.tsx` (fixture technique, reverted). One trap in doing
+that: `isOpen = true` is not safe on its own, because code above the `if
+(!state) return <skeleton>` guard reads `state!.open` under exactly that
+invariant. Use `!!state`, or the component throws on first paint.
+
+With the real dock in its real position, across 320×568, 360×640, 390×844,
+414×896, 768×1024, 980×800 and 740×360 landscape:
+
+- **It never collides with the tab bar.** At every viewport and scroll
+  position the CTA either clears `.bottom-nav` or is off-screen. The
+  `bottom: var(--nav-h-safe)` choice over `bottom: 0` holds up.
+- `--nav-h-safe` is 74px against a `.bottom-nav` measuring 74.54px (74px + a
+  0.67px top border). A 0.54px shortfall — under one device pixel at DPR 1.5.
+  Left alone; recorded so it is not rediscovered as a finding.
+- **The sticky rule is a no-op at most phone sizes.** `.sc-panel` measures
+  ~529px at 390×844 and ~468px at 768×1024 — shorter than the viewport, so
+  there is nothing to scroll and the dock never leaves its natural position.
+  Only at 320×568 (panel 583px) is the panel taller than the screen. There is
+  95px of panel content below the dock at every size, so even when sticky does
+  engage its total travel is 95px.
+
+That last point is **not a bug** — a sticky element that has nothing to scroll
+past is supposed to sit still, and the CTA is fully visible either way. It does
+mean the docked treatment earns its keep only on short viewports. Worth knowing
+before anyone "fixes" it into `position: fixed`, which would pin the CTA over
+content that does not need covering.
+
+Caveat on the numbers: the fixture round rendered four bands; a real round
+renders five, plus a commit box and the signing UI once a pick exists. The real
+panel is therefore taller than measured here, and 390×844 may cross into the
+sticky-engaged range. The structural findings — no nav collision, 95px of
+travel, correct `bottom` value — do not depend on that.
+
+**Two probe mistakes worth not repeating**, both of which produced confident
+wrong answers before the above was reached:
 
 - **The onboarding sheet was open during the first readings.** Its scroll lock
   sets `document.body.style.overflow = "hidden"`, so every scroll-dependent
   measurement in that pass was taken against a locked body. Any sweep that
   scrolls must pass `?onboarding=0` — that override exists for exactly this.
-- **An injected element is not in the real element's position**, so its sticky
-  behaviour is not the real one. Readings swung between "stuck 4px above the
-  nav" and "200px below the fold" depending only on where the probe scrolled
-  to, which is the signature of a measurement that is not measuring the thing
-  it claims to.
-
-What *was* verified, because it needs no scrolling: `--nav-h-safe` resolves to
-74px while `.bottom-nav` measures 74.54px (74px + a 0.67px top border), at
-every width. A 0.54px shortfall — under one device pixel at DPR 1.5, and not
-worth a change. Recorded so nobody re-measures it and thinks they have found
-something.
-
-**To actually audit this**: run the sweep during an open round, before 11:45
-Ljubljana time, with a joined Spreadcast session.
+- **An injected synthetic dock is not in the real dock's position.** Readings
+  swung between "stuck 4px above the nav" and "200px below the fold" based only
+  on where the probe scrolled to. Both were meaningless. If an element's
+  behaviour depends on its position in a layout, you cannot audit it by
+  building a copy somewhere else.
