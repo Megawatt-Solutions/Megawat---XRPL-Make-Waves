@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import { getVault, VAULTS } from "@/lib/vaults";
 import { fmtPower, fmtEnergy } from "@/lib/format";
@@ -14,14 +14,19 @@ export function generateStaticParams() {
 //
 // Everything here is read from the existing vault record. Nothing is computed,
 // rounded or asserted that the page itself does not already show.
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: Promise<{ id: string }> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { id } = await params;
   const vault = getVault(id);
   if (!vault) return { title: "Vault not found" };
+
+  // Declaring `openGraph` here REPLACES the parent's rather than merging into
+  // it, so the first version of this silently dropped og:image from exactly
+  // the URLs most likely to be shared — a vault link previewed with no card at
+  // all, while every other route had one. Carry the inherited images through.
+  const inheritedImages = (await parent).openGraph?.images ?? [];
 
   // fmtPower/fmtEnergy, not arithmetic here. Dividing by 1000 and rounding to
   // one decimal described Ljubljana's 350 kW / 550 kWh vault as "0.3 MW / 0.6
@@ -38,6 +43,7 @@ export async function generateMetadata({
       siteName: "Megawatt",
       title: `${vault.name} — Megawatt`,
       description,
+      images: inheritedImages,
     },
   };
 }

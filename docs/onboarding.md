@@ -89,9 +89,27 @@ Things that are load-bearing and easy to break:
 
 ---
 
+## Closed gaps
+
+- ~~**Android hardware back doesn't close the overlay**~~ — **fixed.** The sheet
+  pushes one history entry on open and consumes it on `popstate`, so Back closes
+  the dialog instead of navigating the page underneath it. The entry is unwound
+  on close *only if Back did not already consume it* — otherwise closing would
+  navigate a second time and take the user off the page. Verified: Back closes
+  the sheet and `location.pathname` is unchanged.
+- ~~**Dismiss is permanent**~~ — **fixed.** `done` and `dismissed` are now
+  different states. Finishing is a decision; Escape, a scrim tap or a mis-hit
+  Skip usually is not, and treating them the same meant one stray tap removed
+  the only explanation this product offers, permanently, on the visit where the
+  user understood least. A dismissal is re-offered **once**, after
+  `REOFFER_AFTER_MS` (6h — a later sitting, not a reload), then never again.
+  Verified across the whole state machine: dismiss → closed → same-sitting
+  reload stays closed → past the window opens once and sets `reoffered` → after
+  that it stays closed permanently.
+- ~~**Copy says "11:45 CET"**~~ — **fixed** in an earlier pass. `HowView` reads
+  "All times Ljubljana · CET in winter, CEST in summer"; `PlayView` and the
+  onboarding step both say "11:45 Ljubljana time".
+
 ## Known gaps
 
-- **Android hardware back doesn't close the overlay** — it navigates the page behind it. Fixable with `history.pushState` on open + a `popstate` listener, at the cost of a spurious history entry.
-- **Dismiss is permanent.** Escape or a mis-tapped Skip marks it done forever. `?onboarding=reset` recovers it, but a `dismissed` flag distinct from `done` would let you re-offer once on a later session without re-nagging.
-- **No analytics wired in.** PostHog is a dependency now; `onboarding_step_viewed {step_id, index, total}` plus `onboarding_completed` / `onboarding_skipped` is what would let you measure this flow against the 53%/75% benchmark rather than inheriting it on faith. Deliberately not added — see the PII caveat in [`ai-development-guidelines.md`](./ai-development-guidelines.md) §5 before enabling any analytics.
-- **Copy says "11:45 CET"**, but `lib/spreadcast/time.ts` uses `Europe/Ljubljana` — which is CEST from late March to late October. The same error is in `HowView.tsx`. Suggest "11:45 Ljubljana time" in both: a game whose premise is *"your pick is committed before the result exists"* shouldn't be loose about its deadline.
+- **No analytics wired in.** PostHog is a dependency now; `onboarding_step_viewed {step_id, index, total}` plus `onboarding_completed` / `onboarding_skipped` is what would let you measure this flow against the 53%/75% benchmark rather than inheriting it on faith. Deliberately not added — see the PII caveat in [`ai-development-guidelines.md`](./ai-development-guidelines.md) §5 before enabling any analytics. **Blocked on a decision, not on work:** PostHog currently identifies users by wallet address, and that needs resolving first.

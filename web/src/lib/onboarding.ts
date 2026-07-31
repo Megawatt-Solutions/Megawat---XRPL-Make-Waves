@@ -102,7 +102,31 @@ export function activeSteps(): OnboardingStep[] {
   return STEPS.filter((s) => s.enabled !== false);
 }
 
-type State = { done: boolean; step: number };
+/**
+ * `done` and `dismissed` are deliberately different things.
+ *
+ * Finishing the flow is a decision. Escape, a scrim tap or a mis-hit Skip is
+ * usually not — and treating them the same meant one stray tap removed the only
+ * explanation this product ever offers, permanently, on the visit where the
+ * user understood least. `?onboarding=reset` recovered it, which is no help to
+ * anyone who does not read source.
+ *
+ * A dismissal is now re-offered exactly ONCE, on a later session. Not the same
+ * session — re-appearing after someone just closed it is nagging, and they are
+ * still in the context that made them close it. `dismissedAt` is a timestamp so
+ * "later session" can mean a real gap rather than a reload.
+ */
+type State = {
+  done: boolean;
+  step: number;
+  dismissed?: boolean;
+  dismissedAt?: number;
+  /** Set once the dismissal has been forgiven, so it is never re-offered again. */
+  reoffered?: boolean;
+};
+
+/** How long after a dismissal the flow may be offered one more time. */
+const REOFFER_AFTER_MS = 6 * 60 * 60 * 1000; // 6h — a later sitting, not a reload
 
 function read(): State | null {
   if (typeof window === "undefined") return null;
@@ -122,9 +146,40 @@ function write(s: State) {
   }
 }
 
-/** True when the user has finished or dismissed the flow. */
+/**
+ * True when the flow should stay closed.
+ *
+ * Completing it is final. A dismissal is honoured too, except for the single
+ * re-offer described on `State` — after which it is final as well.
+ */
 export function isComplete(): boolean {
-  return read()?.done === true;
+  const s = read();
+  if (!s) return false;
+  if (s.done) return true;
+  if (s.dismissed) {
+    if (s.reoffered) return true; // already had its second chance
+    const elapsed = Date.now() - (s.dismissedAt ?? 0);
+    if (elapsed < REOFFER_AFTER_MS) return true;
+    // Past the window: allow one more showing, and record that we did.
+    write({ ...s, reoffered: true });
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Closed without finishing — Escape, scrim, or Skip. Kept distinct from
+ * complete() so the flow can be offered once more later.
+ */
+export function dismiss(step: number) {
+  const s = read();
+  write({
+    done: false,
+    step,
+    dismissed: true,
+    dismissedAt: Date.now(),
+    reoffered: s?.reoffered === true,
+  });
 }
 
 /** Resume point for a user who closed the tab mid-flow. */

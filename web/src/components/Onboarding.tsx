@@ -21,6 +21,7 @@ import {
   ONBOARDING_ENABLED,
   ONBOARDING_ON_DESKTOP,
   activeSteps,
+  dismiss,
   savedStep,
   saveStep,
   complete,
@@ -63,6 +64,16 @@ export function Onboarding() {
     setOpen(false);
   }, []);
 
+  // Closing without finishing is not the same decision as finishing, and is
+  // often not a decision at all — Escape, a scrim tap, a mis-hit Skip. Recorded
+  // separately so the flow can be offered once more in a later session instead
+  // of one stray tap permanently removing the only explanation the product
+  // gives. See the note on `State` in lib/onboarding.ts.
+  const dismissFlow = useCallback(() => {
+    dismiss(i);
+    setOpen(false);
+  }, [i]);
+
   const goTo = useCallback(
     (n: number, d: "fwd" | "back") => {
       setDir(d);
@@ -94,8 +105,8 @@ export function Onboarding() {
   }, [connect]);
 
   // Reached through a ref so the trap effect below can depend on [open] alone.
-  const api = useRef({ next, back, finish });
-  api.current = { next, back, finish };
+  const api = useRef({ next, back, finish, dismissFlow });
+  api.current = { next, back, finish, dismissFlow };
 
   // ── Decide once, client-side only ──────────────────────────────────────
   useEffect(() => {
@@ -154,7 +165,7 @@ export function Onboarding() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        return api.current.finish();
+        return api.current.dismissFlow(); // closed, not completed
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -186,12 +197,45 @@ export function Onboarding() {
       if (!el.contains(ev.target as Node)) el.focus();
     };
 
+    // Android's hardware Back is the system-wide gesture for "close this".
+    // Without a history entry to consume it navigates the page BEHIND the
+    // overlay instead, so Back appears to skip the app backwards while the
+    // sheet is still up — the single most disorienting thing a modal can do on
+    // that platform.
+    //
+    // Push one entry on open and consume it on popstate. The cost is a spurious
+    // history entry, removed again on close via the popped flag so a normal
+    // finish does not leave Back pointing at a dialog that no longer exists.
+    let pushed = false;
+    let popped = false;
+    try {
+      window.history.pushState({ mwOnboarding: true }, "");
+      pushed = true;
+    } catch {
+      /* history unavailable — Back simply behaves as it did before */
+    }
+    const onPop = () => {
+      popped = true;
+      api.current.dismissFlow();
+    };
+    window.addEventListener("popstate", onPop);
+
     document.addEventListener("keydown", onKey, true);
     document.addEventListener("focusin", onFocusIn);
 
     return () => {
       document.removeEventListener("keydown", onKey, true);
       document.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("popstate", onPop);
+      // Only unwind the entry if Back did NOT consume it — otherwise this would
+      // navigate a second time and take the user off the page they are on.
+      if (pushed && !popped) {
+        try {
+          window.history.back();
+        } catch {
+          /* no-op */
+        }
+      }
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPad;
       if (skipRestore.current) {
@@ -257,7 +301,7 @@ export function Onboarding() {
 
         <div className="ob-head">
           <span className="ob-eyebrow">{step.eyebrow}</span>
-          <button type="button" className="ob-skip" data-testid="onboarding-skip" onClick={finish}>
+          <button type="button" className="ob-skip" data-testid="onboarding-skip" onClick={dismissFlow}>
             Skip
           </button>
         </div>
