@@ -1260,6 +1260,39 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A timeline that read as though it ran backwards
+
+`/spreadcast/how` is the page whose entire job is explaining the rules, and its
+clock listed:
+
+```
+15:00   Predictions open for the day after tomorrow.
+11:45   Predictions close — before the daily European auction runs…
+~13:00  Auction results publish.
+15:00   Results are scored…
+```
+
+Read as a column of times that is 15:00 → 11:45 → ~13:00 → 15:00, which looks
+like predictions close six hours *before* they open. They do not: a round for
+delivery day X opens at 15:00 on X−2 and closes at 11:45 on X−1. The only jump
+is a day boundary the list never mentioned — on the one row that decides
+whether a player gets their pick in at all.
+
+Fixed with four words: *"Predictions close **the following day** — before the
+daily European auction runs…"*. Rows three and four then read naturally as
+continuing on that same day.
+
+**The day model was verified, not assumed.** These are the rules of a game with
+a real prize pool, so guessing at timing would be worse than leaving it
+ambiguous. `X−2 → X−1` was checked against the app's own behaviour: PlayView
+showed round `2026-08-02` as the open round on `2026-08-01`, which is only
+consistent with a round opening two days before its delivery day.
+
+Only the description span changed, not the time cell — `HowView` carries a
+comment about `"11:45 Ljubljana time"` once wrapping to three lines in a 92px
+column, and the time cells measured a stable 62px with no wrapping at 320
+through 1280 afterwards.
+
 ### Spreadcast's core action announced nothing at all
 
 Applying the previous entry's rule — mount the region, toggle its contents —

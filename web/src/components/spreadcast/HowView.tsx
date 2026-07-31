@@ -30,7 +30,15 @@ export function HowView() {
           <p className="sc-timeline-tz">All times Ljubljana · CET in winter, CEST in summer</p>
           <div className="sc-timeline">
             <div className="t"><b>15:00</b><span>Predictions open for the day after tomorrow.</span></div>
-            <div className="t"><b>11:45</b><span>Predictions close — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
+            {/* "the following day" is doing real work here. Read as a bare
+                list the column runs 15:00 · 11:45 · ~13:00 · 15:00, which
+                looks like predictions close six hours before they open. They
+                do not: a round for delivery day X opens at 15:00 on X-2 and
+                closes at 11:45 on X-1, so the only jump is a day boundary the
+                list never mentioned. On the page whose whole job is explaining
+                the rules — and on the one row that decides whether someone
+                gets their pick in — that is worth four words. */}
+            <div className="t"><b>11:45</b><span>Predictions close the following day — before the daily European electricity auction runs, so nobody can know the outcome.</span></div>
             <div className="t"><b>~13:00</b><span>Auction results publish.</span></div>
             <div className="t"><b>15:00</b><span>Results are scored automatically from the official published prices.</span></div>
           </div>
