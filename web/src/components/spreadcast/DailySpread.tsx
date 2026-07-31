@@ -25,29 +25,58 @@ interface Round {
   open: { closesAt?: number } | null;
 }
 
-function useRoundPeek() {
+/** Pending is distinct from failed: one reserves space, the other collapses. */
+type Peek = { data: Round | null; failed: boolean };
+
+function useRoundPeek(): Peek {
   const [data, setData] = useState<Round | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let alive = true;
     fetch("/api/spreadcast/round", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (alive && d && !d.error) setData(d as Round);
+        if (!alive) return;
+        if (d && !d.error) setData(d as Round);
+        else setFailed(true);
       })
       .catch(() => {
         /* game API down — these are decorative, stay silent */
+        if (alive) setFailed(true);
       });
     return () => {
       alive = false;
     };
   }, []);
-  return data;
+  return { data, failed };
 }
 
 /** One line under a vault's revenue: the number its batteries actually earn on. */
 export function VaultSpreadLine() {
-  const data = useRoundPeek();
+  const { data, failed } = useRoundPeek();
   const latest = data?.latest;
+
+  // Unlike the strip, every word here is data, so there is nothing to paint
+  // early. Hold the row's height while the fetch is in flight so the sections
+  // below it do not step up once it lands.
+  //
+  // Reserved with the real markup rather than a min-height, because the row
+  // wraps: at 390px it is two lines and 81px tall, at desktop one line and 44.
+  // A guessed height is right at one width and wrong at every other, and it
+  // goes stale the moment the row gains a field. Same elements, placeholder
+  // text, visibility:hidden — so it wraps by exactly the same rules.
+  if (!data && !failed) {
+    return (
+      <div className="vsl vsl-pending" aria-hidden="true">
+        <span className="vsl-label">Yesterday&apos;s spread</span>
+        <span className="vsl-value num">000.00</span>
+        <span className="vsl-unit">€/MWh</span>
+        <span className="sc-band-chip">Steady</span>
+      </div>
+    );
+  }
+  // Resolved with no result to show (between rounds, or the game is down):
+  // collapse. A permanently empty row would be worse than no row.
   if (!latest) return null;
 
   return (
@@ -74,7 +103,7 @@ function countdown(ms: number) {
 
 /** Cross-sell strip for the vaults side — the only thing the game gives back. */
 export function SpreadcastStrip() {
-  const data = useRoundPeek();
+  const { data, failed } = useRoundPeek();
   const closesAt = data?.open?.closesAt ?? null;
   const [now, setNow] = useState<number | null>(null);
 
@@ -86,7 +115,16 @@ export function SpreadcastStrip() {
     return () => clearInterval(id);
   }, [closesAt]);
 
-  if (!data) return null;
+  // This used to render nothing until the fetch resolved, which shoved the
+  // whole home page down by 212px on mobile the moment it landed — the vault
+  // cards moved out from under a thumb already reaching for one.
+  //
+  // It never needed to wait. The eyebrow, title and body are static strings;
+  // only the countdown is data. So the strip paints immediately and the clock
+  // fills in. A definitive failure still collapses it, because a game outage
+  // must not take a vaults page down with it — but that is a rare path, and
+  // one collapse then beats a guaranteed jump now.
+  if (failed) return null;
 
   return (
     <Link href="/spreadcast" className="scs">
@@ -99,12 +137,12 @@ export function SpreadcastStrip() {
             The same number these batteries earn on. One pick a day, no purchase, no deposit.
           </p>
         </div>
-        {closesAt && now != null && (
-          <div className="scs-clock">
-            <span className="num">{countdown(closesAt - now)}</span>
-            <small>until entries close</small>
-          </div>
-        )}
+        {/* Held from first paint so the digits arriving do not resize the card.
+            Between rounds there is no close time, and the slot stays empty. */}
+        <div className="scs-clock" aria-hidden={now == null}>
+          <span className="num">{closesAt && now != null ? countdown(closesAt - now) : " "}</span>
+          <small>{closesAt ? "until entries close" : " "}</small>
+        </div>
       </div>
     </Link>
   );

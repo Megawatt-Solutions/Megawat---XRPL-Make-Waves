@@ -116,6 +116,40 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### A component that returns `null` while loading will move the page
+
+`return null` until data arrives is the most common way this codebase has
+shifted layout. It reads as harmless and is invisible on localhost, where the
+API answers in single-digit milliseconds. On a real connection the page paints,
+then the component lands and shoves everything below it down.
+
+`SpreadcastStrip` did exactly this on the home page: **212px on mobile, 154px on
+desktop**, directly above the vault cards — so a thumb already reaching for a
+card had the target move under it.
+
+Three states, not two. `pending` is not `failed`:
+
+- **pending** — reserve the space
+- **ready** — render
+- **failed** — collapse (rare, and one collapse beats a guaranteed jump)
+
+Two rules for reserving it:
+
+1. **Check what actually needs the data.** The strip's eyebrow, title and body
+   were static strings; only the countdown was dynamic. It never needed to wait
+   at all — paint immediately, fill the clock in. Prefer this over a skeleton.
+2. **Reserve with the real markup, not a guessed height.** `VaultSpreadLine`
+   wraps: 106px at 320, 81px at 390, 49px at 1280. Any single `min-height` is
+   right at one width and wrong at every other, and it goes stale the moment
+   the row gains a field. Render the same elements with placeholder text and
+   `visibility: hidden` — it then wraps by exactly the same rules.
+
+⚠ `PerformanceObserver({type:'layout-shift'})` reports **nothing** for a
+cross-document iframe, so the audit harness cannot measure CLS. It will happily
+report 0 for a page that jumps 212px. Measure by snapshotting element rects
+before and after instead — and prove your instrument works with a deliberate
+shift before you trust a zero.
+
 ### Every section gets an error boundary
 `src/app/spreadcast/error.tsx` contains failures to that section, so the game cannot take the vaults half down. New sections that depend on an external service need the same.
 

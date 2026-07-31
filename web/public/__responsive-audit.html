@@ -127,6 +127,14 @@ window.runAudit = async function (routes, widths) {
   let css = { checked: 0, invalid: 0, samples: [] };
   try { css = await window.validateCss(); } catch (e) { css.samples = [String(e).slice(0, 80)]; }
   for (const s of css.samples) findings.push({ route: "(stylesheet)", w: 0, kind: "invalid-css-value", detail: s });
+  // "0 invalid of 0 checked" is not a pass, it is a check that did not run —
+  // which is exactly what a silent instrument failure looks like. Called on
+  // its own before any route has loaded, validateCss finds no stylesheets and
+  // reports a clean zero. Say so out loud instead.
+  if (!css.checked) {
+    findings.push({ route: "(stylesheet)", w: 0, kind: "css-check-did-not-run",
+      detail: "0 declarations reachable — load a route first, then re-run" });
+  }
 
   hud.textContent = `done — ${findings.length} findings (${css.checked} css decls checked)`;
   window.LAST = findings; // stored in the page's own scope so it survives

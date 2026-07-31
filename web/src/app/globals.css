@@ -2808,6 +2808,16 @@ body { overflow-x: hidden; }
   transition: border-color 0.15s, background 0.15s;
 }
 .vsl:hover { border-color: var(--border-2); background: var(--card-2); }
+/* Holds the row's exact height while /round is in flight, so the sections
+   below do not step up when it lands. It carries the same elements as the
+   real row and simply is not painted — visibility, not display, so it still
+   takes up space and still wraps at the same widths. Invisible rather than a
+   shimmer: this row is a secondary detail, and announcing that something is
+   loading here draws more attention than the row itself deserves. */
+.vsl-pending {
+  visibility: hidden;
+  pointer-events: none;
+}
 .vsl-label {
   font-family: var(--mono);
   font-size: 10px;
@@ -2869,6 +2879,10 @@ body { overflow-x: hidden; }
   text-align: right;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
+  /* Reserved from first paint. The digits arrive a tick after mount, and
+     without a held slot the card grows at that moment — a second, smaller
+     shift stacked on the one this component used to cause. */
+  min-height: 46px;
 }
 .scs-clock .num { font-size: 22px; font-weight: 500; }
 .scs-clock small {
