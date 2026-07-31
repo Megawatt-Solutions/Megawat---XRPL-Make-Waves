@@ -9,8 +9,16 @@
 // the same .empty-state idiom as an empty portfolio or an empty marketplace,
 // and spends its space on exits rather than on apologising.
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LayersIcon } from "@/components/Icons";
+
+// The layout's title work was done because "browser history was a wall of the
+// same string" — and this page was missed by it. With no metadata export the
+// 404 inherited the layout `default`, so a dead vault link opened a tab
+// labelled "Megawatt — BESS Vaults": history, bookmarks and the tab strip all
+// recorded a page that does not exist as the vaults page.
+export const metadata: Metadata = { title: "Page not found" };
 
 export default function NotFound() {
   return (

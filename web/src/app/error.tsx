@@ -27,6 +27,15 @@ export default function VaultsError({
     console.error("[vaults]", error);
   }, [error]);
 
+  // An error boundary is a client component, and client components cannot
+  // export `metadata` — so without this the tab keeps whatever title the route
+  // that just failed had set, or the layout default. A tab reading "Megawatt —
+  // BESS Vaults" while showing a failure is how someone loses the broken tab
+  // among the working ones.
+  useEffect(() => {
+    document.title = "Something went wrong — Megawatt";
+  }, []);
+
   return (
     <main className="page">
       <div className="page-head">

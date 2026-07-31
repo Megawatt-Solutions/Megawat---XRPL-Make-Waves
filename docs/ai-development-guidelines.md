@@ -1260,6 +1260,38 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The failure pages were missed by the title work
+
+`layout.tsx` explains why per-route titles were added: *"browser history was a
+wall of the same string."* Both failure surfaces were missed by that effort.
+
+- **404** had no `metadata` export, so it inherited the layout `default`. A dead
+  vault link opened a tab labelled **"Megawatt — BESS Vaults"** — history,
+  bookmarks and the tab strip all recording a page that does not exist as the
+  vaults page. It is a server component, so a `metadata` export fixes it
+  properly.
+- **error.tsx is a client component**, and client components *cannot* export
+  `metadata` in the App Router. Without a different mechanism the tab keeps
+  whatever title the route that just failed had set. Set imperatively via
+  `document.title` in an effect — the one case where that is the correct tool
+  rather than a workaround.
+
+Both pages are otherwise good and were verified at 320/390/768/1280: correct
+headings, every recovery action fitting a 320px row with no sub-24px target, no
+clipping, nav preserved so the user is never stranded.
+
+**Reaching the error boundary needs a route that throws** — and *not* one
+prefixed with `_`, since `_`-folders are private in the App Router and silently
+render the 404 instead (that mistake is recorded earlier in this file).
+
+**A temporary route leaves residue outside the source tree.** Deleting
+`src/app/throw-probe/` was not enough: Next had generated
+`.next/dev/types/app/throw-probe/page.ts`, which then failed `tsc` with
+*"Cannot find module …/page.js"* — a broken typecheck in a working tree that
+`git status` reported as clean. Build artefacts under `.next/dev/{types,server,
+static}` have to be cleared too. **`git status` is not a sufficient check that a
+fixture is gone.**
+
 ### A percentage decided a question only pixels can answer
 
 `auditClippingVertical()` — added two passes ago and quiet ever since — earned
