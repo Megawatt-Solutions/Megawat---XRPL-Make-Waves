@@ -112,4 +112,15 @@ Things that are load-bearing and easy to break:
 
 ## Known gaps
 
-- **No analytics wired in.** PostHog is a dependency now; `onboarding_step_viewed {step_id, index, total}` plus `onboarding_completed` / `onboarding_skipped` is what would let you measure this flow against the 53%/75% benchmark rather than inheriting it on faith. Deliberately not added — see the PII caveat in [`ai-development-guidelines.md`](./ai-development-guidelines.md) §5 before enabling any analytics. **Blocked on a decision, not on work:** PostHog currently identifies users by wallet address, and that needs resolving first.
+- **No analytics wired in.** PostHog is a dependency now; `onboarding_step_viewed {step_id, index, total}` plus `onboarding_completed` / `onboarding_dismissed` is what would let you measure this flow against the 53%/75% benchmark rather than inheriting it on faith.
+
+  **Not blocked on work — blocked on one line in another file.** PostHog
+  currently calls `identify(snap.address)` at `wallet.tsx:138`, so every event
+  is attached to a person identified by their public XRPL address. Adding an
+  onboarding funnel on top of that would make the privacy problem larger and
+  better organised, not smaller.
+
+  The exact change, with rationale and a cheaper alternative, is written up in
+  [`wallet-tsx-handoff.md`](./wallet-tsx-handoff.md). Once it lands, the events
+  themselves are a few lines in `Onboarding.tsx` — the call sites are listed at
+  the end of that document.

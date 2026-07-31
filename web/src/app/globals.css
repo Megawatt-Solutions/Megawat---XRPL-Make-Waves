@@ -759,6 +759,33 @@ button {
    past their parent's content edge, which the audit correctly reported as
    clipped content on .modal-title and .field-label. Growing the row by a few
    pixels is the smaller price; a modal header can afford 44px. */
+/* For "Use a watch-only address instead" in the connect modal, which renders
+   189x31 — the only escape route when Xaman is unavailable, at well under the
+   44px a thumb needs.
+
+   The button is in wallet.tsx, which is out of scope for this rehaul, so the
+   markup change is written up in docs/wallet-tsx-handoff.md rather than made
+   here. The class is ready so that change is one attribute swap: replace the
+   inline style with className="wallet-alt-link". Unused until then. */
+.wallet-alt-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 12px 8px 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--t-ui) var(--ease);
+}
+.wallet-alt-link:hover {
+  color: var(--text);
+}
+
 .modal-x {
   display: inline-flex;
   align-items: center;

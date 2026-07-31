@@ -1,0 +1,179 @@
+# Three changes in `web/src/lib/wallet.tsx`
+
+`web/src/lib/wallet.tsx` was ruled out of scope for the UI/UX rehaul ("don't
+touch any backend, any web3 connectors"). These three items were found during
+it, could not be fixed inside that boundary, and are written out here so
+applying them is a review rather than an investigation.
+
+Two are UI defects that happen to live in a connector file. One is a privacy
+issue and is the reason a fourth piece of work — onboarding analytics — has not
+been done.
+
+Nothing here has been applied. Line numbers are against `bdde2f3`.
+
+---
+
+## 1. Wallet addresses are being sent to PostHog as the analytics identity
+
+**`wallet.tsx:138`** · privacy · **the one that matters**
+
+```ts
+posthog.identify(snap.address, { via, funded: snap.funded });
+```
+
+`distinct_id` becomes the XRPL address. That address is a public ledger
+identifier, so anyone with PostHog access can take a session recording, an event
+timeline or a funnel drop-off and read the full transaction history, balance and
+counterparties behind it on any block explorer. It also flows into every
+downstream export and integration, and it is durable — the same person is the
+same address forever, across devices.
+
+This is a stronger identifier than an email. An email needs a breach elsewhere
+to become financial data; an address is financial data already.
+
+It is also almost certainly personal data under GDPR once joined to behavioural
+analytics, which is what `identify()` does by definition. The vaults are in SI,
+RS, DE, LT and RO.
+
+### The change
+
+```diff
+-        posthog.identify(snap.address, { via, funded: snap.funded });
++        // Never the raw address. A public-ledger identifier as distinct_id
++        // makes every analytics record joinable to that wallet's full
++        // transaction history by anyone with a block explorer.
++        posthog.identify(await pseudonymise(snap.address), { via, funded: snap.funded });
+```
+
+with, at module scope:
+
+```ts
+/**
+ * Stable pseudonym for an XRPL address.
+ *
+ * SHA-256 with an app-scoped salt: the same wallet always produces the same id,
+ * so funnels and retention still work, but the id cannot be walked back to a
+ * ledger account. Unsalted hashing would NOT be enough here — the address space
+ * is public and enumerable, so a plain hash is reversible by brute force.
+ *
+ * NEXT_PUBLIC_ANALYTICS_SALT is readable by the client, which is fine: it
+ * raises the cost of correlation from trivial to deliberate, and the real
+ * protection is that the value stored in PostHog is not itself an address.
+ * If you want this to be genuinely irreversible, hash server-side instead.
+ */
+async function pseudonymise(address: string): Promise<string> {
+  const salt = process.env.NEXT_PUBLIC_ANALYTICS_SALT ?? "megawatt";
+  const data = new TextEncoder().encode(`${salt}:${address}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest).slice(0, 16))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+```
+
+`finishConnect` is already `async`, so the `await` needs no other change.
+
+### Check the same file for the address elsewhere
+
+`wallet_connected` and `wallet_connection_failed` (lines 139 and 154) do not
+currently include the address — keep it that way. Worth a grep for
+`snap.address` before shipping, and worth checking whether any PostHog session
+recording is capturing the address where it is rendered on screen.
+
+### Cheaper alternative
+
+If you would rather not hash, `posthog.reset()` on connect and never calling
+`identify()` gives anonymous product analytics that still answer most questions.
+You lose cross-device identity; you also stop holding the data.
+
+---
+
+## 2. A 31px tap target in the connect modal
+
+**`wallet.tsx:288–293`** · accessibility
+
+"Use a watch-only address instead" renders **189×31**. It is the only escape
+route when Xaman is unavailable, and 31px is well under the 44px a thumb needs.
+
+It survived every audit because the tap-target check exempted `display: inline`
+controls — a rule meant for links inside sentences. That exemption has since
+been narrowed (`__responsive-audit.html`), so this now reports as a finding.
+
+### The change
+
+```diff
+             <button
+               onClick={() => setPhase({ step: "manual", reason: null })}
+-              style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "12px 0 0", fontFamily: "inherit", textDecoration: "underline" }}
++              className="wallet-alt-link"
+             >
+               Use a watch-only address instead
+             </button>
+```
+
+The class already exists in `globals.css` (added alongside this note) and gives
+it a 44px target without moving anything around it:
+
+```css
+.wallet-alt-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 12px 8px 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--t-ui) var(--ease);
+}
+.wallet-alt-link:hover { color: var(--text); }
+```
+
+---
+
+## 3. The toast viewport is not announced
+
+**`wallet.tsx:366–372`** · accessibility
+
+```tsx
+<div className="toasts">
+```
+
+Every confirmation in the app goes through here — "Claimed €1,284.40",
+"Deposited $10,000.00 RLUSD", "Address copied". None of it is announced, so a
+screen reader user gets no confirmation that a claim or a deposit succeeded.
+
+### The change
+
+```diff
+-    <div className="toasts">
++    {/* Polite, atomic: each toast is one whole message, and it is the result
++        of something the user just did rather than an interruption. */}
++    <div className="toasts" role="status" aria-live="polite" aria-atomic="true">
+```
+
+One attribute set, no visual change.
+
+---
+
+## What unblocks
+
+`docs/onboarding.md` lists onboarding analytics as its last open gap, and it is
+waiting on **#1** — not on the work. Adding `onboarding_step_viewed` and
+`onboarding_completed` today would attach a funnel to a person identified by
+their wallet address, which makes the privacy problem larger and better
+organised. Once #1 lands, the events are a small change to `Onboarding.tsx` and
+in scope for whoever picks it up:
+
+```ts
+posthog.capture("onboarding_step_viewed", { step_id: step.id, index: i, total: steps.length });
+posthog.capture("onboarding_completed");   // in finish()
+posthog.capture("onboarding_dismissed", { at_step: i }); // in dismissFlow()
+```
+
+That is what measures the flow against the 53%/75% benchmark it currently
+inherits on faith.
