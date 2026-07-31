@@ -151,6 +151,49 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
+### Audit the states the demo data cannot reach
+
+No vault in `vaults.ts` is `fundraising` or `active` — all six are `showcase`
+or `coming_soon`. So the deposit flow, the claim flow and the marketplace
+listings have **never been rendered by any sweep**, and a whole branch of the
+UI was unexamined.
+
+You can reach them without shipping a lie: flip one vault locally, audit, and
+`git checkout --` the file in the same pass. Testing is not the same as
+asserting a fact about a real asset — but the revert is not optional, and
+confirm it (`git status`) rather than assuming.
+
+Doing that found `--gray` still pointing at Conduit `#737373` while carrying
+**Carbon text** in a `.segbar` segment:
+
+| segment | ratio |
+|---|---|
+| green | 12.66:1 |
+| amber | 10.07:1 |
+| blue | 8.13:1 |
+| **grey** | **4.23:1** |
+
+The lone failure, and not close. The earlier contrast pass left `--gray` alone
+on the reasoning that it was a status dot held to the 3:1 non-text bar. It is a
+dot *and* a text-bearing surface, and only the second use fails. Now `#8a8a8a`,
+which also improves the dot.
+
+### An exemption is a place findings go to hide
+
+The tap-target check skipped `display: inline` controls, so a link inside a
+sentence would not be flagged for having the line's height. Sound rule, too
+broad in practice: it let a **189×31** "Use a watch-only address" button pass
+as clean, because that button happens to be styled inline.
+
+A control is only genuinely inline if its parent has text around it. On its own
+it is a button that happens to be styled inline, and a thumb does not care about
+the display property. The check now tests for sibling text before exempting.
+
+⚠ That control is at `lib/wallet.tsx:290`, inside the file ruled out of scope —
+so it is reported, not fixed. Whoever owns that file should give it a real hit
+area. **When a rule exempts something, check what it is actually letting
+through** — every audit before this one called that modal clean.
+
 ### Every media query keyed off width
 
 There was not a single `max-height` query in `globals.css`. Nothing had ever

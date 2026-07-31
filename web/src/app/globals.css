@@ -89,7 +89,24 @@
   --blue-dim: color-mix(in srgb, var(--blue) 14%, transparent);
   --red: #d96a6a;
   --red-dim: color-mix(in srgb, var(--red) 12%, transparent);
-  --gray: var(--mw-conduit);
+  /* The neutral that sits alongside --accent, --amber and --blue.
+     Was --mw-conduit (#737373), which is right for a status dot and wrong
+     for the job it actually also does: a .segbar segment with CARBON TEXT
+     printed on it. Measured across that bar —
+
+       green   12.66:1
+       amber   10.07:1
+       blue     8.13:1
+       grey     4.23:1   <- the only failure, and not close
+
+     The contrast pass that fixed --muted left this alone on the reasoning
+     that --gray was a dot, held to the 3:1 non-text bar. It is a dot AND a
+     text-bearing surface, and only the second use fails. Lightening helps
+     the dot too (5.82:1 against Carbon rather than 4.23).
+
+     Only visible on fundraising and pipeline vaults, which is why it
+     survived every sweep: no vault in the demo data is either. */
+  --gray: #8a8a8a;
 
   /* Extra multi-series chart hues. The telemetry chart needs five
      distinguishable series; these are held to the same ~60% chroma so

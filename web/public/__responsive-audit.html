@@ -169,7 +169,21 @@ function audit(w) {
     // 4. Visual: sub-44px touch targets on touch-sized viewports.
     if (w <= 820 && (el.tagName === "BUTTON" || el.tagName === "A" || el.getAttribute("role") === "button")) {
       const isInline = s.display.includes("inline") && !s.display.includes("flex") && !s.display.includes("grid");
-      if (!isInline && (r.height < 36 || r.width < 24) && el.innerText.trim())
+      // The inline exemption exists so a link inside a sentence is not flagged
+      // for having the line's height — that is prose, not a tap target, and
+      // flagging every one of them would be noise.
+      //
+      // But it was skipping STANDALONE controls that merely happen to be
+      // display:inline: it let a 189x31 "Use a watch-only address" button pass
+      // as clean. A control is only really inline if its parent has other text
+      // around it; on its own it is a button that happens to be styled inline,
+      // and a thumb does not care about the display property.
+      const parent = el.parentElement;
+      const siblingText = parent
+        ? [...parent.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1)
+        : false;
+      const standalone = !isInline || !siblingText;
+      if (standalone && (r.height < 36 || r.width < 24) && el.innerText.trim())
         out.push({ kind: "small-tap-target", el: describe(el), detail: Math.round(r.width) + "x" + Math.round(r.height) });
     }
 
