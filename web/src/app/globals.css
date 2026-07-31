@@ -896,6 +896,135 @@ button {
    clip-path rather than display:none or visibility:hidden: both of those
    remove the element from the accessibility tree entirely, which would
    defeat the point. 1px box with no wrapping, so it never adds layout. */
+/* Permalink + share, inside an expanded results-log day. */
+.sc-share-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.sc-share-link,
+.sc-share-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--border-2);
+  background: var(--card);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease);
+}
+.sc-share-link:hover,
+.sc-share-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.sc-share-said {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* Settled result — the shared-link destination.
+   Sized for someone who arrived with no context: the number is the largest
+   thing on the page, and everything under it earns its place by either
+   explaining what the number is or letting the reader check it.
+   clamp() rather than breakpoints — one figure whose only job is to be as
+   large as the viewport allows without wrapping. */
+.sc-result {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+}
+.sc-result-eyebrow {
+  font-size: var(--eyebrow-size);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.sc-result-day {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.sc-result-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.sc-result-num {
+  font-size: clamp(52px, 15vw, 104px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.sc-result-unit {
+  font-size: clamp(17px, 4vw, 24px);
+  color: var(--muted);
+}
+.sc-result-band {
+  display: inline-flex;
+  margin-top: 14px;
+  font-size: 14px;
+  padding: 7px 13px;
+}
+.sc-result-lede {
+  margin-top: 20px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-2);
+  max-width: 60ch;
+}
+.sc-result-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 1px;
+  margin: 26px 0 0;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r-surface);
+  overflow: hidden;
+}
+.sc-result-meta > div {
+  background: var(--card);
+  padding: 13px 15px;
+  min-width: 0;
+}
+.sc-result-meta dt {
+  font-size: 10px;
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sc-result-meta dd {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.sc-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.sc-result-foot {
+  margin-top: 20px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

@@ -3,6 +3,7 @@
 // values → hourly means → spread → band, plus the commit-reveal record and
 // weekly Merkle anchors.
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
@@ -128,6 +129,73 @@ export function ArchiveView() {
   );
 }
 
+/**
+ * Permalink + share for one settled day.
+ *
+ * Two affordances, not one. The link is the honest primitive — it can be
+ * middle-clicked, bookmarked, dragged, or read before being followed, and it
+ * works with no JavaScript story at all. The button is the convenience: the
+ * native share sheet on a phone, clipboard on a desktop that has no sheet.
+ *
+ * Offering only a button would make the URL something the user has to trust
+ * rather than see, which is the wrong default on a page whose whole argument
+ * is that everything here is checkable.
+ */
+function ShareDay({ day, spread, band }: { day: string; spread: number; band: string }) {
+  const [said, setSaid] = useState<string | null>(null);
+  const href = `/spreadcast/result/${day}`;
+
+  const onShare = async () => {
+    const url = `${window.location.origin}${href}`;
+    const text = `Slovenia's day-ahead spread on ${day} settled at ${spread.toFixed(2)} €/MWh — ${band}.`;
+    try {
+      // navigator.share must be called in the click's own task or the gesture
+      // is spent; do not await anything before it.
+      if (navigator.share) {
+        await navigator.share({ title: "Spreadcast result", text, url });
+        return; // the sheet is its own confirmation
+      }
+      await navigator.clipboard.writeText(url);
+      setSaid("Link copied");
+    } catch (err) {
+      // Dismissing the share sheet throws AbortError. That is the user getting
+      // what they asked for, so it must not report an error — but everything
+      // else must say something, or the button is simply dead and the user
+      // cannot tell whether it worked. Clipboard access is refused often
+      // enough (insecure origin, no permission, unfocused document) that the
+      // silent version would be a real dead end.
+      if ((err as { name?: string })?.name === "AbortError") return;
+      setSaid("Couldn't copy — use Permalink");
+    }
+  };
+
+  useEffect(() => {
+    if (!said) return;
+    const t = setTimeout(() => setSaid(null), 2400);
+    return () => clearTimeout(t);
+  }, [said]);
+
+  return (
+    <div className="sc-share-row">
+      <Link className="sc-share-link" href={href}>
+        Permalink
+      </Link>
+      <button type="button" className="sc-share-btn" onClick={onShare}>
+        Share this result
+      </button>
+      {/* Polite: the outcome of something the user just did, not an interruption. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {said ?? ""}
+      </span>
+      {said && (
+        <span className="sc-share-said" aria-hidden="true">
+          {said}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; detail?: Detail; onToggle: () => void }) {
   const min = detail ? Math.min(...detail.hourly) : 0;
   const max = detail ? Math.max(...detail.hourly) : 1;
@@ -178,6 +246,12 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                   {detail.values.length} published values ({detail.resolution}) → 24 hourly means · min{" "}
                   {min.toFixed(2)} / max {max.toFixed(2)} €/MWh
                 </p>
+
+                {/* Lives in the expanded detail rather than the row: the row is
+                    already five columns and the tightest thing on this page at
+                    320px. Someone who has opened a day is also the person with
+                    a reason to cite it. */}
+                <ShareDay day={r.day} spread={r.spread} band={r.outcomeName} />
                 <div style={{ overflowX: "auto" }}>
                   <table className="sc-table sc-t-reveal">
                     <thead>

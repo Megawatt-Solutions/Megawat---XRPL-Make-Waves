@@ -215,6 +215,40 @@ could quietly stop applying.
 which animates every property including layout ones. Narrowing them needs
 per-element judgement about what is actually meant to move.
 
+### The share route, and why it waited
+
+`/spreadcast/result/[day]` is the only route designed to be arrived at with no
+context — a link pasted into a chat. It answers, in order: what happened, what
+this game is, what you can do about it. It reads `archiveDay()` directly, the
+same function the API route calls, rather than the server making an HTTP request
+to itself.
+
+It was deferred three times on the grounds that its value depends on people
+actually sharing. What changed is `opengraph-image.tsx`: a share link with no
+preview is a bare URL, but one carrying the day's own number and band is an
+artifact someone pastes on purpose. The route became worth building the moment
+the card could exist.
+
+**Two affordances, not one.** A permalink *and* a share button. The link is the
+honest primitive — middle-clickable, bookmarkable, readable before it is
+followed. The button is the convenience. Offering only a button makes the URL
+something the user must trust rather than see, which is the wrong default on a
+page whose entire argument is that everything is checkable.
+
+⚠ `params` is a **Promise** in `opengraph-image.tsx`, exactly as in `page.tsx`.
+Destructuring it synchronously does not throw — it yields `undefined`, the
+lookup finds nothing, and the card renders its generic fallback **with a 200**.
+It looked like it worked. Only opening the PNG showed the number was missing.
+
+⚠ Satori flattens fragments into the parent, so a `<>…</>` inside a conditional
+put the band chip beside the figure instead of under it — legible by luck rather
+than by layout. Wrap in an explicit `display: flex` element.
+
+⚠ A share button must say something on every path. Dismissing the native sheet
+throws `AbortError` and must stay silent — that is the user getting what they
+asked for. Everything else needs a message, or a refused clipboard (insecure
+origin, no permission, unfocused document) leaves a dead control.
+
 ### A page's title is part of its interface
 
 Every route in the app shared one of **two** titles: "Megawatt — BESS Vaults"
