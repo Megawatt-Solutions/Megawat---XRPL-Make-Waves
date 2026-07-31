@@ -1078,6 +1078,8 @@ A change is done when:
 - [ ] Every non-submit `<button>` inside a form has `type="button"`
 - [ ] Any new overlay uses `Sheet` or `useDialog` — never a bare `.overlay` + `.modal`
 - [ ] New type sizes are `rem`, never `px` — px ignores the user's font-size setting
+- [ ] Responsive rules that hide a label clip it (`.sr-only`), never `display: none`
+- [ ] A chart never draws a segment for a zero value
 - [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
 - [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
@@ -1129,6 +1131,21 @@ Two details that cost time:
   `div`** with no semantics to erase. Do not reach for it on anything that
   carries a role.
 
+### Sweeping too early measures the skeleton, not the page
+
+A document-structure sweep reported `/spreadcast` as having **zero headings and
+no h1** — alarming for the game's main surface, and wrong. At 2.4s on a
+degraded dev server the route was still showing its loading skeleton, which
+correctly has no headings (it does carry `aria-busy`, `aria-live` and a
+"Loading today's round" label). Waited to 6s and the real outline appeared: one
+h1 and six h2s.
+
+Routes that fetch before they render need a longer settle, or a wait on a
+real signal, before any structural assertion. A finding of "this page has no
+headings at all" is far more likely to be a timing bug in the audit than a
+missing `<h1>` in a page that has shipped for months — check the cheap
+explanation first.
+
 ### The audit tab is hidden, so animations never advance
 
 `web/public/__responsive-audit.html` runs its sweeps in an iframe in a tab
@@ -1154,6 +1171,45 @@ something you already know.** A sheet whose `top` equals the viewport height
 exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
+
+### `display: none` on a label takes the name too, and `title` is not a substitute
+
+Below 640px the chain indicator sheds its "XRPL" label for space via
+`display: none`. That removes the word from the **accessibility tree** as well
+as the screen, leaving the element named only by its `title` attribute — the
+weakest naming mechanism there is: announced inconsistently across screen
+readers, and completely invisible on touch, where hover does not exist.
+
+The fix is to clip rather than remove (`position: absolute; clip-path:
+inset(50%)` — the `.sr-only` declarations). The name survives at every width
+and nothing changes visually; `.chain-btn` measures 37×44 before and after.
+
+General rule: **when a responsive rule hides text that was serving as a
+label, clip it, don't `display: none` it.** And treat `title` as decoration —
+never as the only thing naming a control.
+
+### A proportional bar drew a slice for a category worth $0
+
+The allocation bar on `/dashboard-v2` renders each category with
+`flexGrow: Math.max(s.value, 1)`, and the stylesheet gives every segment
+`min-width: 2px`. Both guards exist so a tiny slice stays visible. Together
+they meant a category worth **exactly zero** still painted a 2px stripe —
+"Active vaults $0" and "Fundraising $0" each drew one, so half the segments in
+the bar represented nothing.
+
+That is not a styling detail. A proportional chart that shows a slice for
+nothing misstates the data, which on a page about where money is deployed is
+the one thing it must not do. Segments are now filtered to `value > 0`; the
+`max()` guard stays for genuinely small non-zero values, and the legend still
+lists the $0 categories as text, where "$0" is informative rather than
+misleading.
+
+The bar itself is now `aria-hidden`. The legend immediately below states every
+label *and* value, so a screen reader was getting four empty spans whose only
+content was a `title` — four disconnected phrases with no numbers and no sign
+they described one bar — and then the same four categories again, properly,
+from the legend. When a graphic has a complete textual equivalent beside it,
+hiding the graphic beats describing it twice.
 
 ### Every font size was px, so the browser's font-size setting did nothing
 
@@ -1410,11 +1466,19 @@ mean the docked treatment earns its keep only on short viewports. Worth knowing
 before anyone "fixes" it into `position: fixed`, which would pin the CTA over
 content that does not need covering.
 
-Caveat on the numbers: the fixture round rendered four bands; a real round
-renders five, plus a commit box and the signing UI once a pick exists. The real
-panel is therefore taller than measured here, and 390×844 may cross into the
-sticky-engaged range. The structural findings — no nav collision, 95px of
-travel, correct `bottom` value — do not depend on that.
+**Caveat now resolved (2026-08-02).** The fixture round rendered four bands; a
+real one renders five. A genuinely open round with a joined session was caught
+and re-measured, no fixtures involved: the dock renders, and across sampled
+scroll positions at 360×640 and 390×844 the CTA **never collides with the tab
+bar** — minimum gap 42px and 30px respectively, zero collisions. The `bottom:
+var(--nav-h-safe)` choice is confirmed against real content.
+
+One honest gap in that re-measurement: sampling at ten evenly-spaced scroll
+offsets never caught the dock *pinned*, but the pin window is only ~95px wide
+and the step size was larger than that, so absence of a pinned sample is not
+evidence it never pins. The finer scan that would settle it hung the degraded
+dev server twice. The collision result does not depend on it — it holds at
+every position sampled, pinned or not.
 
 **Two probe mistakes worth not repeating**, both of which produced confident
 wrong answers before the above was reached:

@@ -31,14 +31,26 @@ export function VaultsOverview() {
         <span style={{ flexGrow: deployedTotal }}>Total Deployed</span>
         <span style={{ flexGrow: pipelineTotal }}>Total Pipeline</span>
       </div>
-      <div className="alloc-bar">
+      {/* aria-hidden because the legend directly below states every segment's
+          label AND value as text. Without it a screen reader met four empty
+          spans whose only content was a `title` — four disconnected phrases,
+          no numbers, no indication they described one bar — and then heard the
+          same four categories again, properly, from the legend.
+
+          Segments are filtered to value > 0. `Math.max(s.value, 1)` plus the
+          stylesheet's `min-width: 2px` meant a category worth $0 still painted
+          a 2px stripe: "Active vaults" and "Fundraising" are both $0 today and
+          both drew one. A proportional bar that shows a slice for nothing is
+          not a styling detail, it misstates the data. The max() guard stays so
+          a genuinely tiny non-zero slice is still visible. */}
+      <div className="alloc-bar" aria-hidden="true">
         <div className="alloc-group" style={{ flexGrow: deployedTotal }}>
-          {alloc.deployed.map((s) => (
+          {alloc.deployed.filter((s) => s.value > 0).map((s) => (
             <span key={s.key} title={s.label} style={{ flexGrow: Math.max(s.value, 1), background: s.color }} />
           ))}
         </div>
         <div className="alloc-group" style={{ flexGrow: pipelineTotal }}>
-          {alloc.pipeline.map((s) => (
+          {alloc.pipeline.filter((s) => s.value > 0).map((s) => (
             <span key={s.key} title={s.label} style={{ flexGrow: Math.max(s.value, 1), background: s.color }} />
           ))}
         </div>
