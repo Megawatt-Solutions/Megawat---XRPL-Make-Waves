@@ -434,6 +434,67 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### `scrollWidth > clientWidth` is not clipping
+
+The `clipped-content` rule was **inverted**. It excluded `overflow-x: hidden` —
+the one value that actually cuts content off — and fired on `visible`, where
+content merely paints outside its box and stays perfectly readable. It duly
+reported the dashboard odometer, whose digit reel sits 6px proud of its
+container by design.
+
+Clipping needs `hidden` or `clip`. `auto`/`scroll` can be scrolled; `visible`
+overflows harmlessly, and where that overflow reaches the viewport edge the
+`past-right-edge` check already catches it — which is the case that hurts.
+
+⚠ This is the **second** time the same mistake shipped: the text-scale check had
+it too, and was fixed without checking whether the same reasoning error existed
+elsewhere. **When you fix a rule, grep for the pattern it got wrong.** One
+inverted overflow test is a bug; two is a habit.
+
+### Sample widths AT the breakpoints, not at round numbers
+
+Two bugs hid for the whole rehaul behind a sweep that used 320/360/390/430/768/
+1024/1440 — sensible device widths that happen to step over the app's own
+breakpoints.
+
+**1. An unguarded 641–767 band.** The leaderboard's column-hiding rule lives in
+`@media (max-width: 640px)` and the full table was only intended from 768. So
+between those two widths **all eight columns showed and the panel scrolled
+sideways**. The old sweep went 560 then 768 and stepped straight over it.
+
+**2. Fractional viewport dead zones.** At `innerWidth: 767` on a 1.5 DPR display
+— this machine, and most Android phones — the real viewport is ~767.33, so:
+
+| query | matches |
+|---|---|
+| `max-width: 767px` | **false** |
+| `min-width: 768px` | **false** |
+
+Neither rule applies. The app had three such pairs, and one was the
+mobile/desktop boundary itself (`max-width: 980` / `min-width: 981`) — the pair
+that decides whether the tab bar or the desktop links render. In that gap
+**neither navigation exists**.
+
+All four max-widths that pair with a min-width now use `.98`, which closes the
+gap without moving any breakpoint. Verified at 640/641/767/768/900/901/979/980/981:
+navigation present at every one.
+
+**Whenever you add `max-width: N` beside `min-width: N+1`, you have made a dead
+zone.** Use `N.98`. And put the breakpoint values themselves into the sweep —
+round numbers test the middle of ranges, which is where nothing ever breaks.
+
+### The leaderboard hid the game on phones
+
+Below 768 the board showed rank, name and points — one blunt cut. **STREAK and
+HIT RATE were invisible to every phone user**, and those are the game's
+signature mechanics: "how it works" leads on the ×3 streak multiplier, and hit
+rate is the only measure of skill on the page. A leaderboard that hides them on
+the device most people play on is hiding the reason to care about it.
+
+Columns now return in order of value: streak at 420 (narrowest — a flame and a
+digit), hit rate at 540, played at 660, the rest at 768. Wallet and tiebreak
+error stay last: verification detail, and the two widest headers.
+
 ### A canvas says nothing unless you make it
 
 `/dashboard-v2` renders three canvases. All three were unreachable to a screen

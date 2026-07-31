@@ -406,8 +406,25 @@ function audit(w) {
 
     const scrolled = inScroller(el, d.body);
 
-    // 2. Technical: content wider than its own box, with no way to scroll it.
-    if (!scrolled && el.scrollWidth > el.clientWidth + 1 && s.overflowX !== "auto" && s.overflowX !== "scroll" && s.overflowX !== "hidden")
+    // 2. Technical: content that is genuinely CUT OFF and unreachable.
+    //
+    // This rule was inverted. It excluded overflow-x: hidden — the one value
+    // that actually clips — and fired on `visible`, where content merely
+    // paints outside its box and remains perfectly readable. It duly reported
+    // the dashboard odometer, whose digit reel sits 6px proud of its container
+    // by design and is not cut off at all.
+    //
+    // Clipping needs hidden or clip. `auto`/`scroll` can be scrolled, and
+    // `visible` overflows harmlessly — where that overflow reaches the viewport
+    // edge it is caught by the past-right-edge check below, which is the case
+    // that actually hurts.
+    //
+    // Visually-hidden text is exempt. The .sr-only pattern IS a 1px box with
+    // overflow:hidden wrapped around a sentence — clipping is the mechanism,
+    // not a defect. Detected by shape rather than class name, so any
+    // equivalent utility is covered: nothing legitimately visible is 2px wide.
+    const visuallyHidden = el.clientWidth <= 2 || el.clientHeight <= 2;
+    if (!scrolled && !visuallyHidden && el.scrollWidth > el.clientWidth + 1 && /hidden|clip/.test(s.overflowX))
       out.push({ kind: "clipped-content", el: describe(el), detail: el.scrollWidth + ">" + el.clientWidth });
 
     // 3. Visual: anything sticking out past the right edge of the viewport.

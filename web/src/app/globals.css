@@ -1204,7 +1204,7 @@ button {
 #main-content {
   scroll-margin-top: 110px;
 }
-@media (max-height: 500px) and (max-width: 980px) {
+@media (max-height: 500px) and (max-width: 980.98px) {
   /* The brand bar is released at these sizes, so only the section bar remains. */
   #main-content { scroll-margin-top: 52px; }
 }
@@ -1308,11 +1308,11 @@ button {
 }
 
 /* â”€â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-@media (max-width: 980px) {
+@media (max-width: 980.98px) {
   .tile-grid { grid-template-columns: repeat(2, 1fr); }
   .nav-links { display: none; }
 }
-@media (max-width: 640px) {
+@media (max-width: 640.98px) {
   .page { padding: 20px 16px 60px; }
   .tile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .vault-grid { grid-template-columns: 1fr; }
@@ -1517,7 +1517,7 @@ button {
 
 /* â”€â”€â”€ Mobile bottom tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .bottom-nav { display: none; }
-@media (max-width: 980px) {
+@media (max-width: 980.98px) {
   .bottom-nav {
     display: flex;
     position: fixed;
@@ -1745,7 +1745,7 @@ button {
 /* Tablet band: five columns don't fit between 641 and 900. "Contribution" is
    the most derivable of them — drop it rather than make a financial table
    scroll sideways, which hides the vault name while you read its numbers. */
-@media (min-width: 641px) and (max-width: 900px) {
+@media (min-width: 641px) and (max-width: 900.98px) {
   .v2-row { gap: 8px; padding-left: 6px; padding-right: 6px; }
   .v2-row > :nth-child(4) { display: none; }
   /* Status is the widest label ("OPERATIONAL" needs ~141px). With column 4
@@ -1770,14 +1770,14 @@ button {
 .v2-vault { border-bottom: 1px solid var(--border); transition: background var(--t-ui) var(--ease); }
 .v2-vault:hover { background: var(--card); }
 
-@media (max-width: 900px) {
+@media (max-width: 900.98px) {
   .v2-metrics { grid-template-columns: 1fr 1fr; }
   .v2-metric:nth-child(odd) { border-left: none; }
   .v2-metric:nth-child(n + 3) { border-top: 1px solid var(--border); }
   .v2-charts { grid-template-columns: 1fr; }
   .v2-charts > .card + .card { border-left: none; border-top: 1px solid var(--border); }
 }
-@media (max-width: 640px) {
+@media (max-width: 640.98px) {
   .v2-metrics { grid-template-columns: 1fr; }
   .v2-metric { border-left: none; }
   .v2-metric:nth-child(n + 2) { border-top: 1px solid var(--border); }
@@ -2160,7 +2160,7 @@ button {
   text-transform: uppercase;
   margin-top: 2px;
 }
-@media (max-width: 640px) {
+@media (max-width: 640.98px) {
   .chain-btn .chain-btn-name { display: none; }
 }
 
@@ -2169,7 +2169,7 @@ button {
    body { overflow-x: hidden } meant it was silently CLIPPED rather
    than scrolled, so the wallet pill lost its right edge. Shed the
    optional parts by width instead of letting the primary one vanish. */
-@media (max-width: 980px) {
+@media (max-width: 980.98px) {
   .nav { padding: 0 14px; gap: 12px; }
 }
 /* Tablet-landscape / small-laptop band. Above 980 the desktop nav-links are
@@ -2198,7 +2198,7 @@ button {
 }
 
 /* Responsive overrides for the chrome above â€” must stay after the base rules */
-@media (max-width: 900px) {
+@media (max-width: 900.98px) {
   .net-grid { grid-template-columns: 1fr; }
   .net-side { border-left: none; border-top: 1px solid var(--border); }
 }
@@ -2230,7 +2230,7 @@ button {
 .sc h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px; }
 .sc h1 span { color: var(--accent); }
 .sc h2 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
-.sc-sub { color: var(--text-2); font-size: 14px; margin-bottom: 24px; max-width: 640px; }
+.sc-sub { color: var(--text-2); font-size: 14px; margin-bottom: 24px; max-width: 640.98px; }
 .sc-mono { font-family: var(--mono); }
 .sc-panel { padding: 20px 22px; }
 
@@ -2519,7 +2519,7 @@ button {
 .sc-cta-dock { margin-top: 4px; }
 /* Matches .bottom-nav's own breakpoint — the docked treatment and the tab bar
    have to appear together, or the dock parks against nothing. */
-@media (max-width: 980px) {
+@media (max-width: 980.98px) {
   .sc-cta-dock {
     position: sticky;
     /* NOT bottom: 0. The tab bar is position:fixed at bottom:0 with z-index 60,
@@ -2820,7 +2820,7 @@ button {
    propagates up and re-widens the outer table, undoing the column hiding. */
 .sc-arch-detail > td { max-width: 0; }
 
-@media (max-width: 640px) {
+@media (max-width: 640.98px) {
   .sc-table { font-size: 13px; }
   .sc-table th,
   .sc-table td { padding: 10px 10px; white-space: nowrap; }
@@ -2847,16 +2847,60 @@ button {
   /* Leaderboard — keep rank / player / points. Wallet is redundant
      next to the V tag; played, hit rate, streak and tiebreak error
      are all secondary to "who is winning". */
-  .sc-t-lb th:nth-child(3), .sc-t-lb td:nth-child(3),
-  .sc-t-lb th:nth-child(5), .sc-t-lb td:nth-child(5),
-  .sc-t-lb th:nth-child(6), .sc-t-lb td:nth-child(6),
-  .sc-t-lb th:nth-child(7), .sc-t-lb td:nth-child(7),
+  /* Columns come back in priority order as width allows, rather than all
+     eight arriving at once at 768.
+     ------------------------------------------------------------------
+     The old rule was a single cut: below 768 the board showed rank, name
+     and points, and at 768 it showed everything. So at 560px — a wide
+     phone with room to spare — it still showed three columns, and STREAK
+     and HIT RATE were invisible to every phone user. Those two are the
+     game's signature mechanics: "how to play" leads on the x3 streak
+     multiplier, and hit rate is the only measure of skill on the page.
+     A leaderboard that hides them on the device most people play on is
+     hiding the reason to care about the leaderboard.
+
+     Order of value: rank and name and points always; then STREAK, which
+     is the most compact of the rest (a flame and a digit); then HIT RATE;
+     then PLAYED, which is only context for hit rate; then WALLET and
+     TIEBREAK ERR, which are verification detail and the two widest. */
+  .sc-t-lb th:nth-child(3), .sc-t-lb td:nth-child(3),   /* wallet   */
+  .sc-t-lb th:nth-child(5), .sc-t-lb td:nth-child(5),   /* played   */
+  .sc-t-lb th:nth-child(6), .sc-t-lb td:nth-child(6),   /* hit rate */
+  .sc-t-lb th:nth-child(7), .sc-t-lb td:nth-child(7),   /* streak   */
   .sc-t-lb th:nth-child(8), .sc-t-lb td:nth-child(8) { display: none; }
 
   /* The player cell is the one place wrapping is wanted — a long
      name plus its badges should stack, not truncate. */
   .sc-t-lb td:nth-child(2) { white-space: normal; line-height: 1.5; }
   .sc-t-lb td:nth-child(2) .sc-tag { margin-top: 3px; }
+}
+
+/* 641–767 was an unguarded band. The base rule above stops at 640 and the
+   full table was only ever intended from 768, so between those two widths
+   ALL EIGHT columns showed and the panel scrolled sideways. It predates this
+   ladder — the earlier width sweep went 560 then 768 and stepped straight
+   over it, which is its own lesson about choosing sample widths that match
+   the breakpoints rather than round numbers.
+   Wallet and tiebreak error stay hidden here; played is re-shown at 660 by
+   the rule below, which comes later and therefore wins. */
+@media (min-width: 641px) and (max-width: 767.98px) {
+  .sc-t-lb th:nth-child(3), .sc-t-lb td:nth-child(3),
+  .sc-t-lb th:nth-child(5), .sc-t-lb td:nth-child(5),
+  .sc-t-lb th:nth-child(8), .sc-t-lb td:nth-child(8) { display: none; }
+}
+
+/* Streak returns first: the game's headline mechanic, and the narrowest of
+   the hidden columns — "🔥3" costs almost nothing. */
+@media (min-width: 420px) and (max-width: 767.98px) {
+  .sc-t-lb th:nth-child(7), .sc-t-lb td:nth-child(7) { display: table-cell; }
+}
+/* Then hit rate, the only measure of skill on the page. */
+@media (min-width: 540px) and (max-width: 767.98px) {
+  .sc-t-lb th:nth-child(6), .sc-t-lb td:nth-child(6) { display: table-cell; }
+}
+/* Then played, which is the context that makes hit rate mean anything. */
+@media (min-width: 660px) and (max-width: 767.98px) {
+  .sc-t-lb th:nth-child(5), .sc-t-lb td:nth-child(5) { display: table-cell; }
 }
 
 .sc-legal {
@@ -2871,7 +2915,7 @@ button {
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900.98px) {
   /* Bands become full-width rows. The 5-across strip gave each band ~65px on a
      390px screen — the tightest element in the app, and the hardest thing to
      tap. Above 900px the gapless strip returns, because Calm→Wild is an
@@ -3231,7 +3275,7 @@ button {
 
    The section bar then sticks to the viewport top instead of to 58px,
    which would otherwise pin it below a bar that is no longer there. */
-@media (max-height: 500px) and (max-width: 980px) {
+@media (max-height: 500px) and (max-width: 980.98px) {
   .nav {
     position: static;
   }
