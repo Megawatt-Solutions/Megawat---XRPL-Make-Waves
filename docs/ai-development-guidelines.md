@@ -1173,6 +1173,35 @@ exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
 
+### Keyboard order is clean — and two audit instruments were not
+
+A tab-order pass across five routes found **nothing to fix**, which is worth
+recording so it is not re-run blindly: no positive `tabindex` anywhere, no
+focusable element that a sighted user cannot see, and no mechanism in the CSS
+for visual order to diverge from DOM order (zero `order:` declarations, no
+`*-reverse` flex direction). Focus order follows DOM order follows visual
+order. The skip link is the standard `translateY(-160%)` → `translateY(0)` on
+`:focus`, so it is rendered — and therefore reachable — while staying off
+screen until wanted.
+
+Getting there needed two corrections to the audit itself, both instructive:
+
+- **`getComputedStyle(el).display` does not tell you whether an element is
+  rendered.** A child of a `display: none` parent reports its *own* declared
+  `display` — `inline-flex`, not `none`. The first run therefore reported the
+  five desktop `.nav-link`s as "focusable but invisible" at 390px, a serious-
+  sounding bug that does not exist: they sit inside a `display: none` wrapper,
+  are not rendered, and are correctly skipped by the browser's tab order. The
+  authoritative test is `el.getClientRects().length > 0`. Rerunning with it
+  dropped the focusable count on `/` from 20 to 15 — exactly the five.
+- **A DOM-vs-visual order heuristic that sorts by top-then-left needs a
+  tolerance, and the tolerance generates false positives.** One "mismatch"
+  survived on two routes; there is no `order` property or reversed flex
+  direction anywhere in the stylesheet, so it could not have been real.
+
+Both follow the rule already written above under the animation trap: check the
+instrument against something you know before believing what it reports.
+
 ### Text contrast was solved; control *boundaries* were not (WCAG 1.4.11)
 
 Several passes went into 1.4.3 — the seven-rung surface ladder, `--muted`
@@ -1206,6 +1235,15 @@ The fix is a new token rather than a change to the old ones:
 applied to exactly the five controls that are identified **by** their boundary
 — `.input`, `.sc-field`, `.btn-outline`, `.btn-ghost`, `.seg`. Result: 3.11 to
 3.21:1, with every fill unchanged.
+
+**The token had to be solved against the LIGHTEST rung, not the darkest.**
+0.35 was the alpha that reached 3:1 on `--bg` — and it failed on `--toast` at
+**2.96:1**. That is precisely the mistake the `--muted` note above records
+making twice, made a third time. Final value is `0.36`, measured on all seven
+rungs: `--bg` 3.23, `--surface` 3.29, `--card` 3.33, `--card-2` 3.31,
+`--elevated` 3.25, `--sheet` 3.16, `--toast` 3.04 (binding). Any future
+boundary token gets checked against `--toast` first, since it is the lightest
+surface and therefore always the constraint.
 
 `--border` and `--border-2` are deliberately untouched. Cards, tiles and
 dividers are decorative surfaces; 1.4.11 does not govern them, and raising the

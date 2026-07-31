@@ -37,8 +37,15 @@
      money. 0.35 is the measured alpha that reaches 3:1 on the darkest surface.
      --border and --border-2 stay as they are for cards, tiles and dividers:
      those are decorative surfaces, 1.4.11 does not govern them, and raising
-     them globally would coarsen the whole product. */
-  --border-control: rgba(255, 255, 255, 0.35);
+     them globally would coarsen the whole product.
+
+     Solved against the LIGHTEST surface, not the darkest. 0.35 was the alpha
+     that cleared 3:1 on --bg and it failed on --toast at 2.96 — the same
+     one-surface-at-a-time mistake the --muted note above records making twice.
+     Measured on all seven rungs at 0.36:
+       --bg 3.23  --surface 3.29  --card 3.33  --card-2 3.31
+       --elevated 3.25  --sheet 3.16  --toast 3.04  (binding) */
+  --border-control: rgba(255, 255, 255, 0.36);
 
   /* Text */
   --text: var(--mw-paper);
