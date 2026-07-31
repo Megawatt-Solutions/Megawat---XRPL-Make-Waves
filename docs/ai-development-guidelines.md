@@ -434,6 +434,28 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### The audit never scrolled
+
+Every check in the harness ran at `scrollY: 0`. That was harmless while
+`overflow-x: hidden` silently broke `position: sticky` — nothing stayed put, so
+scrolling changed nothing worth measuring. **Fixing sticky created a class of
+bug the sweep could not see**, which is a good reminder that a fix can widen the
+surface a suite needs to cover.
+
+`auditScrolled()` now visits 25%, 50% and 90% of each page's scroll height.
+
+It checks one thing on purpose: **two pieces of pinned chrome occupying the same
+pixels.** Content scrolling *behind* a sticky header is correct, and flagging it
+would bury the output in noise — but a sticky bar landing on another sticky bar,
+or a docked CTA sitting on the tab bar, has no legitimate case. Canaried by
+pinning `.sc-bar` to `top: 0`, which reproduces a 44px collision with the nav.
+
+**Still unobserved:** `.sc-cta-dock` is the third sticky element, and it only
+renders before a pick is committed. Its `bottom: var(--nav-h-safe)` was written
+when sticky was broken, so that fix has never actually been exercised. It will
+behave as designed or it will not — nobody has seen it either way. Check it
+during an open round.
+
 ### `overflow-x: hidden` broke the sticky nav, and hid the bugs it looked like it solved
 
 `html` and `body` both carried `overflow-x: hidden`. It computes to

@@ -116,6 +116,59 @@ async function auditTextScale(routes, width) {
   return findings;
 }
 
+// ── Scrolled state ───────────────────────────────────────────────────────
+// Every other check in this file runs at scrollY 0. That was harmless while
+// `overflow-x: hidden` on html/body silently broke position:sticky, because
+// nothing stayed put and scrolling changed nothing. Now that sticky works, a
+// whole class of bug exists that a top-of-page sweep cannot see.
+//
+// Deliberately narrow. Content scrolling BEHIND a sticky header is correct and
+// flagging it would bury the output in noise. What is never correct is two
+// pieces of pinned chrome occupying the same pixels — a sticky bar landing on
+// another sticky bar, or a docked CTA sitting on the tab bar. That is precise,
+// has no legitimate case, and is exactly what the sticky fix put at risk.
+async function auditScrolled(routes, width, height) {
+  const findings = [];
+  for (const route of routes) {
+    await load("http://localhost:3000" + route, width, height);
+    const d = stage.contentDocument, win = stage.contentWindow;
+    if (!d || !d.body) continue;
+
+    const pinned = () => [...d.querySelectorAll("body *")].filter((el) => {
+      const p = win.getComputedStyle(el).position;
+      if (p !== "fixed" && p !== "sticky") return false;
+      const r = el.getBoundingClientRect();
+      // On screen and big enough to be chrome rather than a decorative pip.
+      return r.height > 12 && r.width > 40 && r.bottom > 0 && r.top < win.innerHeight;
+    });
+
+    const max = Math.max(0, d.documentElement.scrollHeight - win.innerHeight);
+    for (const frac of [0.25, 0.5, 0.9]) {
+      win.scrollTo(0, Math.round(max * frac));
+      await new Promise((r) => setTimeout(r, 260));
+      const els = pinned();
+      for (let i = 0; i < els.length; i++) {
+        for (let j = i + 1; j < els.length; j++) {
+          const a = els[i].getBoundingClientRect(), b = els[j].getBoundingClientRect();
+          if (els[i].contains(els[j]) || els[j].contains(els[i])) continue; // nesting is not overlap
+          const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          if (overlapY > 2 && overlapX > 2) {
+            findings.push({ route: `${route} (scrolled ${Math.round(frac * 100)}%)`, w: width,
+              kind: "pinned-chrome-overlap",
+              el: `${describe(els[i])} × ${describe(els[j])}`,
+              detail: `${Math.round(overlapY)}px vertical` });
+          }
+        }
+      }
+    }
+    win.scrollTo(0, 0);
+  }
+  // One finding per pair is enough; the same collision repeats at every offset.
+  const seen = new Set();
+  return findings.filter((f) => { const k = f.el; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
 // ── Short viewports ──────────────────────────────────────────────────────
 // Every width in WIDTHS is audited at 800–900px tall, so a rotated phone —
 // about 390px — was never seen. That is where fixed chrome stops being a
@@ -553,6 +606,14 @@ window.runAudit = async function (routes, widths) {
       }
     }
   }
+  // Scrolled, which a top-of-page sweep cannot reach.
+  hud.textContent = "auditing scrolled state…";
+  try {
+    for (const f of await auditScrolled(routes.slice(0, 6), 390, 844)) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(scrolled)", w: 390, kind: "scrolled-audit-error", detail: String(e).slice(0, 90) });
+  }
+
   // A rotated phone, which no width-keyed sweep can reach.
   hud.textContent = "auditing short viewports…";
   try {
