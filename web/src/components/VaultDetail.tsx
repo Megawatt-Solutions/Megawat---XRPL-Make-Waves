@@ -120,10 +120,16 @@ export function VaultDetail({ vault }: { vault: Vault }) {
               icon={<BoltIcon size={17} />}
             />
           ) : (
+            // A pipeline site has not failed to raise — it has not started.
+            // "Raised 0%" contradicts the Pipeline card directly below it.
             <Tile
-              label="Raised"
-              value={`${Math.round(progress * 100)}%`}
-              sub={`${fmtCompact(liveRaised, liveCurrency)} / ${fmtCompact(liveTarget, liveCurrency)}`}
+              label={isComing ? "Target raise" : "Raised"}
+              value={isComing ? fmtCompact(liveTarget, liveCurrency) : `${Math.round(progress * 100)}%`}
+              sub={
+                isComing
+                  ? "Opens next quarter"
+                  : `${fmtCompact(liveRaised, liveCurrency)} / ${fmtCompact(liveTarget, liveCurrency)}`
+              }
             />
           )}
           <div className="tile">
@@ -333,22 +339,56 @@ function FundraisingCard({ progress, deposited, raised, target, currency, disabl
 }) {
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-      <div className="card-title">Fundraising <span className="badge badge-fundraising">{Math.round(progress * 100)}% funded</span></div>
-      <div className="num card-hero-num">
-        {fmtCompact(raised, currency)}
-      </div>
-      <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>raised of {fmtCompact(target, currency)} target</div>
-      <div className="progress" style={{ marginTop: 16 }}>
-        <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
-      </div>
-      <div className="divider" />
-      <div className="rows">
-        <div className="row"><span className="row-key">Your deposit</span><span className="row-val num">{fmtMoney(deposited, "USD")}</span></div>
-        <div className="row"><span className="row-key">Remaining</span><span className="row-val num">{fmtCompact(Math.max(0, target - raised), currency)}</span></div>
-      </div>
-      <button className="btn btn-accent btn-block" style={{ marginTop: 16 }} onClick={onDeposit} disabled={disabled}>
-        {disabled ? "Fundraising opens soon" : "Deposit into Vault"}
-      </button>
+      {/* A pipeline site is not a failed raise. "0% funded" over an empty
+          progress bar frames a plan as an emptiness; state the size of the
+          project instead, and give the visitor somewhere live to go rather
+          than a disabled button as the only outcome. */}
+      {disabled ? (
+        <>
+          <div className="card-title">
+            Pipeline <span className="badge badge-soon">Not yet open</span>
+          </div>
+          <div className="num card-hero-num">{fmtCompact(target, currency)}</div>
+          <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
+            target raise · opens for fundraising next quarter
+          </div>
+          <div className="divider" />
+          <div className="rows">
+            <div className="row">
+              <span className="row-key">Status</span>
+              <span className="row-val">Site secured, permitting under way</span>
+            </div>
+            <div className="row">
+              <span className="row-key">Deposits</span>
+              <span className="row-val muted">Not open yet</span>
+            </div>
+          </div>
+          <Link className="btn btn-ghost btn-block" href="/vault/bess-ljubljana-01" style={{ marginTop: 16 }}>
+            See a vault that&apos;s already running
+          </Link>
+        </>
+      ) : (
+        <>
+          <div className="card-title">
+            Fundraising <span className="badge badge-fundraising">{Math.round(progress * 100)}% funded</span>
+          </div>
+          <div className="num card-hero-num">{fmtCompact(raised, currency)}</div>
+          <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
+            raised of {fmtCompact(target, currency)} target
+          </div>
+          <div className="progress" style={{ marginTop: 16 }}>
+            <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
+          </div>
+          <div className="divider" />
+          <div className="rows">
+            <div className="row"><span className="row-key">Your deposit</span><span className="row-val num">{fmtMoney(deposited, "USD")}</span></div>
+            <div className="row"><span className="row-key">Remaining</span><span className="row-val num">{fmtCompact(Math.max(0, target - raised), currency)}</span></div>
+          </div>
+          <button className="btn btn-accent btn-block" style={{ marginTop: 16 }} onClick={onDeposit}>
+            Deposit into Vault
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -594,9 +634,14 @@ function PositionCard(props: {
         <Row k="Claimable Yield" v={fmtMoney(claimable, "USD")} accent />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 18, display: "grid", gap: 10 }}>
-        <button className="btn btn-ghost btn-block" onClick={onDeposit} disabled={depositDisabled}>
-          {depositDisabled ? "Fundraising opens soon" : "Deposit into Vault"}
-        </button>
+        {/* On a pipeline vault this was a second, identical disabled button
+            saying the same thing as the one in the Fundraising card. Two dead
+            controls do not communicate twice as clearly. */}
+        {!depositDisabled && (
+          <button className="btn btn-ghost btn-block" onClick={onDeposit}>
+            Deposit into Vault
+          </button>
+        )}
         {showClaim && (
           <button className="btn btn-accent btn-block" onClick={onClaim} disabled={claimable <= 0}>
             {claimable > 0 ? `Claim ${fmtMoney(claimable, "USD")}` : "Nothing to claim"}
