@@ -33,7 +33,34 @@
   /* Text */
   --text: var(--mw-paper);
   --text-2: #aab2ae;
-  --muted: var(--mw-conduit);
+  /* Conduit, re-derived for a dark canvas.
+     --------------------------------------------------------------
+     The brand's Conduit (#737373) is a correct token that was being
+     used on the wrong surface. Measured against the brand's own white
+     paper it scores 4.74:1 — chosen, evidently, to clear WCAG AA on a
+     light page. Dropped unchanged onto Carbon it scores 4.23, and on
+     the card surfaces 3.86 and 3.56. Every one of them fails AA.
+
+     That was 238 pieces of text across nine routes: every eyebrow,
+     every tile subtitle, every table header, every timestamp — the
+     entire secondary layer of the interface.
+
+     So this is not a brand disagreement. Conduit stays exactly as the
+     brand kit defines it (--mw-conduit above, still used for light
+     surfaces and for non-text detail, which is held to 3:1 and passes).
+     What changes is that the dark canvas gets its own derivation of the
+     same neutral: identical hue, no saturation, lifted until it clears
+     4.5:1 on the LIGHTEST surface it can land on. That surface is
+     --elevated (#16281f, used by the globe tooltip), not --card-2 — a
+     first pass at this solved for --card-2, left the tooltip sitting at
+     4.48, and the re-scan caught it. Solve for the lightest surface in
+     the file, not the lightest one you happen to be looking at.
+
+     #909090 leaves 4.85 on --elevated and 6.29 on Carbon — passing on
+     every surface with room for the color-mix() variants built on it.
+
+     Adding a surface lighter than --elevated invalidates this. */
+  --muted: #909090;
 
   /* Accent â€” Megawatt Green */
   --accent: var(--mw-green);

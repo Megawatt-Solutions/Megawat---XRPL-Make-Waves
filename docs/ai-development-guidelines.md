@@ -116,6 +116,36 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### A brand colour is specified against a surface — check which one
+
+The brand's Conduit grey (`#737373`) is defined for secondary text. Measured
+against the brand's own white paper it scores **4.74:1** — chosen, evidently,
+to clear WCAG AA on a light page. Dropped unchanged onto the app's dark Carbon
+canvas it scores 4.23, and on the card surfaces 3.86 and 3.56. All fail.
+
+That was **238 pieces of text across nine routes** — every eyebrow, tile
+subtitle, table header and timestamp. The entire secondary layer of the
+interface, unreadable to anyone who needs contrast, and invisible to four
+consecutive "0 findings" audits because layout correctness says nothing about
+legibility.
+
+The resolution is not to overrule the brand. `--mw-conduit` is unchanged and
+still correct for light surfaces and for non-text detail (held to 3:1, which it
+passes). What changed is that the dark canvas gets its own derivation of the
+same neutral — same hue, no saturation, lifted until it clears 4.5:1.
+
+**Solve for the lightest surface in the file, not the one you are looking at.**
+A first attempt solved for `--card-2` and left the globe tooltip at 4.48,
+because `--elevated` (`#16281f`) is lighter and was missed. The binding
+constraint is whichever surface is lightest; today `--muted: #909090` clears
+4.85 there and 6.29 on Carbon.
+
+Contrast is now part of `runAudit()` (`contrast-below-aa`), measured once per
+route since it does not vary with width. It resolves the real backdrop by
+walking ancestors and compositing translucent layers — almost nothing here sets
+its own opaque background, and measuring an element against its own transparent
+one scores everything against black and passes everything.
+
 ### A component that returns `null` while loading will move the page
 
 `return null` until data arrives is the most common way this codebase has
