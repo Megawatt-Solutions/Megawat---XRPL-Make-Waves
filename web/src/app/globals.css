@@ -201,7 +201,16 @@
 
 html {
   background: var(--bg);
-  overflow-x: hidden;
+  /* No overflow-x: hidden. It computes to `overflow: hidden auto`, which makes
+     the element a scroll container and BREAKS position: sticky for everything
+     inside it — the top nav scrolled away instead of sticking, and the
+     Spreadcast section bar pinned to 0 instead of below the nav.
+
+     It was also hiding the very bugs it looked like it was solving: the
+     comments at the header, .drow and .detail-layout rules below all record
+     overflow that was CLIPPED rather than scrollable because of this line, and
+     therefore unreachable rather than merely ugly. Those are fixed properly
+     now, so the blanket clip has nothing left to do except break sticky. */
 }
 
 body {
@@ -1160,6 +1169,23 @@ button {
 #main-content:focus {
   outline: none;
 }
+/* Jumping here scrolls the target to y=0, which is UNDER the sticky chrome:
+   measured 28px of the page heading hidden behind the nav and the Spreadcast
+   section bar. The bug only became real once the nav actually started sticking
+   (see the note on html) — before that everything scrolled away and the
+   landing looked fine by accident.
+
+   Sized for the tallest case, nav 58 + section bar 44, so a skip never lands
+   under chrome on any route. On the vaults routes, where there is no section
+   bar, this leaves extra space above the heading — which after a deliberate
+   jump reads as a clean landing rather than a mistake. */
+#main-content {
+  scroll-margin-top: 110px;
+}
+@media (max-height: 500px) and (max-width: 980px) {
+  /* The brand bar is released at these sizes, so only the section bar remains. */
+  #main-content { scroll-margin-top: 52px; }
+}
 
 .sr-only {
   position: absolute;
@@ -1505,8 +1531,12 @@ button {
   .toast { min-width: 0; max-width: none; }
 }
 
-/* Prevent horizontal overflow on small screens */
-body { overflow-x: hidden; }
+/* Deliberately NOT `body { overflow-x: hidden }` — see the note on html above.
+   Horizontal overflow is now prevented by the elements that were causing it
+   (min-width: 0 on the shrinkable children, collapsible .drow, minmax(0, 1fr)
+   grid tracks) rather than clipped after the fact. If something overflows
+   again, the audit will say so at the offending element, which is a far more
+   useful answer than a page that quietly cuts its right edge off. */
 .tile,
 .vault-card,
 .card { min-width: 0; }

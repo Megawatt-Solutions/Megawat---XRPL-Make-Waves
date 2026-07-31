@@ -434,6 +434,38 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### `overflow-x: hidden` broke the sticky nav, and hid the bugs it looked like it solved
+
+`html` and `body` both carried `overflow-x: hidden`. It computes to
+`overflow: hidden auto`, which makes the element a **scroll container** — and
+that breaks `position: sticky` for everything inside it.
+
+Measured before removal: `.nav` is `position: sticky; top: 0`, and after
+scrolling 58px its rect was `top: -58` — gone. The Spreadcast section bar,
+`top: 58px`, pinned to `0` instead of below the nav. **The app's sticky
+navigation had not been sticking**, probably for the whole rehaul, because
+nobody scrolled and then measured.
+
+It was also hiding the very bugs it appeared to solve. The comments on the
+header, `.drow` and `.detail-layout` rules all record overflow that was
+**clipped rather than scrollable** because of this line — the Marketplace Buy
+button was not merely ugly, it was unreachable. Each of those is now fixed at
+the element that caused it (`min-width: 0`, collapsible rows,
+`minmax(0, 1fr)` tracks).
+
+Removed both. The full sweep then reported **0 findings across 77 route × width
+combinations**, which is the proof that the clip had nothing left to do.
+
+**A blanket `overflow-x: hidden` is a way of not knowing.** It converts a
+visible layout bug into an invisible one and takes sticky positioning with it.
+Fix the element that overflows; let the audit tell you which one.
+
+⚠ Removing it made a second bug real: `#main-content` is the skip-link target,
+and jumping to it scrolls it to y=0 — **under** the now-genuinely-sticky chrome,
+hiding 28px of the page heading. It has `scroll-margin-top` now, sized for the
+tallest case (nav 58 + section bar 44). That bug existed the whole time and was
+invisible because everything scrolled away.
+
 ### The page that convinces someone has to tell them what to do next
 
 Counted the primary actions on every route. No screen has **competing** primary
