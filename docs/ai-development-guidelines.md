@@ -1076,6 +1076,7 @@ A change is done when:
 - [ ] If the surface is data-driven, checked the data isn't `[]` before believing a clean audit
 - [ ] Every new form control has a `<label htmlFor>`, not a `div` that looks like one
 - [ ] Every non-submit `<button>` inside a form has `type="button"`
+- [ ] Any new overlay uses `Sheet` or `useDialog` — never a bare `.overlay` + `.modal`
 - [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
 - [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
@@ -1152,6 +1153,40 @@ something you already know.** A sheet whose `top` equals the viewport height
 exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
+
+### The two dialogs that handled money had no dialog behaviour
+
+`Sheet` and `Onboarding` each carried a full, careful implementation — focus
+trap, Escape, scroll lock, focus restore, `role="dialog"`, and a scrim that
+listens on `mousedown` with a target check so a drag-select starting inside the
+panel cannot dismiss it. Both files even explain *why* mousedown.
+
+The deposit modal and the list-a-position modal had **none** of it. They were
+`<div className="overlay" onClick={onClose}><div className="modal">` and
+nothing else. So on the two surfaces where someone enters an amount of money:
+Tab left the dialog on the first field, Escape did nothing, the page behind
+scrolled under it on a phone, focus never entered or returned, screen readers
+never heard "dialog", and releasing a text selection on the backdrop threw away
+what had been typed.
+
+The lesson is not "add a focus trap". It is that **the correct implementation
+already existed twice and neither copy was reusable**, so the third and fourth
+dialogs were written without it and nobody noticed. Behaviour that is subtle
+enough to need a paragraph of justification is behaviour that belongs in one
+place. It is now `components/useDialog.ts`, used by `Sheet`, `DepositModal` and
+`SellModal`.
+
+Extracted *from* `Sheet` rather than rewritten, so the version that was already
+correct is the one that spread. One deliberate change on the way out: the
+focusable-elements list gained `input`, `select` and `textarea`. `Sheet`'s
+original omitted them, which was survivable only because no `Sheet` happened to
+contain a form field — both new callers are mostly form, so the trap would have
+leaked on the first input.
+
+`Onboarding` keeps its own copy on purpose: it also manages a history entry for
+Android Back, swipe gestures and arrow-key stepping, and folding those in would
+make the hook worse at its one job. `wallet.tsx` holds a third bare modal,
+out of scope by standing instruction and written up in `wallet-tsx-handoff.md`.
 
 ### A `div` that looks like a label is not a label
 

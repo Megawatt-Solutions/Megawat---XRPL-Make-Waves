@@ -210,3 +210,42 @@ The fix is the same shape as the others:
 Exact line and current markup deliberately not transcribed here — read it in
 place, since this file has changed under us before. Left undone by the standing
 instruction not to modify `wallet.tsx`.
+
+---
+
+## 5. `XrplConnectModal` has no dialog behaviour (found 2026-07-31)
+
+`wallet.tsx:256` renders `<div className="overlay" onClick={onClose}>` with a
+plain `<div className="modal">` inside. It is the third such dialog in the app;
+the other two (deposit, list-a-position) were fixed in the "dialog behaviour"
+pass and this one was left alone by the standing instruction.
+
+What it is missing, all of it now available as a two-line hook:
+
+- `role="dialog"`, `aria-modal="true"`, `aria-labelledby` — it is not announced
+  as a dialog and has no accessible name.
+- A focus trap. Tab walks straight out into the page behind it.
+- Initial focus. Focus stays on the trigger, behind the overlay.
+- Escape to close, and focus restore on close.
+- Body scroll lock — the page scrolls under it, very visibly on a phone.
+- `onMouseDown` instead of `onClick` on the scrim. As written, a drag-select
+  that starts inside the panel and releases on the backdrop dismisses it.
+
+The fix mirrors `VaultDetail`'s `DepositModal` exactly:
+
+```diff
++ import { useDialog, scrimDismiss } from "@/components/useDialog";
++ const panelRef = useRef<HTMLDivElement>(null);
++ useDialog(true, onClose, panelRef);
+
+- <div className="overlay" onClick={onClose}>
+-   <div className="modal" onClick={(e) => e.stopPropagation()}>
+-     <div className="modal-title">Connect XRPL wallet</div>
++ <div className="overlay" onMouseDown={scrimDismiss(onClose)}>
++   <div ref={panelRef} className="modal" role="dialog" aria-modal="true"
++        aria-labelledby="connect-modal-title" tabIndex={-1}>
++     <div className="modal-title" id="connect-modal-title">Connect XRPL wallet</div>
+```
+
+`web/src/components/useDialog.ts` already exists and is used by three dialogs,
+so this is an import and three attributes, not new logic to review.

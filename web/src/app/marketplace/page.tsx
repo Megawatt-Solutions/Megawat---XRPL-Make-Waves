@@ -1,12 +1,13 @@
 "use client";
 import posthog from "posthog-js";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { StatTile } from "@/components/StatTile";
 import { useWallet, useToast } from "@/lib/wallet";
 import { listingViews, marketplaceMetrics } from "@/lib/marketplace";
 import { POSITIONS } from "@/lib/portfolio";
 import { getVault } from "@/lib/vaults";
+import { useDialog, scrimDismiss } from "@/components/useDialog";
 import { fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtAddress } from "@/lib/format";
 import type { ListingView } from "@/lib/marketplace";
 import {
@@ -153,6 +154,11 @@ export default function MarketplacePage() {
 }
 
 function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: string) => void }) {
+  // Focus trap, Escape, scroll lock and focus restore — this dialog had none
+  // of them, so Tab walked out into the page behind and the page scrolled
+  // under it on a phone. See components/useDialog.ts.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialog(true, onClose, panelRef);
   const sellable = POSITIONS.filter((p) => p.shares > 0);
   const [vaultId, setVaultId] = useState(sellable[0]?.vaultId ?? "");
   const pos = sellable.find((p) => p.vaultId === vaultId);
@@ -169,11 +175,18 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
   const valid = shares > 0 && price > 0 && !!vault;
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="overlay" onMouseDown={scrimDismiss(onClose)}>
+      <div
+        ref={panelRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sell-modal-title"
+        tabIndex={-1}
+      >
         <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>List a position</span>
-          <button onClick={onClose} aria-label="Close" className="modal-x"><XIcon size={18} /></button>
+          <span id="sell-modal-title">List a position</span>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-x"><XIcon size={18} /></button>
         </div>
 
         {/* Position picker */}

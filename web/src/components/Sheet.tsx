@@ -10,7 +10,8 @@
 // Sits at z-index 950 — above .nav (50) and .bottom-nav (60), below .overlay
 // (1000) and .toasts (2000).
 
-import { useCallback, useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useDialog, scrimDismiss } from "./useDialog";
 import { XIcon } from "./Icons";
 
 export function Sheet({
@@ -29,72 +30,17 @@ export function Sheet({
   footer?: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const restoreTo = useRef<HTMLElement | null>(null);
-  const close = useCallback(() => onClose(), [onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    const el = panelRef.current;
-    if (!el) return;
-
-    restoreTo.current = document.activeElement as HTMLElement | null;
-
-    // Compensate for the scrollbar so the page behind doesn't shift.
-    const gutter = window.innerWidth - document.documentElement.clientWidth;
-    const prevOverflow = document.body.style.overflow;
-    const prevPad = document.body.style.paddingRight;
-    document.body.style.overflow = "hidden";
-    if (gutter > 0) document.body.style.paddingRight = `${gutter}px`;
-
-    // Focus the container, not the first control — that way assistive tech
-    // announces the dialog and its title rather than "Close, button".
-    el.focus();
-
-    const FOCUSABLE = 'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        return close();
-      }
-      if (e.key !== "Tab") return;
-      const f = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (!f.length) {
-        e.preventDefault();
-        return el.focus();
-      }
-      const first = f[0];
-      const last = f[f.length - 1];
-      const a = document.activeElement;
-      if (e.shiftKey && (a === first || a === el)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && a === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey, true);
-
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPad;
-      const t = restoreTo.current;
-      if (t && t.isConnected && typeof t.focus === "function") t.focus();
-    };
-  }, [open, close]);
+  // Focus trap, Escape, scroll lock, focus restore. This logic used to live
+  // inline here; it was lifted into ./useDialog verbatim so the two money
+  // dialogs could stop going without it. The only behavioural change is that
+  // the focusable list now includes form fields, which this component never
+  // happened to contain.
+  useDialog(open, onClose, panelRef);
 
   if (!open) return null;
 
   return (
-    <div
-      className="sheet-scrim"
-      // mousedown, not click: a drag-select that starts inside the panel and
-      // ends on the scrim would otherwise dismiss it.
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
+    <div className="sheet-scrim" onMouseDown={scrimDismiss(onClose)}>
       <div
         ref={panelRef}
         className="sheet-panel"
@@ -111,7 +57,7 @@ export function Sheet({
               {title}
             </h2>
           </div>
-          <button type="button" className="sheet-x" onClick={close} aria-label="Close">
+          <button type="button" className="sheet-x" onClick={onClose} aria-label="Close">
             <XIcon size={16} />
           </button>
         </div>

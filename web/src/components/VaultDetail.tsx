@@ -1,8 +1,9 @@
 "use client";
 import posthog from "posthog-js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Vault } from "@/lib/types";
+import { useDialog, scrimDismiss } from "./useDialog";
 import {
   fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
   fmtDuration, fmtAgo, fmtDate, fmtAddress,
@@ -689,6 +690,11 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   onClose: () => void;
   onMockDone: (amt: number) => void;
 }) {
+  // Focus trap, Escape, scroll lock and focus restore. This dialog takes a
+  // deposit amount and had none of them — Tab left the modal on the very first
+  // field, and the page behind scrolled under it. See ./useDialog.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialog(true, onClose, panelRef);
   const [amount, setAmount] = useState("");
   const amt = parseFloat(amount) || 0;
   const tooMuch = amt > rlusdBalance;
@@ -720,11 +726,18 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   };
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="overlay" onMouseDown={scrimDismiss(onClose)}>
+      <div
+        ref={panelRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deposit-modal-title"
+        tabIndex={-1}
+      >
         <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Deposit into {vault.shortName}</span>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}><XIcon size={18} /></button>
+          <span id="deposit-modal-title">Deposit into {vault.shortName}</span>
+          <button type="button" onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}><XIcon size={18} /></button>
         </div>
 
         <div className="field" style={{ marginTop: 18 }}>
