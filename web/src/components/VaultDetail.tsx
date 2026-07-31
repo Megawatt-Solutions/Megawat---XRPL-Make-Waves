@@ -728,24 +728,51 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
         </div>
 
         <div className="field" style={{ marginTop: 18 }}>
+          {/* This is the field that moves money, and it had no accessible name
+              at all — it already carried aria-invalid and aria-describedby, so
+              it announced "edit, invalid" without ever saying what it was for.
+              The balance is a description rather than part of the name, so the
+              name stays "Amount" and the balance is still read after it. */}
           <div className="field-label">
-            <span>Amount</span>
-            <span className="muted num">Balance: {fmtMoney(rlusdBalance, "USD")} RLUSD</span>
+            <label htmlFor="deposit-amount">Amount</label>
+            <span className="muted num" id="deposit-balance">Balance: {fmtMoney(rlusdBalance, "USD")} RLUSD</span>
           </div>
           <div className="input-suffix">
             <input
+              id="deposit-amount"
               className={`input${showBlocker ? " invalid" : ""}`}
               inputMode="decimal"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               aria-invalid={showBlocker}
-              aria-describedby={showBlocker ? "deposit-blocker" : undefined}
-              style={{ paddingRight: 92 }}
+              aria-describedby={showBlocker ? "deposit-blocker deposit-balance" : "deposit-balance"}
+              // The "RLUSD + MAX" suffix overlays the input's right edge, so
+              // that width has to be reserved or a long amount slides under it.
+              // 92px was already 15px short before MAX was grown; measured at
+              // 121px now, rounded up for the widest balance.
+              style={{ paddingRight: 128 }}
             />
             <span className="suffix">
               RLUSD{" "}
-              <button onClick={() => setAmount(String(maxAmt))} style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "none", padding: "3px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginLeft: 4 }}>MAX</button>
+              {/* Without type="button" this submits any ancestor form. */}
+              {/* Was 43x24 — scraping the 24px WCAG 2.5.8 floor, on the control
+                  that fills in the amount of money being deposited, while the
+                  equivalent "Max" in the sell modal is 38px. Grown to 34px and
+                  given a radius; it still clears the 50px input it sits in. */}
+              <button
+                type="button"
+                aria-label={`MAX — fill in ${fmtMoney(maxAmt, "USD")} RLUSD`}
+                onClick={() => setAmount(String(maxAmt))}
+                style={{
+                  display: "inline-flex", alignItems: "center", minHeight: 34,
+                  background: "var(--accent-dim)", color: "var(--accent)", border: "none",
+                  borderRadius: "var(--r-control)", padding: "0 11px",
+                  fontSize: 11, fontWeight: 700, cursor: "pointer", marginLeft: 6,
+                }}
+              >
+                MAX
+              </button>
             </span>
           </div>
           {showBlocker && (

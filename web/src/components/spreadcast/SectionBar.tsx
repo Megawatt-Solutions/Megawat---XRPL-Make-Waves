@@ -31,7 +31,10 @@ export function SectionBar() {
         {TABS.map((t) => {
           const active = t.href === "/spreadcast" ? pathname === "/spreadcast" : pathname.startsWith(t.href);
           return (
-            <Link key={t.href} href={t.href} className={`sc-bar-tab${active ? " active" : ""}`}>
+            // aria-current, not aria-pressed: these are navigation links, and
+            // "current page" is the state that matters. It was signalled by
+            // colour alone.
+            <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined} className={`sc-bar-tab${active ? " active" : ""}`}>
               {t.label}
             </Link>
           );

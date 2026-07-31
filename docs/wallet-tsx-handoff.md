@@ -188,3 +188,25 @@ posthog.capture("onboarding_dismissed", { at_step: i }); // in dismissFlow()
 
 That is what measures the flow against the 53%/75% benchmark it currently
 inherits on faith.
+
+---
+
+## 4. Form control has no accessible name (found 2026-07-31)
+
+`wallet.tsx` contains an `<input>` labelled only by adjacent text, not by a
+`<label htmlFor>`. It is the seventh and last such control in the app; the
+other six were fixed in the "form labels" pass. It announces as an unnamed
+edit box, and clicking its visible label does not focus it.
+
+The fix is the same shape as the others:
+
+```diff
+-  <div className="field-label">Watch an address</div>
+-  <input className="input" ... />
++  <label className="field-label" htmlFor="wallet-address">Watch an address</label>
++  <input id="wallet-address" className="input" ... />
+```
+
+Exact line and current markup deliberately not transcribed here — read it in
+place, since this file has changed under us before. Left undone by the standing
+instruction not to modify `wallet.tsx`.

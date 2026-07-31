@@ -491,10 +491,14 @@ export function PlayView() {
                 ))}
               </div>
               <div className="sc-exact-row">
-                <label className="muted" style={{ fontSize: 13 }}>
+                {/* htmlFor, not a bare <label>. Without it this was a label
+                    element attached to nothing: the input had no accessible
+                    name, and clicking the words did not focus the field. */}
+                <label className="muted" style={{ fontSize: 13 }} htmlFor="sc-exact">
                   Exact swing (optional tiebreaker):
                 </label>
                 <input
+                  id="sc-exact"
                   className="sc-field sc-mono"
                   placeholder="e.g. 92.5"
                   inputMode="decimal"
@@ -702,10 +706,47 @@ export function PlayView() {
               <p className="sc-notice" style={{ marginBottom: 12 }}>
                 Email only — instant play. No purchase, no deposits, ever.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <input className="sc-field" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <input className="sc-field" placeholder="display name" value={name} onChange={(e) => setName(e.target.value)} />
-                <button className="btn btn-accent" onClick={join} disabled={busy}>
+              {/* A real <form>, so Enter submits — this is a two-field signup
+                  and reaching for the mouse to finish it is a needless step.
+                  It also lets password managers recognise the flow, which two
+                  bare inputs and a click handler never could.
+
+                  The labels are visible rather than placeholders. A
+                  placeholder is not a label: it fails to name the field for
+                  assistive tech, and it disappears the moment someone starts
+                  typing — taking away the only cue at exactly the point they
+                  might want to check it. */}
+              <form
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                onSubmit={(e) => { e.preventDefault(); if (!busy) join(); }}
+              >
+                <div>
+                  <label className="field-label" htmlFor="sc-join-email">Email</label>
+                  <input
+                    id="sc-join-email"
+                    className="sc-field"
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="sc-join-name">Display name</label>
+                  <input
+                    id="sc-join-name"
+                    className="sc-field"
+                    name="name"
+                    autoComplete="nickname"
+                    placeholder="shown on the leaderboard"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <button className="btn btn-accent" type="submit" disabled={busy}>
                   Start playing
                 </button>
                 {shellAddress && (
@@ -717,7 +758,7 @@ export function PlayView() {
                   </p>
                 )}
                 {acctMsg && <p className={acctMsg.kind === "err" ? "sc-err" : "sc-notice"}>{acctMsg.text}</p>}
-              </div>
+              </form>
             </div>
           ) : (
             <div className="panel sc-panel">

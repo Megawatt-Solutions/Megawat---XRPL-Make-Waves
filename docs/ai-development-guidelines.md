@@ -1074,6 +1074,10 @@ A change is done when:
 - [ ] `npm run build` clean
 - [ ] Looked at on a real page, at 360px and at desktop
 - [ ] If the surface is data-driven, checked the data isn't `[]` before believing a clean audit
+- [ ] Every new form control has a `<label htmlFor>`, not a `div` that looks like one
+- [ ] Every non-submit `<button>` inside a form has `type="button"`
+- [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
+- [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
 - [ ] Scope check (§1.2) empty
 - [ ] No new raw hex or `rgba()` in components
@@ -1149,6 +1153,63 @@ exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
 
+### A `div` that looks like a label is not a label
+
+The app had **one** `<label>` element in it, and even that one had no
+`htmlFor`, so it was attached to nothing. Every other form control was
+labelled by a `<div className="field-label">` — correct to look at, and
+semantically inert. The consequences are not subtle:
+
+- The control has **no accessible name**. The deposit Amount field already
+  carried `aria-invalid` and `aria-describedby`, so it announced "edit,
+  invalid" without ever saying what it was for. It is the field that moves
+  money.
+- **Clicking the label does not focus the input.** Everyone expects that, and
+  it costs nothing to have.
+- The Spreadcast signup used placeholders as labels. A placeholder disappears
+  the moment someone types, taking away the only cue at exactly the point they
+  might want to check it — and it fails to name the field for AT at any point.
+
+Fixed across all six reachable controls (`sc-join-email`, `sc-join-name`,
+`sc-exact`, `sell-shares`, `sell-price`, `deposit-amount`). Two patterns worth
+copying:
+
+- Where the label row also holds a button (the "Max" affordances), the
+  `<label>` wraps **only the text**. A `<button>` inside a `<label>` makes the
+  click ambiguous — the label also forwards clicks to the input.
+- Supporting text next to a label ("Balance: $12,340 RLUSD") belongs in
+  `aria-describedby`, not in the name. The name stays "Amount"; the balance is
+  still read, after it.
+
+The signup is also a real `<form>` now, so Enter submits and password managers
+recognise it, with `type="email"` / `autoComplete` so mobile gets the right
+keyboard. **`type="button"` on every non-submit button inside a form** — the
+default is `submit`, which is how a "Max" button ends up submitting a signup.
+
+`wallet.tsx` holds a seventh control with the same problem. Out of scope by
+standing instruction; recorded in `wallet-tsx-handoff.md`.
+
+### Selected state carried by colour alone
+
+Seven single-select button groups signalled their choice with nothing but an
+`.active` class — a background colour. That is WCAG 1.4.1 (use of colour) for
+sighted users and 4.1.2 (name, role, value) for assistive tech, which heard a
+row of identical buttons and no indication which was chosen. None of the groups
+had a name either.
+
+Fixed on: both `OverviewChart` ranges, `SiteChart` range and units,
+`VaultsOverview`'s two tabs, and the sell modal's position picker — each button
+gets `aria-pressed`, each group a `role="group"` and an `aria-label`.
+`SectionBar`'s nav links get `aria-current="page"` instead, because they are
+navigation and "current page" is the state that matters.
+
+Deliberately **not** `role="tab"`/`role="radio"` on the button groups: those
+contracts also promise arrow-key navigation and a single tab stop. A
+half-implemented tab pattern reads as broken, where plain buttons with
+`aria-pressed` read as exactly what they are. The Spreadcast band picker is a
+real `radiogroup` and does implement the keyboard contract — that is the bar
+for using the role.
+
 ### Empty demo data hides whole layouts from every audit
 
 `LISTINGS` and `POSITIONS` are both `[]`. Sweeping `/marketplace` at seven
@@ -1157,6 +1218,15 @@ widths therefore reported a clean page at every one of them — `.mk-head` was
 row CSS had never once rendered**, in this browser or any other, and the audit
 could not tell the difference between "correct" and "absent".
 
+This is now the **third and fourth** time the same blind spot has bitten. Also
+empty: `investableVaults()`, because every vault in `vaults.ts` is `kind:
+"showcase"` or `status: "coming_soon"`. So the entire investable path — the
+deposit modal, its Amount field, the MAX button, `SiteChart`'s controls on an
+onchain vault — renders for nobody. Flipping one vault to `kind: "onchain"`
+for the length of an audit is enough to reach all of it, and immediately turned
+up a MAX button at 43×24 scraping the WCAG 2.5.8 floor, plus a suffix
+overlapping 15px more of the input than its `paddingRight` reserved.
+
 So: before trusting a pass over a data-driven surface, check that the data is
 non-empty. If it isn't, populate it temporarily from the real interface in
 `src/lib/types.ts` (not from what the screen appears to show — see the
@@ -1164,6 +1234,12 @@ non-empty. If it isn't, populate it temporarily from the real interface in
 confirm with `git status`. Writing the file back through PowerShell flips CRLF
 to LF and leaves it modified with an empty content diff; `git checkout --` is
 what actually restores it.
+
+**Put the fixture in a different file from your real work.** A temporary
+override was once patched into `PlayView.tsx` while that same file held
+finished, uncommitted label changes; `git checkout --` to drop the override
+took the real work with it. Either commit first, or confine the fixture to a
+data file you can revert on its own.
 
 Portfolio additionally gates on a connected wallet, so its rows stay invisible
 even with data present. `localStorage` keys `mw.xrplAddress` / `mw.xrplVia`

@@ -143,9 +143,11 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <div className="caps" style={{ color: "var(--text-2)" }}>{title}</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div className="seg">
+          {/* See the note in SiteChart: ".active" is colour only, so the
+              selected range was invisible to assistive tech. */}
+          <div className="seg" role="group" aria-label={`${title} time range`}>
             {RANGES.map((r) => (
-              <button key={r} className={`seg-btn ${range === r ? "active" : ""}`} onClick={() => setRange(r)}>{r}</button>
+              <button key={r} className={`seg-btn ${range === r ? "active" : ""}`} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>
             ))}
           </div>
           {control}

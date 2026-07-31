@@ -98,14 +98,20 @@ export function SiteChart({ vault }: { vault: Vault }) {
   return (
     <div className="card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div className="seg">
+        {/* aria-pressed, because ".active" is a colour and nothing else. A
+            screen reader heard four identical buttons with no way to tell
+            which range was showing, and the group itself had no name. Not
+            role="tab": that contract also promises arrow-key navigation and a
+            single tab stop, and a half-implemented tab pattern reads as broken
+            rather than as plain buttons. */}
+        <div className="seg" role="group" aria-label="Chart time range">
           {RANGES.map((r) => (
-            <button key={r.key} className={`seg-btn ${range === r.key ? "active" : ""}`} onClick={() => setRange(r.key)}>{r.label}</button>
+            <button key={r.key} className={`seg-btn ${range === r.key ? "active" : ""}`} aria-pressed={range === r.key} onClick={() => setRange(r.key)}>{r.label}</button>
           ))}
         </div>
-        <div className="seg">
-          <button className={`seg-btn ${mode === "power" ? "active" : ""}`} onClick={() => setMode("power")}>Power</button>
-          <button className={`seg-btn ${mode === "energy" ? "active" : ""}`} onClick={() => setMode("energy")}>Energy</button>
+        <div className="seg" role="group" aria-label="Chart units">
+          <button className={`seg-btn ${mode === "power" ? "active" : ""}`} aria-pressed={mode === "power"} onClick={() => setMode("power")}>Power</button>
+          <button className={`seg-btn ${mode === "energy" ? "active" : ""}`} aria-pressed={mode === "energy"} onClick={() => setMode("energy")}>Energy</button>
         </div>
       </div>
       <div style={{ height: 320 }}>

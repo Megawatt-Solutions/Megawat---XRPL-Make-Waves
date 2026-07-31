@@ -178,14 +178,20 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
 
         {/* Position picker */}
         <div className="field" style={{ marginTop: 18 }}>
-          <div className="field-label">Position</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Pick-one-of-N rendered as buttons: which one is chosen was carried
+              entirely by background colour, so assistive tech heard a list of
+              identical-sounding buttons and no selection. The group also had
+              no name — "Position" was a div floating above it. */}
+          <div className="field-label" id="sell-position-label">Position</div>
+          <div role="group" aria-labelledby="sell-position-label" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sellable.map((p) => {
               const v = getVault(p.vaultId)!;
               const sel = p.vaultId === vaultId;
               return (
                 <button
                   key={p.vaultId}
+                  type="button"
+                  aria-pressed={sel}
                   onClick={() => { setVaultId(p.vaultId); setSharesStr(""); }}
                   style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
@@ -205,12 +211,18 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
 
         <div style={{ display: "flex", gap: 12 }}>
           <div className="field" style={{ flex: 1 }}>
-            <div className="field-label"><span>Shares</span><button onClick={() => setSharesStr(String(maxShares))} className="field-max">Max {fmtNum(maxShares)}</button></div>
-            <input className="input" inputMode="decimal" placeholder="0" value={sharesStr} onChange={(e) => setSharesStr(e.target.value)} />
+            {/* The label wraps only the text — the row also holds a button, and
+                a button inside a <label> makes clicking it ambiguous (the
+                label would also try to forward the click to the input). */}
+            <div className="field-label">
+              <label htmlFor="sell-shares">Shares</label>
+              <button type="button" onClick={() => setSharesStr(String(maxShares))} className="field-max">Max {fmtNum(maxShares)}</button>
+            </div>
+            <input id="sell-shares" className="input" inputMode="decimal" placeholder="0" value={sharesStr} onChange={(e) => setSharesStr(e.target.value)} />
           </div>
           <div className="field" style={{ flex: 1 }}>
-            <div className="field-label">Price / share (USDC)</div>
-            <input className="input" inputMode="decimal" placeholder="1.00" value={priceStr} onChange={(e) => setPriceStr(e.target.value)} />
+            <label className="field-label" htmlFor="sell-price">Price / share (USDC)</label>
+            <input id="sell-price" className="input" inputMode="decimal" placeholder="1.00" value={priceStr} onChange={(e) => setPriceStr(e.target.value)} />
           </div>
         </div>
 

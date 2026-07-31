@@ -62,9 +62,9 @@ export function VaultsOverview() {
       </div>
 
       {/* Tabs */}
-      <div className="v2-tabs">
-        <button className={`v2-tab ${tab === "vaults" ? "active" : ""}`} onClick={() => setTab("vaults")}>Vault Details</button>
-        <button className={`v2-tab ${tab === "yield" ? "active" : ""}`} onClick={() => setTab("yield")}>Yield Composition</button>
+      <div className="v2-tabs" role="group" aria-label="Overview view">
+        <button className={`v2-tab ${tab === "vaults" ? "active" : ""}`} aria-pressed={tab === "vaults"} onClick={() => setTab("vaults")}>Vault Details</button>
+        <button className={`v2-tab ${tab === "yield" ? "active" : ""}`} aria-pressed={tab === "yield"} onClick={() => setTab("yield")}>Yield Composition</button>
       </div>
 
       {tab === "vaults" ? (
