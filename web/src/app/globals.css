@@ -2904,6 +2904,20 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The band boundaries are four short numbers joined by " / " — not an opaque
+   token. They have break opportunities and every number is meaningful, so
+   .sc-mono's ellipsis treatment is exactly backwards for them: it was cutting
+   "137 / 150 / 176 / 244" to "…176 / 2" between 700px and 899px, where the
+   column is revealed but 22ch is narrower than the content. Below 641px the
+   column is hidden outright, and from ~900px it fits, so the damage sat in a
+   200px-wide band that only a per-element clipping check would surface. */
+.sc-table td.sc-bounds {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 /* An expanded day nests a table inside a <td>; without this its min-content
    propagates up and re-widens the outer table, undoing the column hiding. */
 .sc-arch-detail > td { max-width: 0; }

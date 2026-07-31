@@ -229,7 +229,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
             <span className="sc-chip-range"> · {r.outcomeLabel}</span>
           </span>
         </td>
-        <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{r.boundaries.join(" / ")}</td>
+        <td className="sc-mono muted sc-bounds" style={{ fontSize: "0.6875rem" }}>{r.boundaries.join(" / ")}</td>
         <td>
           <span className="sc-tag">{r.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED"}</span>{" "}
           <span className="sc-tag">{r.resolution}</span>
