@@ -151,6 +151,39 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
+### Every media query keyed off width
+
+There was not a single `max-height` query in `globals.css`. Nothing had ever
+considered viewport *height*, and a phone rotated to landscape is about 390px
+tall.
+
+Measured there: 58px nav + 44px section bar + 75px tab bar = **177px, or 45% of
+the screen** on `/spreadcast`, leaving 213px for the page — most of which is
+then the page head. The app was being read through a letterbox and no
+width-keyed sweep could ever have shown it.
+
+The fix keeps the tab bar fixed — it is the primary navigation on mobile and
+removing it to win 75px costs more than it saves — and **releases the brand
+bar** instead. It carries a wordmark and a wallet pill, neither of which needs
+to be present at every scroll position while the tabs always are. Released, not
+hidden: still at the top of the document, it just stops following. The section
+bar then sticks to the viewport top rather than to 58px, which would otherwise
+pin it below a bar that is no longer there.
+
+45% → 26% on `/spreadcast`, 34% → 15% on the home page, tab targets still 49px,
+portrait completely unchanged.
+
+`runAudit()` now sweeps two landscape geometries and raises
+`chrome-eats-short-viewport` past a third of the screen. Canaried by restoring
+the sticky nav: reproduces 41% and fires.
+
+⚠ Overlay `getBoundingClientRect()` in this harness reports the pre-animation
+transform — a bottom-anchored sheet reads as `translateY(100%)`, fully
+off-screen, **even seconds after it has settled**. This has now produced a false
+alarm three separate times, including one that looked exactly like a real
+landscape bug. Screenshot before believing that a sheet is off-screen. Element
+*heights* are reliable; positions and transforms are not.
+
 ### The audit only saw what was open
 
 For most of this rehaul every check ran against a route with everything closed.

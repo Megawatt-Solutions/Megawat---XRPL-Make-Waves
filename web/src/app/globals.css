@@ -3049,6 +3049,49 @@ body { overflow-x: hidden; }
   .sc-arch-row td { padding-top: 13px; padding-bottom: 13px; }
 }
 
+/* ─── Short viewports — a phone in landscape ──────────────────────
+   Every media query in this file keyed off WIDTH. Nothing had ever
+   considered height, and a rotated phone is about 390px tall.
+
+   Measured there: 58px nav + 44px section bar + 75px tab bar = 177px,
+   which is 45% of the screen on /spreadcast and leaves 213px for the
+   page itself. Two thirds of the remaining space is then the page head.
+
+   The tab bar stays fixed. It is the primary navigation on mobile and
+   removing it to win 75px would cost more than it saves. What gives way
+   is the brand bar: it carries a wordmark and a wallet pill, and
+   neither needs to be present at every scroll position while the tabs
+   always are. Released rather than hidden — it is still there at the
+   top of the document, it just stops following.
+
+   The section bar then sticks to the viewport top instead of to 58px,
+   which would otherwise pin it below a bar that is no longer there. */
+@media (max-height: 500px) and (max-width: 980px) {
+  .nav {
+    position: static;
+  }
+  .sc-bar {
+    top: 0;
+  }
+  /* Tighter, but never below the 44px a thumb needs. */
+  .bottom-nav {
+    padding: 4px 10px 5px;
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
+  }
+  .bottom-nav-item {
+    padding: 4px 0;
+    gap: 2px;
+    min-height: 44px;
+  }
+  /* Overlays get the same treatment: on a 390px-tall screen a sheet
+     capped at 88svh leaves almost nothing, and its own header and
+     footer are a larger share of it. */
+  .sheet-panel,
+  .ob-sheet {
+    max-height: calc(100svh - 16px);
+  }
+}
+
 /* ─── Focus and press states ──────────────────────────────────────
    The app had exactly two :focus rules and one :active. Every button,
    tab and row was hover-only — invisible to a keyboard, and with no

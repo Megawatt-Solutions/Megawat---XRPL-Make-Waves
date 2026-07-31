@@ -49,6 +49,45 @@ const OVERLAYS = [
   { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
 ];
 
+// ── Short viewports ──────────────────────────────────────────────────────
+// Every width in WIDTHS is audited at 800–900px tall, so a rotated phone —
+// about 390px — was never seen. That is where fixed chrome stops being a
+// detail: nav + section bar + tab bar took 45% of the screen on /spreadcast
+// before this was measured.
+const LANDSCAPE = [
+  [844, 390, "iPhone landscape"],
+  [740, 360, "small Android landscape"],
+];
+
+async function auditShortViewports(routes) {
+  const findings = [];
+  for (const [w, h, name] of LANDSCAPE) {
+    for (const route of routes) {
+      await load("http://localhost:3000" + route, w, h);
+      const d = stage.contentDocument, win = stage.contentWindow;
+      const tag = (f) => findings.push({ route: `${route} (${name})`, w, ...f });
+      try { for (const f of audit(w)) tag(f); } catch (e) { /* keep going */ }
+
+      // Chrome that never scrolls away. Anything past a third of a short
+      // screen means the page is being read through a letterbox.
+      const box = (sel) => {
+        const el = d.querySelector(sel);
+        if (!el) return 0;
+        const pos = win.getComputedStyle(el).position;
+        if (pos !== "fixed" && pos !== "sticky") return 0;
+        return el.getBoundingClientRect().height;
+      };
+      const chrome = box(".nav") + box(".sc-bar") + box(".bottom-nav");
+      const pct = Math.round((chrome / win.innerHeight) * 100);
+      if (pct > 33) {
+        tag({ kind: "chrome-eats-short-viewport", el: "nav+bar+tabs",
+              detail: `${Math.round(chrome)}px of ${win.innerHeight} = ${pct}%` });
+      }
+    }
+  }
+  return findings;
+}
+
 async function auditOverlays(width) {
   const findings = [];
   for (const o of OVERLAYS) {
@@ -318,6 +357,14 @@ window.runAudit = async function (routes, widths) {
       }
     }
   }
+  // A rotated phone, which no width-keyed sweep can reach.
+  hud.textContent = "auditing short viewports…";
+  try {
+    for (const f of await auditShortViewports(routes.slice(0, 6))) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(landscape)", w: 0, kind: "short-viewport-audit-error", detail: String(e).slice(0, 90) });
+  }
+
   // Overlays, at the width where they are most constrained.
   hud.textContent = "auditing overlays…";
   try {
