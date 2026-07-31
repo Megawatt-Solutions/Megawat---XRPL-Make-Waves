@@ -9,8 +9,15 @@ import type { Metadata } from "next";
 import { RoundProvider } from "@/components/spreadcast/RoundContext";
 import { SectionBar } from "@/components/spreadcast/SectionBar";
 
+// The four game routes each name themselves now, and this keeps the section in
+// the title without every page repeating it. Distinct word FIRST — a tab
+// truncates to roughly the first twenty characters, so "Leaderboard ·
+// Spreadcast" survives that and "Spreadcast · Leaderboard" would not.
 export const metadata: Metadata = {
-  title: "Spreadcast — Megawatt",
+  title: {
+    template: "%s · Spreadcast — Megawatt",
+    default: "Spreadcast — Megawatt",
+  },
   description: "Call tomorrow's day-ahead spread on the Slovenian market. Free to play, every day.",
 };
 

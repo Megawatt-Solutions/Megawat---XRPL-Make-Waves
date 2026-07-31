@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { Odometer } from "@/components/Odometer";
 import { BrandMark } from "@/components/BrandMark";
 import { OverviewChart } from "@/components/OverviewChart";
@@ -7,6 +9,11 @@ import { Sparkline } from "@/components/Sparkline";
 import { PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
 import { fmtPct, bpsToPct, fmtMoney, fmtCompact } from "@/lib/format";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
+
+export const metadata: Metadata = {
+  title: "Protocol overview",
+  description: "Value locked, depositor yield and deployed capacity across the Megawatt vault network.",
+};
 
 function Ticks() {
   return (

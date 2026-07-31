@@ -26,10 +26,35 @@ export const viewport: Viewport = {
   themeColor: "#030907",
 };
 
+// Every route in the app used to share one of two titles — "Megawatt — BESS
+// Vaults" for the whole vaults half including each individual vault, and
+// "Spreadcast — Megawatt" for all four game routes. Six vault pages open in six
+// tabs were indistinguishable, browser history was a wall of the same string,
+// and a bookmarked vault said nothing about which vault.
+//
+// The template gives each page a name of its own without every file having to
+// repeat the brand. Pages set `title: "Portfolio"` and get "Portfolio —
+// Megawatt"; `default` covers routes that set nothing.
 export const metadata: Metadata = {
-  title: "Megawatt — BESS Vaults",
+  title: {
+    template: "%s — Megawatt",
+    default: "Megawatt — BESS Vaults",
+  },
   description:
     "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
+  applicationName: "Megawatt",
+  // There were no og: tags at all, so a link pasted into Slack, WhatsApp or
+  // anywhere else rendered as a bare URL with no preview — for a product whose
+  // vault links are meant to be shared, that is the link doing no work.
+  // No og:image yet: that needs a real brand asset, not one invented here.
+  openGraph: {
+    type: "website",
+    siteName: "Megawatt",
+    title: "Megawatt — BESS Vaults",
+    description:
+      "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
+  },
+  twitter: { card: "summary" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

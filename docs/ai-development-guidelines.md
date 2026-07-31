@@ -116,6 +116,40 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### A page's title is part of its interface
+
+Every route in the app shared one of **two** titles: "Megawatt — BESS Vaults"
+for the whole vaults half *including each individual vault*, and "Spreadcast —
+Megawatt" for all four game routes. Six vault pages open in six tabs were
+indistinguishable, browser history was a wall of one string, and a bookmarked
+vault said nothing about which vault. There were no `og:` tags at all, so a
+link pasted anywhere rendered as a bare URL — the link doing no work for a
+product whose vault URLs are meant to be shared.
+
+The root layout defines `title.template`; pages set a short name and inherit
+the suffix.
+
+Two rules that are easy to get wrong:
+
+⚠ **`title.template` applies to CHILD segments, not the segment that defines
+it.** The root page rendered as a bare "Vaults", and `/spreadcast` — which sits
+in the same segment as the layout carrying the Spreadcast template — read "Play
+— Megawatt" while its three siblings correctly read "… · Spreadcast — Megawatt".
+Both need their title spelled out.
+
+⚠ **Put the distinct word first.** A tab truncates to roughly twenty characters,
+so "Leaderboard · Spreadcast" survives and "Spreadcast · Leaderboard" does not.
+
+**Metadata is user-facing copy and the no-fabrication rule applies to it.** The
+first version of the vault description did its own arithmetic — `powerKw / 1000`
+to one decimal — and described a 350 kW / 550 kWh site as "0.3 MW / 0.6 MWh",
+understating one figure and overstating the other. Use `fmtPower`/`fmtEnergy`,
+which keep sub-MW sites in kW and match what the page itself prints. A number in
+a share preview is as public as a number on the page.
+
+Still open: no `og:image`. That needs a real brand asset rather than one
+invented here.
+
 ### The screens nobody designs
 
 The 404 was the framework's default — a bare "This page could not be found."
