@@ -1260,6 +1260,40 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### aria-label replaces the name — nothing was guarding the ones we wrote
+
+Several `aria-label`s were added by hand across this work (the Buy button, the
+portfolio rows, MAX, the chain indicator). `aria-label` **replaces** the
+content name outright, so a well-meant description can silently break "click
+Buy" for anyone driving the page by voice — WCAG 2.5.3. Nothing checked them.
+
+`auditLabelInName()` now does, across every route, with **two severities**:
+
+- `label-not-in-name` (**FAIL**) — the control's primary visible label is
+  absent from its accessible name. The real 2.5.3 failure.
+- `name-omits-visible-text` (**INFO**) — the name covers the label but drops
+  other visible strings. Not a 2.5.3 violation, since 2.5.3 concerns the label
+  rather than every string inside a control, but often a real parity gap.
+
+The first version reported only the strict form and flagged five entirely
+compliant band cards. **That distinction is the whole value of the check** — a
+check that cries wolf gets switched off, and one that reports "5 failures" when
+there are none is worse than no check.
+
+It still earned its keep on the first run. The band cards — the game's primary
+control — carried `"Calm, < 137 euro per megawatt hour"` while the screen also
+showed `"23% of last 30d"`. That frequency is how a sighted player judges a
+safe pick from a long shot, and it reached only people who could see it. The
+name now ends `", hit 23% of the last 30 days"`.
+
+Across 18 route/width pairs: **zero real failures.** The one standing INFO is
+correct behaviour — the names say "euro per megawatt hour" where the screen
+shows "€/MWh", because spelling the unit out is better for speech.
+
+Note the ordering rule this depends on, already used for the Buy and MAX
+labels: **put the visible label first in the accessible name.** "Buy 12,500
+shares of …" passes; "Purchase …" would not.
+
 **Test user-supplied fields with a string that has no break opportunity.** A
 long name with spaces wraps fine and proves nothing; the failure mode needs a
 single unbroken token. Display names come from a form with no `maxLength`, and

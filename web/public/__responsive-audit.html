@@ -364,6 +364,78 @@ function auditClippingVertical(d, win) {
   return uniq;
 }
 
+/**
+ * WCAG 2.5.3 Label in Name, plus an information-parity note.
+ *
+ * aria-label REPLACES the content name, so a well-meant description can
+ * silently break "click Buy" for anyone driving the page by voice. Several
+ * aria-labels were added to this app by hand; nothing was guarding them.
+ *
+ * Two severities, because conflating them makes the check useless:
+ *
+ *   FAIL  label-not-in-name        The control's PRIMARY visible label is
+ *                                  absent from the accessible name. A speech
+ *                                  user says what they see and nothing fires.
+ *   INFO  name-omits-visible-text  The name covers the label but drops other
+ *                                  visible strings. NOT a 2.5.3 violation —
+ *                                  2.5.3 is about the label, not every string
+ *                                  inside the control — but often a real
+ *                                  parity gap worth a look.
+ *
+ * The first version reported only the strict form and flagged five entirely
+ * compliant band cards. A check that cries wolf gets switched off, so the
+ * distinction matters more than the extra code.
+ *
+ * It still earned its keep: the band cards' names omitted the "23% of last
+ * 30d" frequency hint, which is how a sighted player judges a safe pick from
+ * a long shot. That is in the name now.
+ *
+ * Known INFO that is correct behaviour: the band names say "euro per megawatt
+ * hour" where the screen shows "EUR/MWh". Spelling the unit out is better for
+ * speech, so the omission is deliberate.
+ */
+function auditLabelInName(d, win) {
+  const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const SEL = "button, a[href], [role=button], input[type=submit], input[type=button], summary";
+  const out = [];
+  for (const el of d.querySelectorAll(SEL)) {
+    if (el.getClientRects().length === 0) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") continue;
+    const parts = [];
+    const walk = (n) => {
+      if (n.nodeType === 3) { const t = n.nodeValue.trim(); if (t) parts.push(t); return; }
+      if (n.nodeType !== 1) return;
+      if (n.getAttribute("aria-hidden") === "true") return;
+      const s2 = win.getComputedStyle(n);
+      if (s2.display === "none" || s2.visibility === "hidden") return;
+      const r = n.getBoundingClientRect();
+      if (r.width <= 2 && r.height <= 2) return;   // clipped .sr-only is not visible
+      for (const c of n.childNodes) walk(c);
+    };
+    for (const c of el.childNodes) walk(c);
+    if (!parts.length) continue;                    // icon-only: 2.5.3 does not apply
+    const primary = norm(parts[0]);
+    const all = norm(parts.join(" "));
+    const lb = el.getAttribute("aria-labelledby");
+    const acc = el.getAttribute("aria-label") ||
+      (lb ? lb.split(" ").filter(Boolean).map((id) => {
+        const e = d.getElementById(id); return e ? e.textContent : "";
+      }).join(" ") : null);
+    if (!acc) continue;                             // name from content: compliant by construction
+    const na = norm(acc);
+    if (primary && !na.includes(primary)) {
+      out.push({ kind: "label-not-in-name", severity: "FAIL", el: describe(el),
+        label: primary.slice(0, 40), accessibleName: acc.slice(0, 70) });
+    } else if (all && !na.includes(all)) {
+      const omitted = all.split(" ").filter((w) => !na.includes(w)).join(" ");
+      if (omitted) out.push({ kind: "name-omits-visible-text", severity: "INFO", el: describe(el),
+        omitted: omitted.slice(0, 40), accessibleName: acc.slice(0, 70) });
+    }
+  }
+  return out;
+}
+
 async function waitFor(selector, timeout = 5000) {
   const d = stage.contentDocument;
   for (let waited = 0; waited < timeout; waited += 150) {
@@ -834,6 +906,7 @@ window.runAudit = async function (routes, widths) {
   try {
     for (const f of auditClipping(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
     for (const f of auditClippingVertical(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditLabelInName(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
   } catch (e) {
     findings.push({ route: "(clipping)", w: 0, kind: "clipping-audit-error", detail: String(e).slice(0, 90) });
   }

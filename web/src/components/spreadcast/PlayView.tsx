@@ -473,7 +473,17 @@ export function PlayView() {
                     key={b.i}
                     role="radio"
                     aria-checked={sel === b.i}
-                    aria-label={`${b.name}, ${b.label} euro per megawatt hour`}
+                    // Spells the unit out for speech, and carries the frequency hint
+                    // that is rendered below the range. That hint is how a sighted
+                    // player judges whether a band is a safe pick or a long shot, and
+                    // leaving it out of the name meant the one piece of decision
+                    // support on this screen reached only people who could see it.
+                    aria-label={
+                      `${b.name}, ${b.label} euro per megawatt hour` +
+                      (history.length > 0
+                        ? `, hit ${Math.round((bandHits[b.i] / history.length) * 100)}% of the last ${history.length} days`
+                        : "")
+                    }
                     className={`sc-band-card${sel === b.i ? " sel" : ""}`}
                     style={{ "--bc": `var(${BAND_VARS[b.i]})` } as React.CSSProperties}
                     onClick={() => setSel(b.i)}
