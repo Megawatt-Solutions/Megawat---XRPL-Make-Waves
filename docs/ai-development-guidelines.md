@@ -181,6 +181,43 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### Two kinds of small text
+
+The app uses 9px in three places, and only one of them was wrong.
+
+`.sc-band-unit` ("€/MWh") and `.sc-table th` are **uppercase mono with
+letter-spacing**. At that size those read as a typographic device — an eyebrow —
+and nobody has to parse them to make a decision. They stay.
+
+`.sc-band-hint` was **"38% of last 30d"**: lowercase, mixed, with a number in
+it, on a card the user is choosing between. That is data informing a choice, and
+it has to be comfortably readable rather than merely present. Now 11px, matching
+`.sc-band-name` directly above it — the smallest size the app uses for anything
+that is content rather than a label.
+
+This was parked for months as "needs a real-device legibility check". It did
+not. The question answered itself once the two kinds of small text were
+separated. Verified it fits unclipped at 320/360/390.
+
+### Naming a scale is not the same as imposing one
+
+Spacing: **29 distinct pixel values across 808 declarations.** That reads like
+sprawl and mostly is not — the top ten carry **69.6%** of usage, and the six
+rarest (28, 34, 38, 44, 56, 80) are one-off layout dimensions, not stray nudges.
+
+Compare the motion pass, which *was* worth consolidating: 0.15s was 22 of 26
+transitions, so 0.12/0.2/0.25 were obviously nobody's decision. Here the most
+common value is 14% of usage. There is no dominant rung and therefore no
+outliers to fold into it.
+
+So `--sp-1..7` name the seven rungs already doing the work, and **nothing was
+migrated**. New work uses the tokens; existing values stay. Rewriting hundreds
+of declarations onto a chosen scale would be a redesign with no defect to fix,
+and the audit catches overflow but not "looks slightly off".
+
+Measure before consolidating. A distribution with a dominant value has strays;
+a flat one has a vocabulary.
+
 ### One motion character
 
 `--ease` (`cubic-bezier(0.22, 1, 0.36, 1)`) was defined and then used **8

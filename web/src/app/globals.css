@@ -139,6 +139,32 @@
      keeps its own duration and should, because those are telling you about
      the thing rather than acknowledging your tap. */
   --t-ui: 0.15s;
+
+  /* ── Spacing ────────────────────────────────────────────────────────
+     The scale that already exists, named so it stops growing.
+
+     Measured: 29 distinct pixel values across 808 padding/gap/margin
+     declarations. That sounds like sprawl and mostly is not — the top
+     ten values carry 69.6% of all usage, and the six rarest (28, 34,
+     38, 44, 56, 80) are one-off layout dimensions, not stray nudges.
+
+     Deliberately NOT migrated. Compare the motion pass, where 0.15s was
+     22 of 26 transitions and the strays were obvious; here the most
+     common value is 14% of usage, so there is no dominant rung and no
+     outliers to fold into it. Rewriting hundreds of declarations onto a
+     chosen scale would be a redesign with no defect to fix, and the
+     audit can catch overflow but not "looks slightly off".
+
+     So: existing values stay. NEW work uses these tokens, which are the
+     seven rungs already doing the work. That stops the drift without
+     paying for a rewrite nobody asked for. */
+  --sp-1: 6px;
+  --sp-2: 8px;
+  --sp-3: 10px;
+  --sp-4: 12px;
+  --sp-5: 16px;
+  --sp-6: 20px;
+  --sp-7: 24px;
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
 
   /* â”€â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2803,9 +2829,23 @@ body { overflow-x: hidden; }
   overflow-wrap: anywhere;
 }
 .sc-bar-tip { cursor: pointer; touch-action: manipulation; }
+/* "38% of last 30d" — how often this band has actually landed recently.
+   Was 9px, and parked as "needs a real-device legibility check". It does not:
+   the question answers itself once you separate the two kinds of small text in
+   this app.
+
+   9px is fine for the uppercase mono micro-labels (.sc-band-unit, table th) —
+   letter-spaced caps at that size read as a typographic device, and nobody has
+   to parse them to make a decision. This is the opposite: lowercase mixed
+   content, with a number in it, sitting on a card the user is choosing between.
+   Data that informs a choice has to be comfortably readable, not merely
+   present.
+
+   11px matches .sc-band-name directly above it, which is the smallest size the
+   app uses for anything that is content rather than a label. */
 .sc-band-hint {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
