@@ -55,10 +55,19 @@ export default function MarketplacePage() {
         <StatTile label="Open positions" value={fmtNum(m.openPositions)} sub="Listed for sale" icon={<StoreIcon size={18} />} />
         <StatTile label="Listed value" value={fmtCompact(m.listedFaceValue, "USD")} sub="Face value" icon={<LayersIcon size={18} />} />
         <StatTile label="Total volume" value={fmtCompact(m.totalVolume, "USD")} sub="All-time secondary" icon={<CoinsIcon size={18} />} />
+        {/* An average over nothing is not zero, it is undefined. "+0.0%" reads
+            as a measurement — "listings are trading at face value" — when in
+            fact there are no listings to average. An em dash says "no data",
+            which is the true statement. "Open positions: 0" and "$0" above are
+            genuine counts and totals, so they stay as they are. */}
         <StatTile
           label="Avg premium"
-          value={<span className={m.avgPremiumBps >= 0 ? "" : "accent"}>{premiumStr(m.avgPremiumBps)}</span>}
-          sub="Over face value"
+          value={
+            views.length === 0
+              ? <span className="muted">&mdash;</span>
+              : <span className={m.avgPremiumBps >= 0 ? "" : "accent"}>{premiumStr(m.avgPremiumBps)}</span>
+          }
+          sub={views.length === 0 ? "No listings yet" : "Over face value"}
           icon={<TrendingUpIcon size={18} />}
         />
       </div>
@@ -189,6 +198,33 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
           <button type="button" onClick={onClose} aria-label="Close" className="modal-x"><XIcon size={18} /></button>
         </div>
 
+        {/* With nothing to sell this dialog was a dead end dressed as a form:
+            a "Position" label over an empty group, "Max 0", a calculator
+            returning $0.00, and a disabled CTA that never said why. That is
+            the exact failure VaultDetail's deposit modal already names —
+            "a disabled button with no stated reason is a dead end" — so it
+            gets the same treatment the marketplace's own empty listing state
+            gets: say what is missing and where to go. */}
+        {sellable.length === 0 ? (
+          <div className="empty-state">
+            <LayersIcon size={26} />
+            <div className="empty-state-title">Nothing to list yet</div>
+            <p className="empty-state-body">
+              Listing sells part of a vault position you already hold. You don&apos;t have one yet — deposit into a
+              vault first, and it will show up here whenever you want to exit before the term ends.
+            </p>
+            <div className="empty-state-actions">
+              <Link className="btn btn-accent btn-sm" href="/" onClick={onClose}>
+                Browse vaults
+              </Link>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
+
         {/* Position picker */}
         <div className="field" style={{ marginTop: 18 }}>
           {/* Pick-one-of-N rendered as buttons: which one is chosen was carried
@@ -249,6 +285,10 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
           <CheckIcon size={14} /> Your {vault?.symbol} shares are held in marketplace escrow until sold or delisted.
         </div>
 
+        </>
+        )}
+
+        {sellable.length > 0 && (
         <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-accent" style={{ flex: 1 }} disabled={!valid}
@@ -267,6 +307,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
             List position
           </button>
         </div>
+        )}
       </div>
     </div>
   );

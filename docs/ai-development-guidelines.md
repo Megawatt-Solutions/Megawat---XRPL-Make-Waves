@@ -1260,6 +1260,38 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The shipped app is mostly empty — look at it that way
+
+`LISTINGS`, `POSITIONS` and `investableVaults()` are all empty, so what a real
+first-time visitor sees is almost entirely empty states. Several passes audited
+those surfaces *with fixtures*, which is the right way to reach the layouts —
+but it means nobody had looked at the app in the state it actually ships in.
+
+Doing that found the Marketplace's most prominent element, a filled accent
+**"Sell a position"**, opening a dialog that was a dead end dressed as a form:
+a "Position" label over an empty group, "Max 0", a calculator returning $0.00,
+and a disabled CTA that never said why. The user had no way to know what was
+wrong or what to do next.
+
+The principle was already written down in this codebase, in `VaultDetail`'s
+deposit modal: *"a disabled button with no stated reason is a dead end."* It
+simply had not been applied here. The dialog now shows the same shape of empty
+state the marketplace's own listing area already uses — what is missing, why,
+and where to go.
+
+Two things worth carrying forward:
+
+- **Verify the path you did not change.** Adding the empty branch restructured
+  the dialog's control flow, so the populated path was re-tested with a
+  fixture: position selected and `aria-pressed`, Max filling 24,000, CTA
+  enabling, totals correct. A conditional that fixes the empty case and breaks
+  the full one is a worse bug than the one it fixes.
+- **An average over nothing is not zero.** "Avg premium +0.0%" read as a
+  measurement — *listings are trading at face value* — when there were no
+  listings to average. It shows an em dash and "No listings yet" now. The
+  neighbouring "0" and "$0" are genuine counts and totals, so they stayed:
+  the distinction is between a real zero and an undefined one.
+
 ### aria-label replaces the name — nothing was guarding the ones we wrote
 
 Several `aria-label`s were added by hand across this work (the Buy button, the
