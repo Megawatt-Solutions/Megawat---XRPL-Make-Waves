@@ -47,17 +47,12 @@ const OVERLAYS = [
   { route: "/?onboarding=1", open: null, expect: ".ob-sheet", name: "onboarding" },
   { route: "/", open: ".wallet-pill", expect: "[role=dialog], .overlay", name: "wallet" },
   { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
+  // Signed out, so the connect dialog is reached every run rather than only
+  // when the stored wallet happens to be the wrong kind. This is the one that
+  // contains the 189x31 "Use a watch-only address instead" button.
+  { route: "/", open: ".connect-btn", expect: "[role=dialog], .overlay",
+    name: "connect, signed out", signedOut: true },
 ];
-
-// ⚠ Which modal a given opener produces depends on WALLET STATE. On
-// /marketplace the primary button opens the Sell form when a signing wallet is
-// attached and the "Connect XRPL wallet" modal when one is not — and only the
-// second contains the 189x31 "Use a watch-only address instead" button.
-//
-// So a run reporting zero here does NOT mean that button is fixed; it may mean
-// this pass never reached the modal containing it. Reaching it deterministically
-// needs a signed-out sweep (clear mw.xrplAddress / mw.xrplVia, restore after).
-// Until that is wired in, check it by hand before believing a zero.
 
 // ── User font-size preference ────────────────────────────────────────────
 // Browser zoom scales everything including px, so a px-only stylesheet still
@@ -160,18 +155,104 @@ async function auditShortViewports(routes) {
   return findings;
 }
 
+// The wallet keys the app persists. Cleared to reach signed-out overlays, and
+// always restored — this is the developer's own origin, not a fixture.
+const WALLET_KEYS = ["mw.xrplAddress", "mw.xrplVia"];
+
+// Poll for the overlay rather than waiting a fixed beat.
+//
+// A flat 700ms was enough when the pass ran alone and NOT enough at the end of
+// a 77-combination sweep, when the dev server is busy — so the same check found
+// the 189x31 button standalone and missed it inside runAudit(). A check whose
+// answer depends on how much ran before it is not a check.
+// The OPENER needs polling too, not just the overlay. load() resolves 850ms
+// after onload, which is enough when idle and not enough mid-sweep for a
+// client component to hydrate. Querying the button once and finding nothing
+// made the whole entry return silently — no finding, no error, a clean zero
+// for a check that never ran. That is precisely the failure this entry exists
+// to prevent, reproduced one level up.
+async function waitFor(selector, timeout = 5000) {
+  const d = stage.contentDocument;
+  for (let waited = 0; waited < timeout; waited += 150) {
+    const el = d.querySelector(selector);
+    if (el) return el;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+async function waitForOverlay(selector, timeout = 5000) {
+  const d = stage.contentDocument;
+  for (let waited = 0; waited < timeout; waited += 150) {
+    const el = d.querySelector(selector);
+    // Present AND laid out — a dialog can exist in the DOM a frame before it
+    // has any size, and measuring it then reports nonsense.
+    if (el && el.getBoundingClientRect().height > 0) return el;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+// Each load needs a DISTINCT url. Assigning iframe.src its current value does
+// not reliably fire onload, so load() never resolves and the whole sweep hangs
+// with no error — which is exactly what the first version of this did. The
+// counter guarantees the second load of the same route is a different URL.
+let signOutSeq = 0;
+async function withSignedOut(route, width, fn) {
+  const bust = () => `http://localhost:3000${route}${route.includes("?") ? "&" : "?"}so=${++signOutSeq}`;
+  await load(bust(), width, 844);
+  const store = stage.contentWindow.localStorage;
+  const saved = WALLET_KEYS.map((k) => [k, store.getItem(k)]);
+  try {
+    for (const k of WALLET_KEYS) store.removeItem(k);
+    await load(bust(), width, 844); // reload so the app boots without a wallet
+    return await fn();
+  } finally {
+    // Same origin, so this restores the developer's own session either way.
+    const s = stage.contentWindow.localStorage;
+    for (const [k, v] of saved) if (v != null) s.setItem(k, v);
+  }
+}
+
 async function auditOverlays(width) {
   const findings = [];
   for (const o of OVERLAYS) {
+    // signedOut entries clear the wallet first, because WHICH modal an opener
+    // produces depends on wallet state. /marketplace's primary button opens the
+    // Sell form with a signing wallet attached and the connect dialog without
+    // one — and only the second contains the control this was missing. Leaving
+    // it to chance meant the finding appeared in some runs and not others,
+    // which is worse than never appearing: it makes a zero look earned.
+    if (o.signedOut) {
+      const got = await withSignedOut(o.route, width, async () => {
+        const btn = o.open ? await waitFor(o.open) : null;
+        if (o.open && !btn) return [];
+        if (btn) btn.click();
+        if (!(await waitForOverlay(o.expect))) return [];
+        const out = [];
+        const tag = (f) => out.push({ route: `${o.route} (${o.name})`, w: width, ...f });
+        try { for (const f of contrast()) tag(f); } catch (e) { /* keep going */ }
+        try { for (const f of audit(width)) tag(f); } catch (e) { /* keep going */ }
+        try {
+          for (const f of await semantics()) {
+            if (f.kind === "no-h1" || f.kind === "heading-level-skipped" || f.kind === "no-skip-link") continue;
+            tag(f);
+          }
+        } catch (e) { /* keep going */ }
+        return out;
+      });
+      for (const f of got) findings.push(f);
+      continue;
+    }
+
     await load("http://localhost:3000" + o.route, width, 844);
     const d = stage.contentDocument;
     if (o.open) {
-      const btn = d.querySelector(o.open);
-      if (!btn) continue; // state-dependent; not a failure
+      const btn = await waitFor(o.open);
+      if (!btn) continue; // genuinely state-dependent, not a slow hydrate
       btn.click();
-      await new Promise((r) => setTimeout(r, 700));
     }
-    if (!d.querySelector(o.expect)) continue;
+    if (!(await waitForOverlay(o.expect))) continue;
     const tag = (f) => findings.push({ route: `${o.route} (${o.name})`, w: width, ...f });
     try { for (const f of contrast()) tag(f); } catch (e) { /* keep going */ }
     try { for (const f of audit(width)) tag(f); } catch (e) { /* keep going */ }

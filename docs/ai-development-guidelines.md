@@ -151,6 +151,53 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
+### ⚠ UNRESOLVED: the overlay pass finds the connect dialog standalone but not in a full sweep
+
+`auditOverlays(390)` called on its own reports
+`small-tap-target 189x31` for the connect dialog, reliably, three runs in a row.
+`runAudit()` over 2 routes × 1 width reports it too. `runAudit()` over the full
+11 routes × 7 widths reports **zero**.
+
+Three hypotheses tried and none of them was it:
+
+1. *Fixed waits too short under load* — added `waitForOverlay()` polling. No change.
+2. *Opener not hydrated when queried* — added `waitFor()` for the opener too. No change.
+3. *A thrown error being swallowed* — there was a real `ReferenceError: d is not
+   defined` from removing a binding, and the harness surfaced it as
+   `overlay-audit-error` rather than a silent zero, which is the behaviour it
+   should have. Fixed, and still zero.
+
+So **do not read a zero from a full sweep as proof the overlays are clean.** Run
+`auditOverlays(390)` directly, which does work. The cause is still unknown and
+this note stays until someone finds it.
+
+Recording it rather than quietly leaving a check that reports what you want to
+hear. A suite that is wrong in one known way you can work around; a suite that
+is wrong in a way nobody wrote down is just decoration.
+
+### A finding that appears in some runs is worse than one that never appears
+
+The overlay pass reached the connect dialog only by luck. On `/marketplace` the
+primary button opens the **Sell form** when a signing wallet is attached and the
+**connect dialog** when one is not — and only the second contains the 189×31
+"Use a watch-only address instead" button. So the same sweep reported the
+finding one run and zero the next, depending on what happened to be in
+localStorage.
+
+Zero that depends on which state you landed in is worse than no check at all: it
+looks earned. `OVERLAYS` now has a `signedOut: true` entry that clears the wallet
+keys, reloads, audits, and restores them in a `finally`. Verified deterministic
+across three consecutive runs, and verified the wallet is byte-identical
+afterwards.
+
+⚠ **Every `load()` needs a distinct URL.** Assigning `iframe.src` its current
+value does not reliably fire `onload`, so the promise never settles and the
+sweep hangs with no error at all. The first version of `withSignedOut` loaded
+the same route twice and did exactly that — and because it hung *inside* the
+`try`, the `finally` never ran and it left the dev session signed out. A `finally`
+only protects you from throws, not from hangs. The route is cache-busted with a
+counter now.
+
 ### There was no skip link
 
 WCAG 2.4.1 Bypass Blocks is **Level A** — the base tier — and it was missing
