@@ -1080,6 +1080,7 @@ A change is done when:
 - [ ] New type sizes are `rem`, never `px` — px ignores the user's font-size setting
 - [ ] Responsive rules that hide a label clip it (`.sr-only`), never `display: none`
 - [ ] A chart never draws a segment for a zero value
+- [ ] A control identified by its border uses `--border-control`, not `--border-2`
 - [ ] Selected state is exposed (`aria-pressed` / `aria-current`), not just coloured
 - [ ] A temporary audit fixture never goes in a file that has uncommitted real work
 - [ ] Nothing a wide layout shows is `display: none` on a narrow one without somewhere else to go
@@ -1171,6 +1172,51 @@ something you already know.** A sheet whose `top` equals the viewport height
 exactly, on every size, is not nine independent layout bugs — it is one wrong
 reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
 than the fix it would have prompted.
+
+### Text contrast was solved; control *boundaries* were not (WCAG 1.4.11)
+
+Several passes went into 1.4.3 — the seven-rung surface ladder, `--muted`
+clearing 4.5:1 on all of them. **1.4.11 non-text contrast had never been
+checked**, and it is a different requirement: 3:1 for the visual information
+needed to identify a control.
+
+Measured, not estimated:
+
+| | value |
+|---|---|
+| `.input` fill vs the modal behind it | **1.04:1** |
+| `.input` border (`--border-2`) vs its own fill | **1.40:1** |
+| border width at DPR 1.5 | **0.67px** |
+
+So a text field in the deposit and list-a-position modals was a two-thirds-of-a-
+pixel hairline at 1.4:1 over a fill essentially identical to the surface behind
+it. On the screen where someone types an amount of money, the field was very
+nearly invisible. `.btn-outline` was worse in kind: `background: transparent`
+plus that same border, so it was defined *entirely* by a boundary nobody could
+see.
+
+The fix is a new token rather than a change to the old ones:
+
+```css
+--border-control: rgba(255, 255, 255, 0.35);  /* measured: the alpha that
+                                                 reaches 3:1 on the darkest
+                                                 surface */
+```
+
+applied to exactly the five controls that are identified **by** their boundary
+— `.input`, `.sc-field`, `.btn-outline`, `.btn-ghost`, `.seg`. Result: 3.11 to
+3.21:1, with every fill unchanged.
+
+`--border` and `--border-2` are deliberately untouched. Cards, tiles and
+dividers are decorative surfaces; 1.4.11 does not govern them, and raising the
+tokens globally would coarsen the whole product to fix five components. **The
+distinction worth keeping is "surface edge" versus "control boundary"** — they
+were one token doing two jobs, and only one of the jobs has a contrast floor.
+
+Two things that did pass, checked at the same time: the focus ring is
+`2px solid var(--accent)` — brand green on near-black, comfortably over 3:1 —
+and the primary `.btn` is identified by its fill at 12.66:1, so its border
+never mattered.
 
 ### `display: none` on a label takes the name too, and `title` is not a substitute
 

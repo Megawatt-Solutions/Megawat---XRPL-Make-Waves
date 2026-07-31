@@ -29,6 +29,16 @@
   --toast: #20372b;
   --border: rgba(255, 255, 255, 0.1); /* brand ring value */
   --border-2: rgba(255, 255, 255, 0.14);
+  /* Boundary for controls that are identified BY their boundary — text fields
+     and buttons with no distinguishing fill. WCAG 1.4.11 wants 3:1 for that,
+     and --border-2 measures 1.40:1 against a field's own fill: a .input inside
+     a modal was a 0.67px hairline over a fill 1.04:1 from the surface behind
+     it, i.e. very nearly invisible on the screen where you type an amount of
+     money. 0.35 is the measured alpha that reaches 3:1 on the darkest surface.
+     --border and --border-2 stay as they are for cards, tiles and dividers:
+     those are decorative surfaces, 1.4.11 does not govern them, and raising
+     them globally would coarsen the whole product. */
+  --border-control: rgba(255, 255, 255, 0.35);
 
   /* Text */
   --text: var(--mw-paper);
@@ -510,7 +520,7 @@ button {
 }
 .btn-ghost {
   background: var(--card-2);
-  border-color: var(--border-2);
+  border-color: var(--border-control);
   color: var(--text);
 }
 .btn-ghost:hover {
@@ -518,7 +528,7 @@ button {
 }
 .btn-outline {
   background: transparent;
-  border-color: var(--border-2);
+  border-color: var(--border-control);
   color: var(--text);
 }
 .btn-outline:hover {
@@ -875,7 +885,7 @@ button {
 .input {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--border-2);
+  border: 1px solid var(--border-control);
   border-radius: var(--r-control);
   font-size: 0.9375rem;
   font-weight: 550;
@@ -1420,7 +1430,7 @@ button {
   display: inline-flex;
   gap: 0;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   padding: 0;
 }
 .seg-btn {
@@ -2381,7 +2391,7 @@ button {
 
 .sc-field {
   background: var(--surface);
-  border: 1px solid var(--border-2);
+  border: 1px solid var(--border-control);
   border-radius: var(--r-control);
   color: var(--text);
   padding: 10px 13px;
