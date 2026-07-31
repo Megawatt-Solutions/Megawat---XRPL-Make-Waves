@@ -1219,3 +1219,35 @@ Recorded so future work starts informed rather than rediscovering:
 | Wallet bind is one tap, not zero | Automatic bind on connect needs `src/lib/wallet.tsx` |
 | `web/.env.example` is incomplete | Missing `SPREADCAST_API_URL`, `SPREADCAST_API_TOKEN`, `SESSION_SECRET`, `XRPL_ANCHOR_ADDRESS`. This directly caused a wasted debugging session |
 | Brand guidelines PDF unread | `docsend.com/view/quvyymw2ctm37f5n` — may specify clear-space and spacing rules not captured here |
+| `.sc-cta-dock` still unobserved | The third sticky element. See below — it needs an **open round** to render, so it can only be audited before 11:45 Ljubljana time |
+
+### `.sc-cta-dock` cannot be audited on demand, and a synthetic one proves nothing
+
+It renders only inside the band picker, which renders only while a round is
+open. Outside that window `/spreadcast` shows "Between rounds — today's results
+are being tallied" and the dock does not exist at any viewport. Temporarily
+forcing `{state.user ? …}` to `{true ? …}` does **not** help: the gate that
+matters is the round, not the session.
+
+Injecting a synthetic `.sc-cta-dock` into `.sc-panel` and measuring it was
+tried and the results were discarded. Two things went wrong, both worth
+knowing:
+
+- **The onboarding sheet was open during the first readings.** Its scroll lock
+  sets `document.body.style.overflow = "hidden"`, so every scroll-dependent
+  measurement in that pass was taken against a locked body. Any sweep that
+  scrolls must pass `?onboarding=0` — that override exists for exactly this.
+- **An injected element is not in the real element's position**, so its sticky
+  behaviour is not the real one. Readings swung between "stuck 4px above the
+  nav" and "200px below the fold" depending only on where the probe scrolled
+  to, which is the signature of a measurement that is not measuring the thing
+  it claims to.
+
+What *was* verified, because it needs no scrolling: `--nav-h-safe` resolves to
+74px while `.bottom-nav` measures 74.54px (74px + a 0.67px top border), at
+every width. A 0.54px shortfall — under one device pixel at DPR 1.5, and not
+worth a change. Recorded so nobody re-measures it and thinks they have found
+something.
+
+**To actually audit this**: run the sweep during an open round, before 11:45
+Ljubljana time, with a joined Spreadcast session.
