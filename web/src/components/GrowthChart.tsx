@@ -83,9 +83,27 @@ export function GrowthChart({ data }: { data: GrowthPoint[] }) {
     },
   };
 
+  // Same rule as OverviewChart: react-chartjs-2 sets role="img" with no name,
+  // which puts an element in the accessibility tree that announces "image" and
+  // says nothing. This chart is content, so it gets named — the shape's
+  // headline, not a reading of every point.
+  const summary = (() => {
+    if (!data.length) return "Portfolio value chart: no data yet.";
+    const first = data[0];
+    const last = data[data.length - 1];
+    // The field is `interest`; the series is labelled "Yield" on screen. Say
+    // what the reader sees, read what the type actually has.
+    const total = (p: GrowthPoint) => p.principal + p.interest;
+    return (
+      `Portfolio value, ${first.month} to ${last.month}. ` +
+      `${fmtCompact(total(first), "USD")} to ${fmtCompact(total(last), "USD")}, ` +
+      `of which yield ${fmtCompact(last.interest, "USD")}. Series: Principal, Yield.`
+    );
+  })();
+
   return (
     <div style={{ height: 280 }}>
-      <Line data={chartData} options={options} />
+      <Line data={chartData} options={options} role="img" aria-label={summary} />
     </div>
   );
 }

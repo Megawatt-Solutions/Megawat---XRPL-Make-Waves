@@ -21,7 +21,10 @@ export function Donut({ segments, size = 124, thickness = 13, centerLabel, cente
 
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      {/* Decoration, not data. centerLabel and centerSub are HTML overlaid on
+          this ring, not <text> inside it, so hiding the SVG keeps "38%" and
+          "Your share" readable — the ring only restates them as an arc. */}
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={thickness} />
         {segments.map((seg, i) => {
           const len = (seg.value / total) * c;

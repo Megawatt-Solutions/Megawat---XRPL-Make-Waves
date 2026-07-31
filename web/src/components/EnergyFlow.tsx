@@ -118,8 +118,21 @@ export function EnergyFlow({ live }: { live: SiteLive }) {
   const present = order.filter((k) => byKey.has(k));
   const houseConsuming = live.housePowerKw < 0;
 
+  // A <title> rather than role="img" + aria-label.
+  //
+  // This diagram's numbers are <text> INSIDE the svg — solar output, battery
+  // flow, house draw — and SVG text is already reachable. Adding role="img"
+  // would collapse all of it into one string and LOSE those readings, which is
+  // the opposite of the intent. A title names the diagram while leaving its
+  // contents exposed.
   return (
-    <svg viewBox="0 0 940 560" className="eflow" style={{ width: "100%", height: "auto", display: "block" }}>
+    <svg
+      viewBox="0 0 940 560"
+      className="eflow"
+      style={{ width: "100%", height: "auto", display: "block" }}
+      aria-labelledby="eflow-title"
+    >
+      <title id="eflow-title">Live energy flow between solar, battery, site load and the grid</title>
       {/* connectors first (under nodes) */}
       {present.map((k) => <Connector key={`c-${k}`} k={k} ch={byKey.get(k)!} />)}
 

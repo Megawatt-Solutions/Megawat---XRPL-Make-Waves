@@ -544,6 +544,23 @@ async function semantics() {
       el.getAttribute("aria-labelledby") || el.textContent || "").trim();
     if (!n) out.push({ kind: "no-accessible-name", el: describe(el) });
   }
+  // Non-text content (WCAG 1.1.1). A canvas has no intrinsic alternative, and
+  // react-chartjs-2 hands it role="img" with no name — an accessibility-tree
+  // entry that announces "image" and says nothing, which is worse than no role
+  // at all. Every graphic must be named or explicitly hidden; there is no
+  // third correct state.
+  for (const el of doc.querySelectorAll("canvas, svg")) {
+    if (!vis(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (el.tagName === "svg" && r.width < 60) continue; // icons are handled by their control's label
+    const named = el.getAttribute("aria-label") || el.getAttribute("aria-labelledby") ||
+                  el.querySelector(":scope > title");
+    if (!named && el.getAttribute("aria-hidden") !== "true") {
+      out.push({ kind: "graphic-without-text-alternative", el: describe(el),
+        detail: `${el.tagName} ${Math.round(r.width)}x${Math.round(r.height)} — name it or aria-hidden it` });
+    }
+  }
+
   for (const t of doc.querySelectorAll("table")) {
     if (!vis(t)) continue;
     const ths = [...t.querySelectorAll("th")];

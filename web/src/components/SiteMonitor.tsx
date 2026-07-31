@@ -123,7 +123,10 @@ function SiteOverview({ vault }: { vault: Vault }) {
 }
 
 function WeatherGlyph({ icon }: { icon: WeatherIcon }) {
-  const c = { width: 44, height: 44 };
+  // aria-hidden on every branch: these are pictograms beside the condition
+  // written out in text. Announcing them would say the weather twice, and an
+  // unnamed <svg> in the accessibility tree says nothing useful either way.
+  const c = { width: 44, height: 44, "aria-hidden": true as const };
   const s = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (icon === "sun")
     return <svg {...c} viewBox="0 0 24 24" style={{ color: "var(--amber)" }}><g {...s}><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></g></svg>;

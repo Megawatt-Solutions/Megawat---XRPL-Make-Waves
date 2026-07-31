@@ -109,7 +109,20 @@ export function SiteChart({ vault }: { vault: Vault }) {
         </div>
       </div>
       <div style={{ height: 320 }}>
-        <Line data={data} options={options} />
+        {/* Named for the same reason as the other charts: react-chartjs-2
+            gives its canvas role="img" and no accessible name, which
+            announces "image" and stops there. The label names the site, the
+            range, the unit and which series are plotted — the legend a
+            sighted reader gets from colour. */}
+        <Line
+          data={data}
+          options={options}
+          role="img"
+          aria-label={
+            `${vault.shortName} ${mode === "energy" ? "energy" : "power"}, ` +
+            `${range} view, in ${unit}. Series: ${data.datasets.map((ds) => ds.label).join(", ")}.`
+          }
+        />
       </div>
     </div>
   );
