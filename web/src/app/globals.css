@@ -117,6 +117,16 @@
 
   /* â”€â”€â”€ Motion â€” brand curve, lifted from megawatt-landing â”€â”€â”€â”€â”€â”€â”€ */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* The one interaction duration. 0.15s was already the app's de facto answer
+     — 22 of 26 transitions used it — with 0.12s, 0.2s and 0.25s appearing a
+     few times each as near-duplicates nobody chose deliberately.
+
+     Deliberately NOT named --t-fast: there is no scale here and inventing one
+     would invite guessing which rung to use. Interaction feedback is this;
+     anything paced to content (a battery filling, a progress bar advancing)
+     keeps its own duration and should, because those are telling you about
+     the thing rather than acknowledging your tap. */
+  --t-ui: 0.15s;
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
 
   /* â”€â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -204,7 +214,7 @@ button {
   font-weight: var(--eyebrow-weight);
   letter-spacing: var(--eyebrow-tracking);
   text-transform: uppercase;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease);
 }
 .nav-link:hover {
   color: var(--text);
@@ -227,7 +237,7 @@ button {
   background: var(--card);
   border: 1px solid var(--border-2);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 500;
@@ -265,7 +275,7 @@ button {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
 }
 .connect-btn:hover {
   filter: brightness(1.06);
@@ -398,7 +408,7 @@ button {
   font-size: 14px;
   font-weight: 620;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
   border: 1px solid transparent;
   white-space: nowrap;
 }
@@ -496,7 +506,7 @@ button {
   height: 100%;
   background: var(--accent);
   border-radius: var(--r-full);
-  transition: width 0.6s ease;
+  transition: width 0.6s var(--ease);
 }
 .segbar {
   display: flex;
@@ -575,7 +585,7 @@ button {
   border-radius: var(--radius);
   padding: 20px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--t-ui) var(--ease);
   position: relative;
   overflow: hidden;
 }
@@ -710,7 +720,7 @@ button {
   color: var(--text);
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color var(--t-ui) var(--ease);
 }
 .input:focus {
   border-color: var(--accent);
@@ -775,7 +785,7 @@ button {
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 18px;
-  transition: color 0.15s;
+  transition: color var(--t-ui) var(--ease);
 }
 .back-link:hover {
   color: var(--text);
@@ -1049,7 +1059,7 @@ button {
   font-weight: 500;
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
 }
 .seg-btn:first-child { border-left: none; }
 .seg-btn:hover { color: var(--text); }
@@ -1123,7 +1133,7 @@ button {
   font-size: 15px;
   font-weight: 620;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
   font-family: inherit;
 }
 .perf-toggle:hover { background: var(--card-2); border-color: var(--border-2); }
@@ -1158,7 +1168,7 @@ button {
     color: var(--muted);
     font-size: 11px;
     font-weight: 550;
-    transition: color 0.15s, background 0.15s;
+    transition: color var(--t-ui) var(--ease), background var(--t-ui) var(--ease);
   }
   .bottom-nav-item:active { background: rgba(255, 255, 255, 0.05); }
   .bottom-nav-item.active { color: var(--accent); }
@@ -1378,7 +1388,7 @@ body { overflow-x: hidden; }
   margin-top: 8px;
   font-size: 13px;
 }
-.v2-vault { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+.v2-vault { border-bottom: 1px solid var(--border); transition: background var(--t-ui) var(--ease); }
 .v2-vault:hover { background: var(--card); }
 
 @media (max-width: 900px) {
@@ -1413,7 +1423,7 @@ body { overflow-x: hidden; }
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.7s ease;
+  transition: opacity 0.7s var(--ease);
 }
 .globe-pins { position: absolute; inset: 0; pointer-events: none; }
 .globe-pin {
@@ -1425,7 +1435,7 @@ body { overflow-x: hidden; }
   display: grid;
   place-items: center;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--t-ui) var(--ease);
 }
 .globe-dot {
   width: 9px;
@@ -1465,7 +1475,7 @@ body { overflow-x: hidden; }
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease, bottom 0.15s ease;
+  transition: opacity var(--t-ui) var(--ease), bottom var(--t-ui) var(--ease);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   z-index: 6;
 }
@@ -1567,7 +1577,7 @@ body { overflow-x: hidden; }
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease);
 }
 /* Drawn flags, not emoji — Windows has no flag-emoji font, so 🇸🇮 rendered
    as the bare letters "SI". A hairline keeps white bands (SI, RS) from
@@ -1724,7 +1734,7 @@ body { overflow-x: hidden; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--t-ui) var(--ease);
 }
 .chain-btn:hover { background: var(--card-2); border-color: rgba(255, 255, 255, 0.16); }
 .chain-menu {
@@ -1751,7 +1761,7 @@ body { overflow-x: hidden; }
   color: var(--text);
   text-align: left;
   font-family: inherit;
-  transition: background 0.15s;
+  transition: background var(--t-ui) var(--ease);
 }
 .chain-opt:hover { background: rgba(255, 255, 255, 0.04); }
 .chain-opt-name {
@@ -1884,7 +1894,7 @@ body { overflow-x: hidden; }
   letter-spacing: var(--eyebrow-tracking);
   text-transform: uppercase;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease);
 }
 .sc-bar-tab:hover { color: var(--text); }
 .sc-bar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -2005,7 +2015,7 @@ body { overflow-x: hidden; }
   padding: 16px 10px 13px;
   text-align: center;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--t-ui) var(--ease);
 }
 .sc-band-card:last-child { border-right: 0; }
 .sc-band-card:hover { background: var(--card-2); }
@@ -2865,7 +2875,7 @@ body { overflow-x: hidden; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-control);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--t-ui) var(--ease), background var(--t-ui) var(--ease);
 }
 .vsl:hover { border-color: var(--border-2); background: var(--card-2); }
 /* Holds the row's exact height while /round is in flight, so the sections
@@ -2900,7 +2910,7 @@ body { overflow-x: hidden; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--r-surface);
-  transition: border-color 0.15s;
+  transition: border-color var(--t-ui) var(--ease);
 }
 .scs:hover { border-color: var(--border-2); }
 .scs-rule {
@@ -3190,7 +3200,7 @@ body { overflow-x: hidden; }
   font-weight: var(--eyebrow-weight);
   letter-spacing: var(--eyebrow-tracking);
   text-transform: uppercase;
-  transition: color 0.15s;
+  transition: color var(--t-ui) var(--ease);
 }
 .ob-skip:hover { color: var(--text); }
 
@@ -3252,7 +3262,7 @@ body { overflow-x: hidden; }
   height: 6px;
   border-radius: var(--r-full);
   background: var(--border-2);
-  transition: background 0.2s var(--ease), width 0.2s var(--ease);
+  transition: background var(--t-ui) var(--ease), width var(--t-ui) var(--ease);
 }
 .ob-dot.done { background: color-mix(in srgb, var(--accent) 45%, transparent); }
 .ob-dot.on { width: 20px; background: var(--accent); }

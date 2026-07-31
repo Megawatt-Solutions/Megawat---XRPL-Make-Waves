@@ -116,6 +116,40 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### One motion character
+
+`--ease` (`cubic-bezier(0.22, 1, 0.36, 1)`) was defined and then used **8
+times**, while the browser default `ease` was used **39 times**. So the handful
+of surfaces that used the token — sheets, onboarding, the battery fill — settled
+differently from every button, card and row in the app. A product reads as
+high-end partly because everything decelerates the same way.
+
+Notably this was **not** a vaults↔Spreadcast seam. Both halves ignored the token
+about equally (29 and 10). Four passes of the seam being the answer is not a
+reason to stop measuring.
+
+Two rules:
+
+- **Transitions are interaction feedback and use the tokens**: `var(--t-ui)`
+  (0.15s) and `var(--ease)`. 0.15s was already the de facto answer in 22 of 26
+  declarations; 0.12s, 0.2s and 0.25s were near-duplicates nobody chose.
+- **Animations paced to content keep their own duration.** A battery filling
+  (1.1s), a progress bar advancing (0.6s) and a globe fading in (0.7s) are
+  telling you about the thing, not acknowledging your tap. They take the shared
+  curve but not the shared duration.
+
+`--t-ui` is deliberately not named `--t-fast`: there is no scale, and implying
+one invites guessing which rung to use.
+
+⚠ `prefers-reduced-motion` still wins — the global block sets
+`transition-duration` with `!important` on `*`, which beats a `var()` value.
+Verified after the change, because a token indirection is exactly where that
+could quietly stop applying.
+
+**Known, deliberately not changed:** eight declarations use `transition: all`,
+which animates every property including layout ones. Narrowing them needs
+per-element judgement about what is actually meant to move.
+
 ### A page's title is part of its interface
 
 Every route in the app shared one of **two** titles: "Megawatt — BESS Vaults"
@@ -401,6 +435,29 @@ A change is done when:
 - [ ] Secrets are in `web/.env` (gitignored), and `web/.env.example` lists any new key **by name only**
 
 ---
+
+### Clickable rows are a list, not a table
+
+The vaults side renders its tabular data — portfolio positions, marketplace
+listings — as `.drow` grids with a `.drow-head` label row, and carries **no
+table semantics at all**: no `<table>`, no `role="table"`, no column
+association. Spreadcast uses real `<table>` elements. So a value like "$12,400"
+has nothing tying it to the "Deposited" header above it.
+
+The obvious fix is the wrong one. Those rows are `<a>` elements — clicking one
+opens the vault — and putting `role="row"` on a link destroys its link
+semantics. That is *why* they are divs, and it is a reasonable choice.
+
+The right fix is to treat them as what they are: a list of links, each of whose
+**accessible name** carries its own values ("BESS Ljubljana 01, $12,400
+deposited, $340 claimable, 8.2% APY"), with the header row `aria-hidden` since
+it labels columns that do not semantically exist.
+
+Not done yet, and deliberately: `POSITIONS` and the marketplace listings are
+both empty in the current demo data, so there is nothing to verify a naming
+strategy against. Designing accessible names for rows that do not exist is how
+you ship something that reads badly the day real data arrives. **Do this in the
+same change that gives either surface real rows.**
 
 ## 7. Known gaps — good next candidates
 
