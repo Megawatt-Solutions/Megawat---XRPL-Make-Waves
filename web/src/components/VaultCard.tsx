@@ -98,6 +98,26 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <Sparkline data={socSeries(vault, 28)} />
         </div>
       )}
+
+      {/* A showcase vault is not investable, and until now the card never said
+          so. It knew — `isShowcase` already switches the metric label to "Gross
+          yield" — but that is a wording change most people will not parse as
+          "you cannot buy this". So the overview showed "OPERATIONAL", a live
+          SoC readout and "12.2% Gross yield" under a page promising you can
+          invest, and the qualifier only appeared one click later.
+
+          VaultDetail already made exactly this fix for exactly this reason:
+          "a financial page must not put its most important qualifier last."
+          The pipeline cards likewise state their availability in the footer
+          ("Opens for fundraising next quarter"). This is the same slot saying
+          the same kind of thing for the third case. */}
+      {isShowcase && (
+        <div className="vc-availability">
+          {/* Same blue dot VaultDetail uses for this exact statement, so the
+              two surfaces read as one message rather than two designs. */}
+          <span className="dot" style={{ background: "var(--blue)" }} /> Showcase site · not investable
+        </div>
+      )}
     </Link>
   );
 }

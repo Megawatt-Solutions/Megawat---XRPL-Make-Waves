@@ -1260,6 +1260,34 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A qualifier fixed on the detail page never reached the card
+
+`VaultDetail` carries a long comment explaining why "Showcase site · not
+investable" was moved up beside the yield:
+
+> *A financial page must not put its most important qualifier last.*
+
+That fix was made on the detail page and stopped there. The **overview** — the
+page where someone actually decides what to click — showed the same two vaults
+as "Active vaults · Earning & operational", badge **OPERATIONAL**, a live SoC
+readout and "12.2% Gross yield", under a page subtitle promising you can
+"invest … earn yield, and trade your position". Nothing said they cannot be
+bought until one click later.
+
+The card *knew*: `isShowcase` was already switching the metric label between
+"Gross yield" and "APY". But a wording change on a label is not something most
+people parse as "you cannot buy this".
+
+The card now states it, in the same footer slot where a pipeline card states
+*its* availability ("Opens for fundraising next quarter"), using the same blue
+dot `VaultDetail` uses — so the two surfaces read as one message rather than
+two designs.
+
+**The general lesson:** when a fix is about *what the user is told*, ask which
+other surfaces make the same claim. A correction applied only where the problem
+was noticed leaves the earlier, higher-traffic surface still saying the wrong
+thing — and the overview is seen far more often than any detail page.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

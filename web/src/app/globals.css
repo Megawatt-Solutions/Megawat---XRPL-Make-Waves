@@ -1579,6 +1579,20 @@ button {
 .tile,
 .vault-card,
 .card { min-width: 0; }
+
+/* Availability qualifier on a vault card. Sits below the live readout, quiet
+   but unmissable — the point is that someone scanning the overview learns the
+   vault cannot be bought before they click, not after. */
+.vc-availability {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
 @media (max-width: 480px) {
   .tile-grid { grid-template-columns: 1fr; }
   .section-head .muted { display: none; }
