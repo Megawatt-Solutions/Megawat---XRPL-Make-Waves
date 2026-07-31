@@ -31,6 +31,59 @@ function load(url, w, h) {
   });
 }
 
+// ── Overlays ────────────────────────────────────────────────────────────
+// Every check here used to run against a route with everything closed, so
+// sheets, modals and the onboarding flow were never audited at all — and one
+// of them was carrying a live contrast failure the whole time. --sheet and
+// --toast are the two lightest surfaces in the app and neither is reachable
+// without opening something.
+//
+// Each entry names a control to click and what should appear. Missing controls
+// are skipped silently: they are state-dependent (the connect modal only
+// exists when no wallet is attached) and a hard failure would make the audit
+// depend on demo data.
+const OVERLAYS = [
+  { route: "/spreadcast", open: ".sc-commit-why", expect: "[role=dialog]", name: "sheet:provably-fair" },
+  { route: "/?onboarding=1", open: null, expect: ".ob-sheet", name: "onboarding" },
+  { route: "/", open: ".wallet-pill", expect: "[role=dialog], .overlay", name: "wallet" },
+  { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
+];
+
+async function auditOverlays(width) {
+  const findings = [];
+  for (const o of OVERLAYS) {
+    await load("http://localhost:3000" + o.route, width, 844);
+    const d = stage.contentDocument;
+    if (o.open) {
+      const btn = d.querySelector(o.open);
+      if (!btn) continue; // state-dependent; not a failure
+      btn.click();
+      await new Promise((r) => setTimeout(r, 700));
+    }
+    if (!d.querySelector(o.expect)) continue;
+    const tag = (f) => findings.push({ route: `${o.route} (${o.name})`, w: width, ...f });
+    try { for (const f of contrast()) tag(f); } catch (e) { /* keep going */ }
+    try { for (const f of audit(width)) tag(f); } catch (e) { /* keep going */ }
+    // Semantics too: an overlay is exactly where an unlabelled icon button or
+    // an unlabelled field hides, and it is also where getting it wrong costs
+    // most — a dialog you cannot name is a dialog you cannot leave.
+    try {
+      for (const f of await semantics()) {
+        if (f.kind === "no-h1" || f.kind === "heading-level-skipped") continue; // page-level, not the overlay's
+        tag(f);
+      }
+    } catch (e) { /* keep going */ }
+    // An overlay that reaches past the viewport bottom cannot be finished.
+    const panel = d.querySelector(o.expect);
+    const r = panel.getBoundingClientRect();
+    if (r.height > stage.contentWindow.innerHeight + 1) {
+      tag({ kind: "overlay-taller-than-viewport", el: o.name,
+            detail: `${Math.round(r.height)} > ${stage.contentWindow.innerHeight}` });
+    }
+  }
+  return findings;
+}
+
 // True when some ancestor is an intentional horizontal scroller. Content
 // inside one is *supposed* to exceed the viewport, so flagging it is noise.
 function inScroller(el, root) {
@@ -265,6 +318,14 @@ window.runAudit = async function (routes, widths) {
       }
     }
   }
+  // Overlays, at the width where they are most constrained.
+  hud.textContent = "auditing overlays…";
+  try {
+    for (const f of await auditOverlays(390)) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(overlays)", w: 390, kind: "overlay-audit-error", detail: String(e).slice(0, 90) });
+  }
+
   // Run the value check as part of every audit, so it cannot be forgotten.
   hud.textContent = "validating CSS values…";
   let css = { checked: 0, invalid: 0, samples: [] };

@@ -146,7 +146,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
           <span>List a position</span>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}><XIcon size={18} /></button>
+          <button onClick={onClose} aria-label="Close" className="modal-x"><XIcon size={18} /></button>
         </div>
 
         {/* Position picker */}
@@ -178,7 +178,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
 
         <div style={{ display: "flex", gap: 12 }}>
           <div className="field" style={{ flex: 1 }}>
-            <div className="field-label"><span>Shares</span><button onClick={() => setSharesStr(String(maxShares))} className="muted" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11 }}>Max {fmtNum(maxShares)}</button></div>
+            <div className="field-label"><span>Shares</span><button onClick={() => setSharesStr(String(maxShares))} className="field-max">Max {fmtNum(maxShares)}</button></div>
             <input className="input" inputMode="decimal" placeholder="0" value={sharesStr} onChange={(e) => setSharesStr(e.target.value)} />
           </div>
           <div className="field" style={{ flex: 1 }}>

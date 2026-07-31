@@ -116,6 +116,36 @@ Check `res.ok` **before** using the body. A 502 answers with `{ error }`, and ca
 if (!res.ok || !data || !data.expectedField) return setErr(data?.error ?? "…");
 ```
 
+### The audit only saw what was open
+
+For most of this rehaul every check ran against a route with everything closed.
+Sheets, modals and onboarding were never audited at all — and they were hiding
+real defects the whole time:
+
+- **The Sell modal overflowed 56px past the right edge at 390px.** `.overlay` is
+  a grid, and an `auto` track sizes to its content's max-content width — so
+  `.modal { width: 440px }` made the track 440px, and its own `max-width: 100%`
+  then resolved against *that* and constrained nothing. `grid-template-columns:
+  minmax(0, 1fr)` bounds the track to the container, which is what `100%` was
+  always meant to mean. 431px → 328px.
+- **The two lightest surfaces in the app are only reachable inside overlays.**
+  `--sheet` and `--toast` sit above `--elevated`, so the contrast fix from the
+  previous pass was still short: `--muted` scored 4.44 in an open Sheet.
+- The close X was an 18×27 tap target and "Max" was 32×19, both inline-styled
+  with no padding, in a dialog where a mis-tap dismisses your work.
+
+`runAudit()` now opens each overlay and runs contrast, layout **and** semantics
+against it. Entries whose opener is missing are skipped rather than failed —
+the connect modal only exists when no wallet is attached, and the audit must
+not depend on demo state.
+
+⚠ **Do not fix a small tap target with a negative margin.** Cancelling the added
+padding keeps the row from growing but pushes the button past its parent's
+content edge, which is real overflow — it showed up immediately as
+`clipped-content` on `.modal-title` and `.field-label`. Let the row grow; a
+modal header can afford 44px. (This is the second time that shortcut has been
+tried and caught in this project.)
+
 ### One motion character
 
 `--ease` (`cubic-bezier(0.22, 1, 0.36, 1)`) was defined and then used **8

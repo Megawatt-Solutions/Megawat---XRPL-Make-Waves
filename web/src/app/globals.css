@@ -50,17 +50,29 @@
      surfaces and for non-text detail, which is held to 3:1 and passes).
      What changes is that the dark canvas gets its own derivation of the
      same neutral: identical hue, no saturation, lifted until it clears
-     4.5:1 on the LIGHTEST surface it can land on. That surface is
-     --elevated (#16281f, used by the globe tooltip), not --card-2 — a
-     first pass at this solved for --card-2, left the tooltip sitting at
-     4.48, and the re-scan caught it. Solve for the lightest surface in
-     the file, not the lightest one you happen to be looking at.
+     4.5:1 on the LIGHTEST surface it can land on.
 
-     #909090 leaves 4.85 on --elevated and 6.29 on Carbon — passing on
-     every surface with room for the color-mix() variants built on it.
+     Finding that surface took three goes, and the pattern is worth more
+     than the value. First attempt solved for --card-2 and missed
+     --elevated. Second solved for --elevated and missed --sheet and
+     --toast — both of which only exist inside overlays, which the route
+     sweep never opens, so nothing caught them. The full ladder is:
 
-     Adding a surface lighter than --elevated invalidates this. */
-  --muted: #909090;
+       --bg        #030907   7.68
+       --surface   #071009   7.39
+       --card      #0c1712   7.00
+       --card-2    #112019   6.46
+       --elevated  #16281f   5.92
+       --sheet     #1b2f25   5.17
+       --toast     #20372b   4.66   <- binding constraint
+
+     #9c9c9c clears 4.5 on all seven. Ratios above are against it.
+
+     Do not solve this against one screenshot. Enumerate every surface
+     token in the file and solve for the lightest, then check that the
+     thing rendering it is actually reachable by whatever you are using
+     to verify — that was the real gap, not the arithmetic. */
+  --muted: #9c9c9c;
 
   /* Accent â€” Megawatt Green */
   --accent: var(--mw-green);
@@ -679,9 +691,59 @@ button {
   display: grid;
   place-items: center;
   z-index: 1000;
-  animation: fade 0.2s ease;
+  animation: fade var(--t-ui) var(--ease);
   padding: 20px;
+  /* Without this the modal inside overflows the screen. An `auto` grid track
+     sizes to its content's max-content width, so .modal's `width: 440px` makes
+     the track 440px wide — and its `max-width: 100%` then resolves against
+     that same 440px and constrains nothing. At 390px the Sell modal rendered
+     431px wide and pushed every field, label and button past the right edge.
+
+     minmax(0, 1fr) bounds the track to this element's content box, which is
+     what `100%` was always meant to mean. 431px -> 328px.
+
+     This was invisible for the whole rehaul because the route sweep never
+     opened a modal. */
+  grid-template-columns: minmax(0, 1fr);
 }
+/* Hit areas for the two bare buttons in modal chrome. Both were styled inline
+   with no padding, so the close X measured 18x27 and the "Max" shortcut 32x19
+   — well under what a thumb needs, and both sitting in a dialog where a
+   mis-tap either dismisses your work or overwrites an amount.
+
+   No negative margins. The first version cancelled the added padding with
+   margin: -11px -13px so the row would not grow — and that pushed both buttons
+   past their parent's content edge, which the audit correctly reported as
+   clipped content on .modal-title and .field-label. Growing the row by a few
+   pixels is the smaller price; a modal header can afford 44px. */
+.modal-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--r-control);
+  transition: color var(--t-ui) var(--ease);
+}
+.modal-x:hover { color: var(--text); }
+.field-max {
+  min-height: 38px;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--r-control);
+  transition: color var(--t-ui) var(--ease);
+}
+.field-max:hover { color: var(--text); }
+
 .modal {
   background: var(--surface);
   border: 1px solid var(--border-2);
