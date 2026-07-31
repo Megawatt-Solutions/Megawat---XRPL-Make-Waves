@@ -2266,6 +2266,17 @@ body { overflow-x: hidden; }
   text-underline-offset: 3px;
 }
 
+.sc-board-early {
+  margin-top: 12px;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-control);
+  font-size: 13px;
+  color: var(--text-2);
+}
+
 .sc-arch-row { cursor: pointer; }
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {

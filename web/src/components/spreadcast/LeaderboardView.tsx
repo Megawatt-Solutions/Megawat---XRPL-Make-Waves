@@ -110,7 +110,13 @@ export function LeaderboardView() {
                 <tr key={r.rank}>
                   <td className={r.rank === 1 ? "sc-rank-1" : "sc-mono"}>
                     {r.rank}
-                    {prizeForRank(r.rank) != null && <div className="sc-prize-amt">${prizeForRank(r.rank)}</div>}
+                    {/* Only project a prize once a player has actually scored.
+                        Showing "$125" beside 0 points implies a payout earned
+                        by being the only entrant, which is not a claim this
+                        page should make — it is a page about prize money. */}
+                    {r.points > 0 && prizeForRank(r.rank) != null && (
+                      <div className="sc-prize-amt">${prizeForRank(r.rank)}</div>
+                    )}
                   </td>
                   <td>
                     {r.name} {r.verified && <span className="sc-tag v">V</span>}{" "}
@@ -133,6 +139,15 @@ export function LeaderboardView() {
           </tbody>
         </table>
       </div>
+      {/* A single row under a "$500 · TOP 10" pool reads as an empty room
+          rather than an early one. Name it, and make the sparseness the
+          reason to play rather than a reason to doubt. */}
+      {rows != null && rows.length > 0 && rows.length < 4 && (
+        <p className="sc-board-early">
+          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period — the
+          board fills as the week runs, and every prize tier is still open.
+        </p>
+      )}
       <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
         Verified = XRPL wallet connected. &ldquo;Prediction in&rdquo; = prediction awaiting today&apos;s 15:00 result;
         &ldquo;on-chain&rdquo; = that prediction is locked on XRPL mainnet. Prize pool is split across the top 10 of the season leaderboard. Prize-eligibility requires verified
