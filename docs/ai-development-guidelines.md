@@ -158,7 +158,7 @@ quietly ran signed-in reports zero findings just as convincingly.
 `runAudit()` over 2 routes × 1 width reports it too. `runAudit()` over the full
 11 routes × 7 widths reports **zero**.
 
-Three hypotheses tried and none of them was it:
+Four hypotheses tried and none of them was it:
 
 1. *Fixed waits too short under load* — added `waitForOverlay()` polling. No change.
 2. *Opener not hydrated when queried* — added `waitFor()` for the opener too. No change.
@@ -166,6 +166,15 @@ Three hypotheses tried and none of them was it:
    defined` from removing a binding, and the harness surfaced it as
    `overlay-audit-error` rather than a silent zero, which is the behaviour it
    should have. Fixed, and still zero.
+4. *Stale document from a reused URL* — made `load()` cache-bust every call.
+   **Reverted:** it turns every page into a cache miss and the overlay pass went
+   from seconds to minutes. Not worth it, and it did not fix the zero either.
+
+**What instrumenting the full sweep did establish** — every entry logged
+`found: true` for both its opener and its overlay, then the pass returned zero.
+So the dialog *is* being opened; the failure is inside `audit()` not seeing the
+button once it is there. That rules out the entire "cannot reach the modal"
+family and is where the next attempt should start.
 
 So **do not read a zero from a full sweep as proof the overlays are clean.** Run
 `auditOverlays(390)` directly, which does work. The cause is still unknown and
