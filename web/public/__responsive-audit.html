@@ -295,7 +295,15 @@ function describe(el) {
 function audit(w) {
   const d = stage.contentDocument, win = stage.contentWindow;
   const out = [];
-  const de = d.documentElement;
+  const de = d && d.documentElement;
+  // A load that timed out, or a frame caught mid-navigation, leaves no
+  // documentElement — and reading .scrollWidth off null threw a TypeError that
+  // surfaced as `audit-error`, indistinguishable at a glance from a real page
+  // defect. Say what it actually is: the page was not there to measure.
+  if (!de || !d.body) {
+    out.push({ kind: "page-not-loaded", detail: "no document to measure — load timed out or was interrupted" });
+    return out;
+  }
 
   // 1. Technical: does the page scroll sideways at all?
   if (de.scrollWidth > de.clientWidth + 1)

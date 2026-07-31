@@ -434,6 +434,28 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### One label, one number, one format
+
+`/` and `/dashboard-v2` both carry a tile labelled **TOTAL VALUE LOCKED** over
+the same figure. They read `$2.44M` and `$2,440,000` — one nav click apart.
+
+Nothing was *wrong*; both were accurate. But two presentations of one number
+under one label make a reader ask which is right, and on a page about money that
+is the worst available reaction. The `/dashboard-v2` tile was even inconsistent
+with itself: `fmtMoney` in the headline, `fmtCompact` in its own sub-line for
+the replacement fund.
+
+Both use `fmtCompact` now. Compact is right for a glanceable metric beside a
+sparkline; exact figures belong on the vault pages, where precision is the
+point rather than decoration.
+
+**Use the shared formatters.** `Total capacity` was already consistent across
+both routes for exactly that reason — it goes through `fmtPower`/`fmtEnergy`,
+so it cannot drift. Every number that appears in two places should.
+
+⚠ Worth knowing: the two routes read from different sources — `dashboardMetrics()`
+and `PROTOCOL`. They agree today. Nothing enforces that they keep agreeing.
+
 ### Two kinds of small text
 
 The app uses 9px in three places, and only one of them was wrong.

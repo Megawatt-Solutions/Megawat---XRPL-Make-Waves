@@ -81,7 +81,18 @@ export default function DashboardV2Page() {
               <span className="caps">Total Value Locked</span>
               <Sparkline data={tvlSpark} width={64} height={20} fill={false} />
             </div>
-            <div className="v2-metric-value num">{fmtMoney(PROTOCOL.tvl, "USD", 0)}</div>
+            {/* fmtCompact, not fmtMoney. This tile and the one on / carry the
+                same label over the same number, one nav click apart, and read
+                "$2,440,000" here against "$2.44M" there. Two presentations of
+                one figure is the kind of thing that makes a reader wonder which
+                is right — the worst possible reaction to a headline metric on a
+                page about money.
+
+                Compact wins because it is what the sibling route already shows,
+                what this tile's OWN sub-line already uses for the replacement
+                fund, and what a glanceable metric beside a sparkline wants.
+                Exact figures live on the vault pages, where they are the point. */}
+            <div className="v2-metric-value num">{fmtCompact(PROTOCOL.tvl, "USD")}</div>
             <div className="v2-metric-sub">
               2 operational sites · {fmtCompact(PROTOCOL.reserves, "USD")} replacement fund
             </div>
