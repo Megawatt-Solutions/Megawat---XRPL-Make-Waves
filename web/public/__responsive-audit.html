@@ -122,9 +122,60 @@ window.runAudit = async function (routes, widths) {
       for (const r of res) findings.push({ route, w, ...r });
     }
   }
-  hud.textContent = `done — ${findings.length} findings`;
+  // Run the value check as part of every audit, so it cannot be forgotten.
+  hud.textContent = "validating CSS values…";
+  let css = { checked: 0, invalid: 0, samples: [] };
+  try { css = await window.validateCss(); } catch (e) { css.samples = [String(e).slice(0, 80)]; }
+  for (const s of css.samples) findings.push({ route: "(stylesheet)", w: 0, kind: "invalid-css-value", detail: s });
+
+  hud.textContent = `done — ${findings.length} findings (${css.checked} css decls checked)`;
   window.LAST = findings; // stored in the page's own scope so it survives
+  window.LAST_CSS = css;
   return findings;
+};
+
+// ── CSS value validity ───────────────────────────────────────────────────
+// A declaration with an invalid VALUE is not a syntax error — the browser
+// silently drops it and the element falls back to its inherited style. Nothing
+// else here catches that: the build does not validate values, and an element
+// inheriting a larger size rarely overflows. This is exactly how 40 corrupted
+// font-size rules survived three clean audit runs.
+//
+// Fetches the real stylesheets the app loaded and asks CSS.supports() about
+// every declaration.
+window.validateCss = async function () {
+  const doc = stage.contentDocument;
+  const hrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
+  const bad = [];
+  let checked = 0;
+
+  for (const href of hrefs) {
+    let text = "";
+    try { text = await fetch(href).then((r) => r.text()); } catch { continue; }
+    // @font-face carries DESCRIPTORS (unicode-range, font-display, and a
+    // variable-font "font-weight: 100 900" range) that CSS.supports() rejects
+    // because they are not properties. Strip those blocks or they drown the
+    // real findings — 40 false positives on this app alone.
+    const clean = text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/@font-face\s*\{[^}]*\}/g, "")
+      .replace(/@(counter-style|property|font-feature-values)[^{]*\{[^}]*\}/g, "");
+    for (const m of clean.matchAll(/([-a-zA-Z]+)\s*:\s*([^;{}]+)(?=[;}])/g)) {
+      const prop = m[1].trim();
+      // CSS.supports() takes a property and a value — not a priority — so the
+      // !important suffix has to come off or every guarded rule reads invalid.
+      const val = m[2].trim().replace(/\s*!\s*important$/i, "");
+      if (!prop || !val) continue;
+      if (prop.startsWith("--")) continue;           // custom props accept anything
+      if (prop.startsWith("-")) continue;            // vendor prefixes are normalised away
+      if (/^(from|to|src)$/.test(prop)) continue;    // keyframe selectors / font-face
+      checked++;
+      let ok = false;
+      try { ok = CSS.supports(prop, val); } catch { ok = true; }
+      if (!ok && bad.length < 40) bad.push(`${prop}: ${val}`);
+    }
+  }
+  return { checked, invalid: bad.length, samples: bad };
 };
 
 // Compact report: unique issue per (kind, element, route), with the widths it

@@ -133,6 +133,16 @@ It drives one iframe through every route at every width and reports document-lev
 
 **It is currently at zero findings. Keep it there.** If you change layout, re-run it before you commit.
 
+It also validates every CSS declaration with `CSS.supports()` — ~2,400 of them — and reports `invalid-css-value` findings. That check exists because of a real incident: a bulk regex rewrite emitted `font-size:$114px` into 40 rules (.NET read `$1` + `14` as capture group 114 and wrote the literal text). **An invalid value is not a syntax error** — the browser silently drops the declaration and the element inherits instead. `next build` doesn't validate values, and the layout checks don't notice text that gets *larger* by inheritance, so those 40 dead rules survived **three consecutive clean audits**.
+
+The lesson generalises: *a green check only covers what it measures.* When a whole class of defect is invisible to the harness, add the check rather than trusting the green.
+
+⚠ Never run a bulk regex over CSS with a `$1`-style backreference immediately followed by digits. Use a `MatchEvaluator` callback instead:
+
+```powershell
+[regex]::Replace($t, 'pattern', { param($m) 'font-size: ' + $m.Groups[1].Value })
+```
+
 ⚠ It lives in `public/`, which is served — so it is publicly reachable in production unless gated or deleted before deploy.
 
 Sanity-check the detector occasionally by injecting a deliberately oversized element and confirming it flags; a zero that comes from a broken audit is worse than a number.
