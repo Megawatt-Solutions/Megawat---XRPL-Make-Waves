@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function HowView() {
   return (
     <>
@@ -75,6 +77,26 @@ export function HowView() {
             <li>Every delivery day&apos;s raw values, aggregation, spread, band and commit-reveal record are public in the archive.</li>
           </ul>
         </div>
+      </div>
+
+      {/* This page is 467 words and had no button and no link anywhere in it.
+          Someone who reads to the end is the most convinced person in the
+          product — and the page handed them tax handling and a legal notice,
+          with the section bar at the very top as the only way forward.
+
+          Placed BEFORE the fine print on purpose. The fine print is the right
+          thing to end on legally and the wrong thing to end on persuasively,
+          so the invitation goes where the conviction still is. */}
+      <div className="sc-next-step">
+        <div>
+          <div className="sc-next-step-title">Ready to call one?</div>
+          <p className="sc-next-step-sub">
+            One pick a day, free, no deposit. Tomorrow&apos;s round is open now.
+          </p>
+        </div>
+        <Link className="btn btn-accent" href="/spreadcast">
+          Make a prediction
+        </Link>
       </div>
 
       <div className="panel sc-panel" style={{ marginTop: 16 }}>

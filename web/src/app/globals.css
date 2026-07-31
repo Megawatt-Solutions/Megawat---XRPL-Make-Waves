@@ -966,6 +966,41 @@ button {
    clip-path rather than display:none or visibility:hidden: both of those
    remove the element from the accessibility tree entirely, which would
    defeat the point. 1px box with no wrapping, so it never adds layout. */
+/* The closing invitation on "How it works" and the results log. Both pages
+   ended with no button and no link at all — 467 words and 114 words
+   respectively, finishing on legal small print.
+
+   Accent border rather than an accent fill: it has to read as the next step
+   without competing with the panels above it, and the green budget is ~2% of
+   any surface. Stacks on phones so the button never shares a cramped row. */
+.sc-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  border-radius: var(--r-surface);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.sc-next-step-title {
+  font-size: 17px;
+  font-weight: 640;
+  letter-spacing: -0.015em;
+}
+.sc-next-step-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+  max-width: 46ch;
+}
+@media (max-width: 560px) {
+  .sc-next-step { flex-direction: column; align-items: stretch; }
+  .sc-next-step .btn { width: 100%; }
+}
+
 /* Permalink + share, inside an expanded results-log day. */
 .sc-share-row {
   display: flex;

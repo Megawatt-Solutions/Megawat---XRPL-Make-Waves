@@ -98,6 +98,23 @@ export function ArchiveView() {
         </table>
       </div>
 
+      {/* Same gap as "How it works": this page had no button and no link
+          either. Someone reading the settlement record is checking whether the
+          game is honest — answering that and then offering nothing is a
+          conversation that stops mid-sentence. Lighter framing than the how
+          page, because a reference page is not a pitch. */}
+      <div className="sc-next-step">
+        <div>
+          <div className="sc-next-step-title">Every round settles here</div>
+          <p className="sc-next-step-sub">
+            Yours will too — one pick a day, free, scored from the official published prices.
+          </p>
+        </div>
+        <Link className="btn btn-accent" href="/spreadcast">
+          Make a prediction
+        </Link>
+      </div>
+
       <h2>Weekly blockchain anchors</h2>
       <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
         Once a week, a fingerprint of every prediction and result is written to XRPL — so even email-only players

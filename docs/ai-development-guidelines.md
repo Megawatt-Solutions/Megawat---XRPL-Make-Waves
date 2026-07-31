@@ -434,6 +434,36 @@ content edge, which is real overflow — it showed up immediately as
 modal header can afford 44px. (This is the second time that shortcut has been
 tried and caught in this project.)
 
+### The page that convinces someone has to tell them what to do next
+
+Counted the primary actions on every route. No screen has **competing** primary
+CTAs, which is good hierarchy and worth keeping. But two had **none at all**,
+and no internal links either:
+
+| page | words | buttons | links |
+|---|---|---|---|
+| `/spreadcast/how` | 467 | 0 | 0 |
+| `/spreadcast/log` | 114 | 0 | 0 |
+
+`how` is the most persuasive content in the product. Someone who reads to the
+end of it is the most convinced person in the app — and it handed them prize tax
+handling, a GDPR notice, and no way forward but the section bar at the top.
+
+Both now close with `.sc-next-step`. On `how` it sits **before** the fine print
+on purpose: the fine print is the right thing to end on legally and the wrong
+thing to end on persuasively, so the invitation goes where the conviction still
+is. On `log` the framing is lighter — a reference page is not a pitch, and
+someone checking the settlement record is asking "is this honest", so it answers
+that first and invites second.
+
+Accent **border**, not an accent fill: it has to read as the next step without
+competing with the panels above, and the brand budget is ~2% green per surface.
+
+**A page with zero actions is a design decision, so make it deliberately.** `/`
+has none either and that is correct — the vault cards *are* the action, and a
+CTA would compete with them. Zero is right when the content is the action and
+wrong when the content is an argument.
+
 ### One label, one number, one format
 
 `/` and `/dashboard-v2` both carry a tile labelled **TOTAL VALUE LOCKED** over
