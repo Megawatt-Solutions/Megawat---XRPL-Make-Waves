@@ -1121,6 +1121,32 @@ Two details that cost time:
   `div`** with no semantics to erase. Do not reach for it on anything that
   carries a role.
 
+### The audit tab is hidden, so animations never advance
+
+`web/public/__responsive-audit.html` runs its sweeps in an iframe in a tab
+nobody is looking at, so `document.visibilityState` is `"hidden"` — and Chrome
+does not tick CSS animations in a hidden tab. They sit at `playState:
+"running"`, `currentTime: 0`, permanently. Anything with an entry animation is
+therefore measured **at its first keyframe**, not where it comes to rest.
+
+This has now cost three separate false alarms. The most expensive read
+"the onboarding sheet overflows the viewport on every phone size", 40 failing
+measurements across nine viewports. The sheet was sitting at `transform:
+translateY(100%)` — the `from` frame of `obSheetIn`, exactly its own height
+below the fold. Nothing was wrong with it, and the giveaway was that the offset
+equalled the element's own height to the pixel.
+
+Waiting longer does not help; a hidden tab's animation clock does not run.
+Call `settleAnimations()` before measuring — it jumps every animation in the
+frame to its end. `waitForOverlay()` now calls it for you.
+
+The general form of the mistake is worth naming, because it keeps recurring in
+different costumes: **before believing a failure, check the measurement against
+something you already know.** A sheet whose `top` equals the viewport height
+exactly, on every size, is not nine independent layout bugs — it is one wrong
+reading. Two minutes on "could my ruler be wrong?" has repeatedly been cheaper
+than the fix it would have prompted.
+
 ### Empty demo data hides whole layouts from every audit
 
 `LISTINGS` and `POSITIONS` are both `[]`. Sweeping `/marketplace` at seven

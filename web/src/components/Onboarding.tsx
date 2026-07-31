@@ -278,8 +278,15 @@ export function Onboarding() {
     <div
       className="ob-scrim"
       data-testid="onboarding"
+      // dismissFlow, not finish. `dismiss()` exists precisely because a scrim
+      // tap is named in its own docstring as the canonical example of a close
+      // that is not a decision — and this handler was calling complete()
+      // anyway, so one stray backdrop tap marked onboarding done forever and
+      // forfeited the re-offer the state machine was built to give.
+      // mousedown rather than click, and only when the press starts on the
+      // scrim itself, so a drag that begins inside the sheet never closes it.
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) finish();
+        if (e.target === e.currentTarget) dismissFlow();
       }}
     >
       <div

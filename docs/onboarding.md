@@ -106,6 +106,28 @@ Things that are load-bearing and easy to break:
   Verified across the whole state machine: dismiss → closed → same-sitting
   reload stays closed → past the window opens once and sets `reoffered` → after
   that it stays closed permanently.
+- ~~**A scrim tap completed the flow instead of dismissing it**~~ — **fixed.**
+  The dismissal state machine above was built and documented, but the scrim's
+  own handler still called `finish()` → `complete()`. `dismiss()`'s docstring
+  names a scrim tap as its canonical example, so the one gesture the design was
+  written for was the one gesture that bypassed it: a stray backdrop tap marked
+  onboarding done forever and forfeited the re-offer. Now calls `dismissFlow()`.
+  Verified: tapping the scrim writes `dismissed: true, done: false`.
+- ~~**`saveStep()` erased the dismissal record**~~ — **fixed.** It wrote
+  `{ done: false, step }` flat, discarding `dismissed`, `dismissedAt` and
+  `reoffered`. Four ordinary actions — dismiss, wait out the window, press Next
+  once, close the tab — left storage looking like a user who had never seen the
+  flow, and it then reappeared on **every** visit forever. Exactly the nagging
+  the two-state design exists to prevent. Now merges over the existing record,
+  and carries `done` through so `?onboarding=1` cannot un-complete a finished
+  flow. Verified end-to-end in the browser: after Next, storage still reads
+  `dismissed: true, reoffered: true`, and abandoning does not re-show.
+- ~~**`isComplete()` mutated storage**~~ — **fixed.** The predicate wrote
+  `reoffered: true` as a side effect, so calling it twice returned `false` then
+  `true` and the second caller suppressed the showing the first had granted.
+  A question that changes its own answer is a trap for whoever calls it next.
+  The write moved to `consumeReoffer()`, invoked from `shouldShow()` at the one
+  point we know the flow is actually going on screen.
 - ~~**Copy says "11:45 CET"**~~ — **fixed** in an earlier pass. `HowView` reads
   "All times Ljubljana · CET in winter, CEST in summer"; `PlayView` and the
   onboarding step both say "11:45 Ljubljana time".

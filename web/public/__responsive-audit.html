@@ -269,13 +269,43 @@ async function waitFor(selector, timeout = 5000) {
   return null;
 }
 
+/**
+ * Jump every running animation in the frame to its end state.
+ *
+ * CALL THIS BEFORE MEASURING ANYTHING THAT ANIMATES IN. This tab is always
+ * `document.visibilityState === "hidden"` — nobody is looking at it — and
+ * Chrome does not advance CSS animations in a hidden tab. They report
+ * `playState: "running"` with `currentTime: 0`, forever. So an element with an
+ * entry animation is measured at its FIRST keyframe, not its resting position.
+ *
+ * That has now produced false alarms three separate times, most expensively as
+ * "the onboarding sheet overflows the viewport on every phone size" across 40
+ * readings — the sheet was sitting at `transform: translateY(100%)`, the `from`
+ * frame of obSheetIn, exactly its own height below the fold. Nothing was wrong
+ * with it. Waiting longer never helps; a hidden tab's clock does not run.
+ *
+ * `.finish()` throws on infinite animations, hence the try/catch — a spinner
+ * somewhere must not take the whole sweep down.
+ */
+function settleAnimations(doc) {
+  const d = doc || stage.contentDocument;
+  for (const el of d.querySelectorAll("*")) {
+    for (const a of el.getAnimations()) {
+      try { a.finish(); } catch { /* infinite / unresolved — leave it */ }
+    }
+  }
+}
+
 async function waitForOverlay(selector, timeout = 5000) {
   const d = stage.contentDocument;
   for (let waited = 0; waited < timeout; waited += 150) {
     const el = d.querySelector(selector);
     // Present AND laid out — a dialog can exist in the DOM a frame before it
     // has any size, and measuring it then reports nonsense.
-    if (el && el.getBoundingClientRect().height > 0) return el;
+    if (el && el.getBoundingClientRect().height > 0) {
+      settleAnimations(d); // otherwise every offset read is a keyframe, not a position
+      return el;
+    }
     await new Promise((r) => setTimeout(r, 150));
   }
   return null;

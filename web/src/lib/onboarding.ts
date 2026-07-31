@@ -156,15 +156,26 @@ export function isComplete(): boolean {
   const s = read();
   if (!s) return false;
   if (s.done) return true;
-  if (s.dismissed) {
-    if (s.reoffered) return true; // already had its second chance
-    const elapsed = Date.now() - (s.dismissedAt ?? 0);
-    if (elapsed < REOFFER_AFTER_MS) return true;
-    // Past the window: allow one more showing, and record that we did.
-    write({ ...s, reoffered: true });
-    return false;
-  }
-  return false;
+  if (!s.dismissed) return false;
+  if (s.reoffered) return true; // already had its second chance
+  return Date.now() - (s.dismissedAt ?? 0) < REOFFER_AFTER_MS;
+}
+
+/**
+ * Spend the single post-dismissal re-offer.
+ *
+ * This used to happen inside isComplete(), which made a question mutate the
+ * answer: calling the predicate twice returned `false` then `true`, and the
+ * second caller would suppress the very showing the first had just granted.
+ * A predicate that is only safe to call once is a trap for the next person.
+ * The write now happens in shouldShow(), at the one moment we actually know
+ * the flow is about to be put on screen.
+ */
+function consumeReoffer() {
+  const s = read();
+  if (!s || s.done || !s.dismissed || s.reoffered) return;
+  if (Date.now() - (s.dismissedAt ?? 0) < REOFFER_AFTER_MS) return;
+  write({ ...s, reoffered: true });
 }
 
 /**
@@ -187,8 +198,23 @@ export function savedStep(): number {
   return read()?.step ?? 0;
 }
 
+/**
+ * Record the resume point, WITHOUT discarding the rest of the record.
+ *
+ * This previously wrote `{ done: false, step }` flat, which erased
+ * `dismissed`, `dismissedAt` and `reoffered`. That silently undid the whole
+ * point of tracking them: dismiss → re-offered six hours later → press Next
+ * once → close the tab, and storage now looked like a user who had never seen
+ * the flow at all. It then reappeared on every single visit, forever — the
+ * exact nagging the two-state design was written to prevent, reachable in four
+ * ordinary actions.
+ *
+ * `done` is carried through as well, so force-opening a completed flow with
+ * `?onboarding=1` to check copy cannot un-complete it.
+ */
 export function saveStep(step: number) {
-  write({ done: false, step });
+  const s = read();
+  write({ ...s, done: s?.done === true, step });
 }
 
 export function complete() {
@@ -220,5 +246,9 @@ export function shouldShow(search: string): boolean {
     return true;
   }
   if (override === "1") return true;
-  return !isComplete();
+  if (isComplete()) return false;
+  // About to show it for real — if that is only possible because a dismissal
+  // aged out, this is the one re-offer, and it is now spent.
+  consumeReoffer();
+  return true;
 }
