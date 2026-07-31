@@ -944,6 +944,16 @@ button {
   line-height: 1.45;
   color: var(--red);
 }
+/* Empty = nothing to report: reserve the line so the dialog does not resize
+   when a message appears, and suppress the "!" badge so there is no error
+   marker without an error. Height is the line-box of one line at this
+   type size, in rem so it tracks the user's font-size setting. */
+.field-error:empty {
+  min-height: calc(0.8125rem * 1.45);
+  margin-top: 7px;
+}
+.field-error:empty::before { content: none; }
+
 .field-error::before {
   content: "!";
   flex-shrink: 0;

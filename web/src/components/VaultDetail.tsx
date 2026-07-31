@@ -788,11 +788,18 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
               </button>
             </span>
           </div>
-          {showBlocker && (
-            <p className="field-error" id="deposit-blocker" role="alert">
-              {blocker}
-            </p>
-          )}
+          {/* Always mounted, empty when there is nothing to say. Two reasons:
+              a role="alert" inserted into the DOM *with* its text already in
+              place is announced unreliably — several screen readers only pick
+              up a change to a region that was already there; and rendering it
+              conditionally resized the dialog. This modal is centred, so
+              appearing text pushed it up by half and the confirm button down
+              by the other half, 13px on desktop and 22px at 390px, while the
+              user was mid-keystroke on an amount of money.
+              .field-error:empty reserves one line and drops the "!" badge. */}
+          <p className="field-error" id="deposit-blocker" role="alert">
+            {showBlocker ? blocker : ""}
+          </p>
         </div>
 
         <div className="rows" style={{ marginBottom: 4 }}>

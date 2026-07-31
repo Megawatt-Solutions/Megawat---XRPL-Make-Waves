@@ -1260,6 +1260,32 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The same shape on the money path — and a live region that was late
+
+Taking the previous entry's rule to the other dialog that changes size: the
+deposit modal renders its validation message conditionally, so typing an amount
+grew the dialog 460→486px on desktop and 582→626px at 390px. Being centred, it
+pushed itself up by half and the confirm button **down** by 13px (desktop) or
+22px (mobile) — while the user was mid-keystroke on an amount of money.
+
+The fix is to keep the message element mounted and empty rather than to render
+it conditionally, and there is a **second and better reason** to do that than
+layout: a `role="alert"` inserted into the DOM *with its text already in place*
+is announced unreliably — several screen readers only pick up a change to a
+region that was already present. Conditional rendering was costing both
+stability and the announcement.
+
+`.field-error:empty` reserves one line and drops the `::before` "!" badge, so
+there is never an error marker without an error.
+
+Result: **0px** movement on desktop, 9px at 390 and 320. The residual is the
+message wrapping to a second line on narrow screens. Reserving two lines would
+remove it and cost a permanent 19px gap under every amount field — a worse
+trade, so it stays and is recorded rather than quietly "fixed".
+
+**Worth generalising:** conditionally-rendered validation text is the default in
+React and it is wrong twice over. Mount the region, toggle its contents.
+
 ### A centred dialog that changes height moves its own button onto the scrim
 
 The onboarding had been audited repeatedly — focus trap, state machine, layout
