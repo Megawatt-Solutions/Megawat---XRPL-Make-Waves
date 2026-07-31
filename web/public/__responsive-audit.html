@@ -49,6 +49,16 @@ const OVERLAYS = [
   { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
 ];
 
+// ⚠ Which modal a given opener produces depends on WALLET STATE. On
+// /marketplace the primary button opens the Sell form when a signing wallet is
+// attached and the "Connect XRPL wallet" modal when one is not — and only the
+// second contains the 189x31 "Use a watch-only address instead" button.
+//
+// So a run reporting zero here does NOT mean that button is fixed; it may mean
+// this pass never reached the modal containing it. Reaching it deterministically
+// needs a signed-out sweep (clear mw.xrplAddress / mw.xrplVia, restore after).
+// Until that is wired in, check it by hand before believing a zero.
+
 // ── User font-size preference ────────────────────────────────────────────
 // Browser zoom scales everything including px, so a px-only stylesheet still
 // "works" under zoom. What it ignores is the OTHER control: a raised default
@@ -315,6 +325,27 @@ async function semantics() {
     }
   }
   if (!doc.querySelector("main")) out.push({ kind: "no-main-landmark" });
+
+  // WCAG 2.4.1 Bypass Blocks, Level A. The nav repeats on every route, so
+  // without this a keyboard user tabs the same 7–11 links before reaching page
+  // content, on every single navigation.
+  //
+  // Checked structurally rather than by focusing it: an unfocused document
+  // never matches :focus, so a visibility test here would always fail and
+  // would be measuring the harness rather than the page.
+  const skip = doc.querySelector('a[href^="#"]');
+  if (!skip) {
+    out.push({ kind: "no-skip-link" });
+  } else {
+    const target = doc.querySelector(skip.getAttribute("href"));
+    if (!target) {
+      out.push({ kind: "skip-link-target-missing", detail: skip.getAttribute("href") });
+    } else if (!target.hasAttribute("tabindex") && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) {
+      // Without tabindex the jump moves the scroll position but not focus, so
+      // the next Tab continues from the nav — the link appears to do nothing.
+      out.push({ kind: "skip-link-target-not-focusable", el: describe(target) });
+    }
+  }
   if (!doc.documentElement.getAttribute("lang")) out.push({ kind: "no-lang" });
   // Several nav landmarks coexist here (main bar, mobile tabs, section bar).
   // Unlabelled they all announce as "navigation" and cannot be told apart.

@@ -151,6 +151,58 @@ them**: that is the developer's own origin, not a fixture.
 for `.connect-btn` and the absence of `.wallet-pill`. A signed-out sweep that
 quietly ran signed-in reports zero findings just as convincingly.
 
+### There was no skip link
+
+WCAG 2.4.1 Bypass Blocks is **Level A** — the base tier — and it was missing
+entirely. Measured before the fix:
+
+| route | tabs before page content |
+|---|---|
+| `/` | 7 |
+| `/portfolio` | 7 |
+| `/spreadcast` | 11 (the section bar adds four) |
+
+The same nav repeats on every route, so a keyboard user paid that toll on every
+navigation, forever.
+
+The link is first in the document, off-screen until focused (`display: none`
+cannot be focused, which would defeat it), pinned to the **viewport** so it
+appears wherever the user is, at `z-index: 100` — above `.nav` (50) and
+`.bottom-nav` (60), because the one thing worse than no skip link is one that
+appears underneath the bar it exists to skip.
+
+Its target is a wrapper in `layout.tsx`, not each page's own `<main>`, so it
+works regardless of what a route renders and no page has to remember to opt in.
+The wrapper carries `tabIndex={-1}` — **without it the jump moves the scroll
+position but not focus**, so the next Tab resumes from the nav and the link
+appears to do nothing.
+
+`runAudit()` now checks all three failure modes: `no-skip-link`,
+`skip-link-target-missing`, `skip-link-target-not-focusable`.
+
+⚠ It checks **structurally**, not by focusing the link. An unfocused document
+never matches `:focus`, so a visibility test would always fail and would be
+measuring the harness rather than the page — see below.
+
+### `:focus` needs the document to actually have focus
+
+Verifying the skip link produced two false failures in a row, both mine:
+
+1. In the audit iframe, `document.hasFocus()` is `false`, so `element.matches(':focus')`
+   returns `false` even when the element **is** `document.activeElement`. The
+   `:focus` styles never applied and the link looked broken.
+2. In the real tab, with focus genuinely held, I read `getComputedStyle`
+   immediately after `.focus()` — before the 150ms transition had run — and read
+   the *start* of the animation as the final state.
+
+With real focus and a 500ms wait it slides to `top: 8`, is fully in the
+viewport, and lands focus on `#main-content`.
+
+This is the same root cause as the `:focus-visible` false positive from the
+focus-ring pass. Anything involving `:focus`, `:focus-visible`, transforms or
+transitions has to be verified in a focused document, after the animation, or
+by screenshot.
+
 ### The audit now reports 1 finding, and that is correct
 
 `small-tap-target · button · 189x31` on the Sell/connect overlay. It is the

@@ -63,8 +63,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       
       <body suppressHydrationWarning>
         <AppProviders>
+          {/* WCAG 2.4.1 Bypass Blocks — Level A, and it was missing.
+              Measured before this: 7 tabs to reach page content on / and
+              /portfolio, 11 on /spreadcast because of the section bar. A
+              keyboard user paid that toll on EVERY navigation, since the same
+              nav repeats on every route.
+
+              First focusable in the document, invisible until focused. The
+              target is a wrapper rather than each page's own <main>, so it
+              works no matter what a route renders and no page has to remember
+              to opt in. */}
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
           <TopNav />
-          {children}
+          {/* tabIndex -1 so it can accept programmatic focus from the skip
+              link without joining the tab order itself. */}
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
           {/* Inside AppProviders (it reads useWallet) and last in DOM/tab
               order, so its focus trap sits at the end of the document. */}
           <Onboarding />

@@ -1095,6 +1095,37 @@ button {
   max-width: 62ch;
 }
 
+/* Skip link. Off-screen rather than display:none — a hidden element cannot be
+   focused, and being focusable is the entire point.
+
+   Pinned to the viewport when focused, not to the document, so it is visible
+   wherever the user happens to be. z-index above .nav (50) and .bottom-nav
+   (60): the one thing worse than no skip link is one that appears underneath
+   the bar it exists to skip. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 11px 16px;
+  border-radius: var(--r-control);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 620;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform var(--t-ui) var(--ease);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+/* The wrapper takes focus from the skip link but must never draw a ring for
+   it — the user asked to move, not to select a container. */
+#main-content:focus {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
