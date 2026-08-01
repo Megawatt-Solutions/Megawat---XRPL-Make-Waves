@@ -42,7 +42,17 @@ export function TopNav() {
 
         <div className="nav-links">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "active" : ""}`}>
+            // aria-current, not just a class. Which page you are on was drawn
+            // and nothing more — the same gap already fixed on the Spreadcast
+            // section bar, still open on the app's primary navigation, which is
+            // on every single page. "page" rather than "true" because these are
+            // location links, not a toggle.
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={isActive(l.href) ? "page" : undefined}
+              className={`nav-link ${isActive(l.href) ? "active" : ""}`}
+            >
               {l.label}
             </Link>
           ))}
@@ -72,7 +82,15 @@ export function TopNav() {
         {LINKS.map((l) => {
           const Icon = l.icon;
           return (
-            <Link key={l.href} href={l.href} className={`bottom-nav-item ${isActive(l.href) ? "active" : ""}`}>
+            // Same for the phone tab bar. It duplicates the links above, so a
+            // screen-reader user meets each destination twice and neither copy
+            // said which one they were on.
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={isActive(l.href) ? "page" : undefined}
+              className={`bottom-nav-item ${isActive(l.href) ? "active" : ""}`}
+            >
               <Icon size={21} />
               <span>{l.label}</span>
             </Link>

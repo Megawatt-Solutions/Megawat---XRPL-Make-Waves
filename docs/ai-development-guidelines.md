@@ -1260,6 +1260,35 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The primary navigation never said which page you were on
+
+Chasing the previous entry's "where does this lead" question in the direction
+automation *can* answer: every internal link was collected from eleven routes
+and fetched. **14 unique links, all resolving with correct per-route titles.**
+The control also showed a nonexistent route returns a genuine **HTTP 404**, not
+a soft 200 — worth knowing, and not previously verified.
+
+Two instrument notes from that, both the same shape as before:
+
+- The first detector matched `"Page not found"` anywhere in the HTML and
+  flagged **all 14**. Next embeds the not-found boundary in the RSC flight
+  payload of *every* page, so the string is always present. The titles were
+  visibly correct, which is the only reason it was caught rather than reported.
+- Once corrected, the status code alone would have sufficed. The elaborate
+  check was answering a question the protocol already answers.
+
+What the pass actually found came from asking the same question of the nav.
+`aria-current` was added to the **Spreadcast section bar** several passes ago;
+the **main nav and the phone tab bar** never got it. Which page you are on was
+drawn and nothing more, on the two navigations present on every single page —
+and the tab bar duplicates the main nav, so a screen-reader user met each
+destination twice with neither copy saying which was current.
+
+Both now carry `aria-current="page"` ("page", not "true": these are location
+links, not toggles). Verified across six routes, and the useful assertion is
+not "the attribute exists" but **`aria-current` count === `.active` count** on
+every route — so the ARIA and the styling cannot drift apart.
+
 ### Every CTA invited an action the app cannot perform
 
 Tracing what happens when a new user does the thing the app asks: **nothing in
