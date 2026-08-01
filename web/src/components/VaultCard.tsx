@@ -6,6 +6,7 @@ import { socSeries } from "@/lib/bess";
 import { Sparkline } from "./Sparkline";
 import { BoltIcon, SunIcon, BatteryIcon } from "./Icons";
 import { Flag } from "./Flag";
+import { apyBpsIsGross } from "@/lib/vaults";
 import { STATUS_BADGE } from "./vaultStatus";
 
 const STATUS_CARD: Record<Vault["status"], string> = {
@@ -18,7 +19,11 @@ const STATUS_CARD: Record<Vault["status"], string> = {
 export function VaultCard({ vault }: { vault: Vault }) {
   const badge = STATUS_BADGE[vault.status];
   const isShowcase = vault.kind === "showcase";
-  const apyLabel = isShowcase ? "Gross yield" : "APY";
+  // Keyed on what apyBps actually holds, not on `kind`. BESS Leipzig 01 is
+  // on-chain and its apyBps IS a gross yield, so the old kind-based guess
+  // printed "APY" over one. Only bess-belgrade-01 genuinely quotes a
+  // depositor APY here today.
+  const apyLabel = apyBpsIsGross(vault) ? "Gross yield" : "APY";
   const progress = raiseProgress(vault);
 
   return (

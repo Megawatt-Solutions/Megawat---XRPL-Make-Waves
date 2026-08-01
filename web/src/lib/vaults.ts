@@ -253,6 +253,27 @@ export function grossYieldBps(v: Vault): number {
   return s.depositorBps + s.protocolFeeBps + s.sinkingFundBps + s.reserveBps;
 }
 
+/**
+ * Does this vault's `apyBps` hold a GROSS yield, or a depositor share?
+ *
+ * `apyBps` does not mean the same thing across the dataset. Five of six vaults
+ * store the gross yield in it — `apyBps === grossYieldBps(v)`, and both equal
+ * `annualRevenue / capex`. bess-belgrade-01 stores the depositor share instead.
+ *
+ * Surfaces used to guess at this from `kind`, on the assumption that showcase
+ * vaults quote gross and on-chain ones quote APY. That is not what the data
+ * says: BESS Leipzig 01 is on-chain and its apyBps is gross, so its card
+ * labelled a gross yield "APY". Asking the numbers is exact where the guess was
+ * merely usually-right.
+ *
+ * This deliberately reports what the field currently IS. It does not decide
+ * what it SHOULD be — that changes headline figures across the product and is
+ * a founder call. See the note on `apyBps` in types.ts.
+ */
+export function apyBpsIsGross(v: Vault): boolean {
+  return v.apyBps === grossYieldBps(v);
+}
+
 export interface DashboardMetrics {
   tvl: number;
   replacementFund: number;

@@ -6,6 +6,7 @@ import type { VaultRow } from "@/lib/protocol";
 import { fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
 import { Flag } from "./Flag";
+import { apyBpsIsGross } from "@/lib/vaults";
 import { STATUS_BADGE } from "./vaultStatus";
 
 const COLS = "2.3fr 1.3fr 0.8fr 1fr 1fr";
@@ -98,7 +99,7 @@ export function VaultsOverview() {
             // disappears on its own, and the per-row markers still carry the
             // distinction. A mixed blend is genuinely a mixed number — the one
             // thing that must never happen is calling an all-gross blend "APY".
-            const allShowcase = g.rows.length > 0 && g.rows.every((r) => r.vault.kind === "showcase");
+            const allGross = g.rows.length > 0 && g.rows.every((r) => apyBpsIsGross(r.vault));
             return (
             <div key={g.group}>
               <div className="v2-row v2-group" style={{ gridTemplateColumns: COLS }}>
@@ -108,7 +109,7 @@ export function VaultsOverview() {
                 <span className="num">{fmtCompact(g.total, ASSET_CURRENCY)}</span>
                 <span className="num">
                   {fmtPct(bpsToPct(g.blendedApyBps))}
-                  {allShowcase && <span className="muted" style={{ fontSize: "0.6875rem" }}> gross</span>}
+                  {allGross && <span className="muted" style={{ fontSize: "0.6875rem" }}> gross</span>}
                 </span>
                 <span className="num accent">+{fmtPct(bpsToPct(g.rows.reduce((s, r) => s + r.contributionBps, 0)))}</span>
                 <span />
@@ -165,7 +166,7 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
       </span>
       <span className="num">
         {fmtPct(bpsToPct(row.apyBps))}
-        {isShowcase && <span className="muted" style={{ fontSize: "0.75rem" }}> gross</span>}
+        {apyBpsIsGross(v) && <span className="muted" style={{ fontSize: "0.75rem" }}> gross</span>}
       </span>
       <span className="num accent">{row.contributionBps > 0 ? `+${fmtPct(bpsToPct(row.contributionBps))}` : "—"}</span>
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>

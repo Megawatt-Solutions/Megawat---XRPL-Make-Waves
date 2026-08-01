@@ -8,7 +8,7 @@ import {
   fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
   fmtDuration, fmtAgo, fmtDate, fmtAddress,
 } from "@/lib/format";
-import { raiseProgress, grossYieldBps } from "@/lib/vaults";
+import { raiseProgress, grossYieldBps, apyBpsIsGross } from "@/lib/vaults";
 import { simulate, nextDistributionSec } from "@/lib/bess";
 import { POSITIONS } from "@/lib/portfolio";
 import { useWallet, useToast } from "@/lib/wallet";
@@ -41,6 +41,9 @@ export function VaultDetail({ vault }: { vault: Vault }) {
   const isActive = vault.status === "active";
   const isFundraising = vault.status === "fundraising";
   const isComing = vault.status === "coming_soon";
+  // Whether the headline figure is a gross yield or a depositor APY is a
+  // property of the DATA, not of `kind` — see apyBpsIsGross().
+  const isGrossHeadline = apyBpsIsGross(vault);
   const hasTelemetry = isActive || isShowcase;
 
   // Live simulation (client-only motion; SSR renders t=0 deterministically).
@@ -89,7 +92,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
               <span className="dot" style={{ background: STATUS_DOT[vault.status], boxShadow: `0 0 8px ${STATUS_DOT[vault.status]}` }} />
             </div>
             <div className="muted" style={{ fontSize: "0.875rem", marginTop: 3 }}>
-              <Flag code={vault.flag} size={13} /> {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isShowcase ? "gross" : "APY"}
+              <Flag code={vault.flag} size={13} /> {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isGrossHeadline ? "gross" : "APY"}
             </div>
           </div>
 
@@ -117,7 +120,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
         {/* Tiles */}
         <div className="detail-tiles" style={{ marginTop: 22 }}>
           <Tile
-            label={isShowcase ? "Gross yield" : "APY"}
+            label={isGrossHeadline ? "Gross yield" : "APY"}
             value={<span className="accent">{fmtPct(bpsToPct(vault.apyBps))}</span>}
             sub={isShowcase ? "On capex / yr" : "Per annum"}
             icon={<BoltIcon size={17} />}
@@ -550,6 +553,7 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
 
 // ─── Site details (fundraising) ───────────────────────────────
 function SiteDetailsCard({ vault }: { vault: Vault }) {
+  const isGrossHeadline = apyBpsIsGross(vault);
   return (
     <div className="card">
       <div className="card-title">Project details</div>
@@ -557,7 +561,14 @@ function SiteDetailsCard({ vault }: { vault: Vault }) {
         <Row k="Power / Energy" v={`${fmtPower(vault.spec.powerKw)} / ${fmtEnergy(vault.spec.energyKwh)}`} />
         <Row k="Chemistry" v={vault.spec.chemistry} />
         <Row k="Projected annual revenue" v={fmtCompact(vault.annualRevenue, vault.currency)} />
-        <Row k="Depositor APY" v={fmtPct(bpsToPct(vault.apyBps))} accent />
+        {/* Renders apyBps, which for five of six vaults is the GROSS yield —
+            it sits directly under "Projected annual revenue" and is exactly
+            that revenue over capex. Labelled "Depositor APY" it contradicted
+            the Yield breakdown card on the same page, which reads
+            split.depositorBps: Leipzig showed "Depositor APY 12.4%" here and
+            "Depositor APY 8.8%" there. The label now says which number this
+            is; deciding which number BELONGS here is a founder call. */}
+        <Row k={isGrossHeadline ? "Gross yield on capex" : "Depositor APY"} v={fmtPct(bpsToPct(vault.apyBps))} accent />
         <Row k="Receipt token" v={`${vault.symbol} · XRPL MPT`} />
         <Row k="Network" v="XRPL · Mainnet" />
       </div>
@@ -690,6 +701,7 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   onClose: () => void;
   onMockDone: (amt: number) => void;
 }) {
+  const isGrossHeadline = apyBpsIsGross(vault);
   // Focus trap, Escape, scroll lock and focus restore. This dialog takes a
   // deposit amount and had none of them — Tab left the modal on the very first
   // field, and the page behind scrolled under it. See ./useDialog.
@@ -806,7 +818,11 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
           <Row k="You receive" v={`${fmtNum(amt)} ${vault.symbol}`} />
           <Row k="Vault remaining" v={fmtMoney(remaining, "USD")} />
           <Row k="Receipt token" v="XRPL MPT share · tradeable" />
-          <Row k="Projected APY" v={fmtPct(bpsToPct(vault.apyBps))} accent />
+          {/* Same field, and this is the panel where it matters most: what a
+              depositor is about to commit to. When apyBps is gross, the
+              depositor's own share is split.depositorBps and lower. Labelled
+              accurately here; swapping the figure is the founder call. */}
+          <Row k={isGrossHeadline ? "Projected gross yield" : "Projected APY"} v={fmtPct(bpsToPct(vault.apyBps))} accent />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.75rem", color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>

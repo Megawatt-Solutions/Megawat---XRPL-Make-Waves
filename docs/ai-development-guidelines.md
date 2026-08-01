@@ -2345,6 +2345,49 @@ Leipzig). That is a founder call, flagged at the type definition and here.
 `split.*` is the field to trust meanwhile, and `yieldComposition()` reads only
 that.
 
+### Describing the data is not the same decision as fixing it
+
+The entry above ended by calling the `apyBps` problem blocked on a founder
+decision. Half of it was. The two halves are worth separating, because the
+distinction is reusable:
+
+- **What should `apyBps` mean?** A product decision. Resolving it moves headline
+  yield figures downward (Leipzig 12.4% → 8.8%). Still not mine.
+- **What does `apyBps` currently hold, on this vault, right now?** A fact,
+  answerable in one line, and the labels were getting it wrong.
+
+Five surfaces guessed at it from `kind`, on the theory that showcase vaults
+quote gross and on-chain ones quote APY. The data does not say that. BESS
+Leipzig 01 is on-chain and its `apyBps` is a gross yield, so its card said
+"APY" over one. `apyBpsIsGross(v)` — literally `v.apyBps === grossYieldBps(v)`
+— is exact where the guess was merely usually-right, and every surface now asks
+it instead:
+
+| Surface | before | after |
+|---|---|---|
+| VaultCard metric label | `kind` | `apyBpsIsGross` → 5 cards now read "Gross yield", 1 reads "APY" |
+| VaultDetail hero sub-line | `kind` | Leipzig "12.4% **gross**" (was "12.4% APY") |
+| VaultDetail hero tile | `kind` | same |
+| VaultDetail project details | hardcoded "Depositor APY" | "Gross yield on capex" when it is one |
+| VaultDetail deposit panel | hardcoded "Projected APY" | "Projected gross yield" when it is one |
+| VaultsOverview row/group marker | `kind === "showcase"` | 5 rows marked, was 2 |
+
+**No displayed number changed.** Only what each one is called. That is the line:
+relabelling says what the figure is, reassigning would say what it ought to be,
+and only the second needs someone with authority over the product.
+
+This also retires the same-label-two-numbers defect — Leipzig's page no longer
+says "Depositor APY 12.4%" beside "Depositor APY 8.8%", because the first one
+now correctly reads "Gross yield on capex". Belgrade, whose `apyBps` genuinely
+is a depositor share, still reads "Depositor APY 13.0%" in both places and was
+left alone by the same predicate that changed the others.
+
+Note the earlier fix this supersedes. Two passes ago the overview table gained a
+"gross" marker keyed on `kind === "showcase"` — 2 rows. It was right about the
+problem and wrong about the trigger, and it took ground truth (revenue ÷ capex)
+to see that. A fix built on a plausible-but-untested premise looks exactly like
+a correct one until something independent contradicts it.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
