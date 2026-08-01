@@ -834,7 +834,7 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
 
         <div className="rows" style={{ marginBottom: 4 }}>
           <Row k="You receive" v={`${fmtNum(amt)} ${vault.symbol}`} />
-          <Row k="Vault remaining" v={fmtMoney(remaining, "USD")} />
+          <Row k="Vault remaining" v={fmtMoney(remaining, vault.currency)} />
           <Row k="Receipt token" v="XRPL MPT share · tradeable" />
           {/* Same field, and this is the panel where it matters most: what a
               depositor is about to commit to. When apyBps is gross, the

@@ -3273,6 +3273,42 @@ behavioural difference, and a reviewer's afternoon. A consistency sweep is only
 worth running where inconsistency can *diverge* — which is the same reason
 `fmtPct` bypasses are noise and `fmtPower` bypasses were a rounding error.
 
+### Auditing my own fixes: three helpers, three sites that never got them
+
+The "call sites that did not change are invisible in the diff" lesson has fired
+eight times, so this pass applied it deliberately: for every helper introduced
+during this session, grep for surfaces still doing it the old way.
+
+Three hits, all of them *my own* incomplete fixes:
+
+- **`apyBpsIsGross`** — the globe tooltip still keyed on `kind === "showcase"`,
+  the exact assumption ground truth disproved. BESS Leipzig 01 read
+  "12.4% APY" there while its card said "12.4% Gross yield". The marker even
+  carried a `kind` field I had added *for this decision*, before learning the
+  decision was data-derived; it now carries `apyIsGross` instead.
+- **`fmtPower` / `fmtEnergy`** — the globe tooltip printed raw MW, so Ljubljana
+  read "0.35 MW / 0.55 MWh" against its card's "350 kW / 550 kWh". The same
+  defect fixed in `NetworkPanel` one pass earlier, on the surface next to it.
+- **`vault.currency`** — `Vault remaining` in the deposit modal used `"USD"`,
+  but `remaining` is `capex - raised`: both asset-side, both EUR, and the tile
+  at the top of that same page calls it "Target raise €3.20M". Missed by the
+  original currency sweep because it only renders with a wallet connected, and
+  that sweep predates `--as-connected`.
+
+**Two things worth carrying.**
+
+A grep for the *old* pattern is not the same as a grep for the *helper*. Looking
+for `status.replace` found nothing but my own comments; looking for
+`kind === "showcase"` found the live bug — because the old pattern had been
+edited away in most places while the wrong *key* survived. Search for what the
+call sites still do, not for the string the fix removed.
+
+And a data model can hide a unit error. `others = raised - deposited` subtracts
+an EUR figure from an RLUSD one. It is inert today because every on-chain vault
+has `raised: 0`, so it evaluates to zero and shows nothing wrong — which is
+exactly why it would ship. Flagged, not fixed: reconciling those two is a data
+decision, not a formatting one.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

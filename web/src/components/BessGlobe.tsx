@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import createGlobe from "cobe";
 import { bessMarkers } from "@/lib/protocol";
-import { fmtPct, bpsToPct } from "@/lib/format";
+import { fmtPct, bpsToPct, fmtPower, fmtEnergy } from "@/lib/format";
 import { Flag } from "./Flag";
 import { statusLabel } from "./vaultStatus";
 
@@ -214,7 +214,14 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
               />
               <div className="globe-tip">
                 <div className="globe-tip-name"><Flag code={m.flag} size={13} /> {m.name}</div>
-                <div className="globe-tip-sub">{m.location} · {m.capacityMw} MW / {m.energyMwh} MWh</div>
+                <div className="globe-tip-sub">{m.location} ·{" "}
+                  {/* Third surface with this same problem, after the vault
+                      cards and NetworkPanel. The marker carries MW/MWh, and
+                      printing them raw makes BESS Ljubljana 01 read
+                      "0.35 MW / 0.55 MWh" where its card says "350 kW / 550
+                      kWh". fmtPower/fmtEnergy pick the unit by magnitude, so a
+                      sub-megawatt site keeps its kW. */}
+                  {fmtPower(m.capacityMw * 1000)} / {fmtEnergy(m.energyMwh * 1000)}</div>
                 <div className="globe-tip-sub">
                   {/* "APY" was hardcoded here for every marker, including the
                       two showcase sites whose number is a gross yield on capex.
@@ -224,7 +231,7 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
                   {/* Was `status.replace("_", " ")` — the raw enum value with an
                       underscore swapped out, which produced a third spelling of
                       a status the rest of the app already had a word for. */}
-                  <span className="globe-tip-status">{statusLabel(m.status)}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.kind === "showcase" ? "gross yield" : "APY"}
+                  <span className="globe-tip-status">{statusLabel(m.status)}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.apyIsGross ? "gross yield" : "APY"}
                 </div>
               </div>
             </div>

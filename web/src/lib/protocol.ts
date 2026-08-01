@@ -3,7 +3,7 @@
 // Hero metrics are protocol-wide; the vault table below derives from VAULTS.
 // ─────────────────────────────────────────────────────────────
 import type { Currency, Vault } from "./types";
-import { VAULTS } from "./vaults";
+import { VAULTS, apyBpsIsGross } from "./vaults";
 
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
 
@@ -272,12 +272,13 @@ export interface BessMarker {
   capacityMw: number;
   energyMwh: number;
   apyBps: number;
-  // Carried so the globe tooltip can name the number it is showing. For a
-  // showcase site apyBps is a gross yield on capex, not a depositor APY, and
-  // without kind the tooltip had no way to tell and called every site's number
-  // "APY". Status cannot stand in for this: a showcase site and an investable
-  // one can both be "operational".
-  kind: Vault["kind"];
+  // Whether apyBps holds a gross yield or a depositor APY. This started as
+  // `kind`, on the assumption that showcase sites quote gross and on-chain ones
+  // quote APY — which the data does not support: BESS Leipzig 01 is on-chain
+  // and its apyBps IS gross. Every other surface moved to apyBpsIsGross(); the
+  // globe kept guessing from kind and so called Leipzig's gross yield "APY"
+  // while its own card said "Gross yield".
+  apyIsGross: boolean;
   status: Vault["status"];
   coords: [number, number]; // [lat, lng]
 }
@@ -291,7 +292,7 @@ export function bessMarkers(): BessMarker[] {
     capacityMw: v.spec.powerKw / 1000,
     energyMwh: v.spec.energyKwh / 1000,
     apyBps: v.apyBps,
-    kind: v.kind,
+    apyIsGross: apyBpsIsGross(v),
     status: v.status,
     coords: BESS_COORDS[v.id],
   }));
