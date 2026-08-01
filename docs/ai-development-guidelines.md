@@ -2480,6 +2480,55 @@ keyboard user cannot dismiss it at all. It lives in `wallet.tsx` and is already
 item 5 of `docs/wallet-tsx-handoff.md`; that entry now carries these
 measurements and a note that it is a dead end rather than a degradation.
 
+### 200% text: the tab bar left the screen, and my first fix broke 320px
+
+151 px font-sizes were converted to rem specifically so the browser's text-size
+setting works. That conversion was never *measured*. It does work — `html` has
+no pinned `font-size`, there are zero px font-sizes left in the stylesheet and
+zero inline ones, and an `h1` goes 39px → 78px at a 32px root.
+
+What the conversion did not survive is layout. At 200% (WCAG 1.4.4) on a 390px
+phone:
+
+| | before | after |
+|---|---|---|
+| `.bottom-nav-item` | right=**398** in a 390px viewport — fifth tab off-screen | fits |
+| `.odometer` | 377px wide, low-order digits of a money value cut off | scrolls |
+| `.globe-tip` | 457px wide, `nowrap`, off-screen | 366px, wraps |
+
+**The first fix was wrong and the measurement caught it.** `flex: 1` +
+`min-width: 0` removes the min-content floor, which stops the 200% overflow —
+but `flex: 1` means `flex-basis: 0`, so every tab becomes *exactly equal*. At
+320px that produced `[57,57,57,57,57]` and truncated "Spreadcast" and
+"Marketplace" **at normal text size**, where the original floor had sized them
+`[53,53,60,53,66]` with everything fitting. Fixing 200% is not worth breaking
+320px.
+
+`flex: 1 1 auto` + `min-width: 0` is the version that holds both ends: a
+content-aware basis, so longer labels still start wider and nothing truncates
+at any normal-size width (measured 320/360/390/430), and no min-content floor,
+so the bar still shrinks rather than overflowing at 200%.
+
+The lesson is about the shape of the check, not flexbox. **Verifying the fix at
+the size that motivated it would have passed.** The regression was two
+breakpoints away, at normal text, in the state that is not the one being
+debugged. After changing how something sizes, re-measure the *other* end of its
+range — and diff against the previous behaviour rather than against "does it
+look fine", which is how `[57,57,57,57,57]` would have gone unnoticed.
+
+Left as a known limitation: `.globe-tip` still exceeds the viewport at 200%,
+now by position rather than width. It is centred on a globe pin, so a pin near
+the right edge puts a 366px tooltip 10-21px over the edge no matter how narrow
+it is. Solving it means clamping in `BessGlobe`'s per-frame rAF loop, which is
+a poor trade for a hover-only affordance on touch devices at 200% text. It
+costs nothing at page level — `documentElement.scrollWidth` stays exactly
+`innerWidth` at both text sizes, so no horizontal page scroll appears.
+
+Also measured this pass and clean: **text contrast across the whole app** —
+1929 text nodes over 10 routes at 390px and 1280px, compositing each element's
+real background through translucent ancestors. Zero failures against 4.5:1
+(3:1 for large). Canaried at 0 → 265 → 0 by forcing `#3a3a3a` text.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

@@ -1609,7 +1609,20 @@ button {
     border-top: 1px solid var(--border);
   }
   .bottom-nav-item {
-    flex: 1;
+    /* `flex: 1` (basis 0) + `min-width: 0` was the first attempt and it was
+       worse: basis 0 makes every tab exactly equal, so at 320px the five came
+       out [57,57,57,57,57] and "Spreadcast"/"Marketplace" truncated at NORMAL
+       text size — where the min-content floor had previously sized them
+       [53,53,60,53,66] and everything fitted. Fixing 200% must not cost 320px.
+
+       `flex: 1 1 auto` keeps the content-aware basis, so at normal size the
+       longer labels still start wider and nothing truncates. `min-width: 0`
+       still removes the min-content FLOOR, which is what made the bar overflow
+       at 200% (WCAG 1.4.4): measured right=398 in a 390px viewport, pushing the
+       fifth tab off the screen entirely. Content-sized when there is room,
+       proportionally shrinkable when there is not. */
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1620,6 +1633,18 @@ button {
     font-size: 0.6875rem;
     font-weight: 550;
     transition: color var(--t-ui) var(--ease), background var(--t-ui) var(--ease);
+  }
+  /* With the floor removed the label has to be told what to do with the space
+     it no longer has. Truncating beats the alternatives: wrapping would double
+     the bar's height, and --nav-h-safe (which every page's bottom padding and
+     the toast stack are measured against) assumes one height. The icon and the
+     link's accessible name both survive truncation, so all five destinations
+     stay reachable and named — which is what 1.4.4 asks for. */
+  .bottom-nav-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .bottom-nav-item:active { background: rgba(255, 255, 255, 0.05); }
   .bottom-nav-item.active { color: var(--accent); }
@@ -1666,6 +1691,16 @@ button {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  /* At 200% text (WCAG 1.4.4) this figure is 377px wide inside a 390px phone,
+     so its last digits ran off the right edge — losing the low-order digits of
+     a money value, which is the worst end to lose. The reels are fixed-width by
+     construction (each is a 1em window over a digit strip), so it cannot wrap
+     or ellipsis; scrolling is the only way to keep every digit reachable.
+     1.4.4 permits reflow, and one-directional scrolling of the content that
+     needs it is the accepted answer where shrinking the text is not. */
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 .odo-reel {
   display: inline-block;
@@ -1959,13 +1994,21 @@ button {
   bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
+  /* `white-space: nowrap` kept this on one tidy line, and at 200% text made it
+     457px wide against a 390px viewport — off the screen entirely.
+     `max-width` alone does not fix that: nowrap forbids line breaks, so the box
+     would be capped and the text would still spill out of it. `width: max-content`
+     plus a max-width is the pattern that actually behaves as intended — sizes to
+     one line exactly as nowrap did whenever it fits, and only then wraps. */
+  width: max-content;
+  max-width: calc(100vw - 24px);
   background: var(--elevated);
   border: 1px solid var(--border-2);
   border-radius: var(--r-control);
   padding: 8px 12px;
-  white-space: nowrap;
   opacity: 0;
   pointer-events: none;
+  overflow-wrap: anywhere;
   transition: opacity var(--t-ui) var(--ease), bottom var(--t-ui) var(--ease);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   z-index: 6;
