@@ -3113,6 +3113,58 @@ Concatenation, not interpolation, inside anything injected.
 The MSYS guard added last pass also caught a mistake of mine on its first
 outing, which is the nicest thing that can happen to a guard.
 
+### A page called "Vaults" where you scroll a screen to reach one
+
+Looked at the homepage for the first time. On a phone the four stat tiles
+stacked one per row: 497px of metrics, putting the first vault card at
+**y=977** on an 844px screen. A page titled "Vaults", whose subtitle is about
+investing in them, and you scroll a full viewport before seeing one.
+
+The grid already used two columns between 481 and 640px. The single-column rule
+below 480 was the odd one out and carried no note saying why — unusual in this
+stylesheet, where nearly every rule states its reason. Measured before → after:
+
+```
+320px   grid 517→401   first card 1060→944   (−116px)
+360px   grid 497→332   first card  977→811   (−166px)
+390px   grid 497→299   first card  977→778   (−199px)
+430px   grid 497→263   first card  977→743   (−234px)
+```
+
+Two rows beat four even though each tile grows taller, and at 390 and up the
+first vault clears the fold.
+
+**Then the change broke something, and only a second measurement found it.**
+`.tile-icon` is absolutely positioned, so it takes no space in flow and the
+label's line box runs underneath it. At four-across that never mattered — wide
+tiles, short labels. Narrowed to two columns, the labels wrapped into the icon's
+band and the *glyphs* collided at 320, 360, 390 and 430.
+
+Catching it needed the right measurement twice over. The first attempt compared
+the label element's box to the icon's and reported a uniform "34px overlap"
+everywhere — the box always overlaps, because the icon is out of flow. What
+matters is where the **text** ends, which needs a `Range` over the text node:
+`selectNodeContents` then `getClientRects()` gives the glyph bounds. Only then
+does 320 differ from 480.
+
+The reserve is arithmetic, not a guess: the icon is `right: 16px` and 34px wide,
+so it owns the last 50px of the tile, while the label's content box stops at the
+20px padding — exactly the 30px measured. `padding-right: 38px` clears it with a
+small gap, on the label alone, since the value and sub-line sit below the icon.
+
+**The lesson is about the shape of a layout change.** Making something narrower
+does not just re-flow it; it moves content into bands that were empty at the old
+width, and absolute positioning is invisible to every check that looks for
+overflow or clipping — nothing overflows and nothing is clipped when two things
+simply occupy the same place. The screenshot showed it before any check did.
+
+Also fixed while here: the a11y audit reported `.sc-band-card` at "1.00:1 via
+fill". Five bands sit side by side on the same `--card` as their container,
+separated by a `border-right` — a rule between options, like `.seg-btn` and
+`.site-row`. 1.00:1 is not a faint boundary; it means the colours are identical
+and there is no fill distinction to measure. A fill matching its surround is now
+treated as no boundary, the same as having none.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

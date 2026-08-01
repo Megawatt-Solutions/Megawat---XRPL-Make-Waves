@@ -480,6 +480,19 @@ button {
   position: relative;
   overflow: hidden;
 }
+/* The icon is absolutely positioned, so it takes no space in flow and the
+   label's line box runs underneath it. At four-across that never mattered —
+   the tiles were wide and the labels short. Narrowing them to two columns on
+   phones made the labels wrap into that band, and the glyphs collided with the
+   icon at 320, 360, 390 and 430 ("Replacement Fund" and "Total Capacity" worst).
+
+   The icon sits `right: 16px` and is 34px wide, so it owns the last 50px of the
+   tile; the label's content box stops at the 20px padding, hence 30px of
+   overlap. 38px reserves that plus a small gap. Only the label needs it — the
+   value and sub-line sit below the icon's band. */
+.tile > .caps {
+  padding-right: 38px;
+}
 .tile-icon {
   position: absolute;
   top: 16px;
@@ -1710,7 +1723,23 @@ button {
   color: var(--text-2);
 }
 @media (max-width: 480px) {
-  .tile-grid { grid-template-columns: 1fr; }
+  /* Was `1fr`, i.e. one tile per row. Four full-width metric tiles came to
+     497px on a 390px phone, and pushed the first vault card to y=977 — a page
+     titled "Vaults" where you scroll a whole screen before seeing one.
+
+     Two columns everywhere below 641px instead, which is what this grid
+     already does between 481 and 640; the single-column rule was the odd one
+     out and carried no note saying why. Measured before → after:
+
+       320px   grid 517→401   first card 1060→944   (−116px)
+       360px   grid 497→332   first card  977→811   (−166px)
+       390px   grid 497→299   first card  977→778   (−199px)
+       430px   grid 497→263   first card  977→743   (−234px)
+
+     Nothing clips and nothing overflows at any of them — the sub-lines wrap
+     and the tiles grow taller, but two rows still beat four by a wide margin.
+     At 390 and up it lifts the first vault above the fold of an 844px screen. */
+  .tile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .section-head .muted { display: none; }
 }
 

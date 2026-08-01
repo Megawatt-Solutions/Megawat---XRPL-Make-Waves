@@ -212,6 +212,14 @@ for (const el of [...document.querySelectorAll(CTRL)].filter(painted)) {
   }
   // A control with no fill and no border is identified by its TEXT, and 1.4.3
   // covers that. 1.4.11 does not require a boundary the design never drew.
+  //
+  // A fill that matches its surround is not a boundary either, and counting it
+  // as one is how .sc-band-card was reported at "1.00:1 via fill". Those five
+  // bands sit side by side on the same --card as their container, separated by
+  // a border-right — a rule between options, exactly like .seg-btn and
+  // .site-row. 1.00:1 does not mean a faint boundary; it means the two colours
+  // are identical, i.e. there is no fill distinction to measure.
+  if (via === "fill" && best < 1.05) via = "none";
   if (via === "none") { textOnly++; continue; }
   ctrlChecked++;
   if (best < 3) findings.push({ kind: "non-text-contrast", el: label(el), detail: best.toFixed(2) + ":1 via " + via,
