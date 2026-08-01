@@ -88,13 +88,22 @@ export function Odometer({ startValue, ratePerSecond = 0.2, prefix = "$", decima
       // that whenever someone navigates to it they get the current figure
       // rather than the one from page load.
       //
-      // The text cannot drift from the reels, because it is updated from the
-      // same loop, on the same frame, from the same `value`. If rAF is paused
-      // — a background tab, or reduced-motion throttling — neither the digits
-      // nor the text advance, so they stay in agreement. That invariant is
-      // what makes this correct; it does not depend on rAF actually running,
-      // which is just as well since a hidden tab freezes rAF entirely and the
-      // audit harness therefore cannot observe this path at all.
+      // Measured 2026-08-01 over 24s in a headless browser, which corrects
+      // what this comment used to claim. It said the text "cannot drift from
+      // the reels, because it is updated from the same loop, on the same
+      // frame". They are written from the same frame, but the text is only
+      // REWRITTEN when the whole unit changes, so between ticks it lags:
+      //
+      //   t+3s   text €328,793.42   reels 328793.52   (0.10 behind)
+      //   t+9s   text €328,793.42   reels 328793.87   (0.45 behind)
+      //   t+21s  text €328,794.00   reels 328794.47   (0.47 behind)
+      //
+      // The invariant that does hold is the one worth relying on: the text is
+      // an accurate snapshot at the instant it is written, it never leads the
+      // reels, and the two never differ by a whole unit. At 0.05/sec that caps
+      // the lag at €1 on a six-figure number, against the alternative of
+      // rewriting text 60 times a second. If rAF is paused — a background tab,
+      // or reduced motion — neither advances, so they stay consistent.
       const whole = Math.floor(value);
       if (srRef.current && whole !== lastSpoken.current) {
         lastSpoken.current = whole;

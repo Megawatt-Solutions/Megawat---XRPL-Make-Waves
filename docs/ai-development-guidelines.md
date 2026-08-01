@@ -2611,6 +2611,54 @@ At mobile the raw `nav` element count still reads 2 because `.nav-links` is
 `display: none` rather than absent — which removes it from the accessibility
 tree, so a phone user gets banner + the "Sections" tab bar, correctly.
 
+### Reduced motion, finally measured — and a comment that was wrong
+
+`usePrefersReducedMotion` was written from reasoning: CSS already clamps
+animations, but it cannot stop a `requestAnimationFrame` loop, so the two
+kinetic JS loops (the odometer's reels, the globe's idle spin) had to read the
+setting themselves. None of that was ever observed. CDP can emulate the media
+feature, so it can be now:
+
+| | motion allowed | `prefers-reduced-motion: reduce` |
+|---|---|---|
+| BessGlobe pins | transforms advance | frozen, byte-identical |
+| Odometer reels | 2 of 8 move | 0 of 8 move |
+
+Both gates work.
+
+**The odometer check reported "no movement" in both states at first**, which
+looked like a broken headline metric. The selector took `.odo-strip` — the
+*first* reel — and the leading digit of a six-figure number legitimately never
+turns. rAF was ticking at 60fps the whole time (290 ticks in 4.8s), which is
+what said the instrument was wrong rather than the app. Sampling all eight
+reels showed the cents moving exactly as designed.
+
+**Then a longer run falsified a comment in the component.** It claimed the
+accessible text "cannot drift from the reels, because it is updated from the
+same loop, on the same frame". Measured over 24s:
+
+```
+t+3s    text €328,793.42   reels 328793.52   0.10 behind
+t+9s    text €328,793.42   reels 328793.87   0.45 behind
+t+21s   text €328,794.00   reels 328794.47   0.47 behind
+```
+
+Both are written from the same frame, but the text is only *rewritten* when the
+whole unit changes, so between ticks it lags by up to one unit. The behaviour
+is right — rewriting text 60 times a second to chase €0.05/sec would be far
+worse — but the stated reason was not the real one. The comment now records the
+invariant that actually holds: the text is accurate at the instant it is
+written, never leads the reels, and never differs by a whole unit.
+
+That comment also said "the audit harness therefore cannot observe this path at
+all". True when written; not true any more. **A confident comment about what
+cannot be tested ages badly the moment the tooling improves** — and this is the
+second time this session that a comment asserting something untested turned out
+to be the thing worth checking.
+
+No behaviour was changed this pass. Two components were verified and two
+comments corrected, which is the honest outcome when the code is already right.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

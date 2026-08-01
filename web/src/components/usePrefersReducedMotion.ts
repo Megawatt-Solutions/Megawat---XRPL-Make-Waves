@@ -17,6 +17,15 @@
 // once a second or once every 2.2s, not animation — a clock that stops is a
 // broken clock, and reduced motion is about movement, not about freezing data.
 
+// Verified 2026-08-01 by emulating the media feature over CDP and sampling the
+// two loops 2.5s apart, which was not possible when this was written:
+//
+//   motion allowed   BessGlobe pins moved,  2 of 8 odometer reels moved
+//   reduce           pins frozen identical, 0 of 8 reels moved
+//
+// Both gates work. The odometer check needed all eight reels — sampling only
+// the first showed "no movement" in both states, because the leading digit of
+// a six-figure number legitimately never turns.
 import { useEffect, useState } from "react";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
