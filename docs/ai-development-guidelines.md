@@ -1254,11 +1254,31 @@ odometer must be silent *while* a clip forced onto a neighbouring element is
 still caught.
 
 **Generated code needs reading back.** That suppression did nothing for its
-first two runs. Written through a heredoc, the `` word boundary in
-`/odo-/` became a literal backspace character — the file contained
-`/odo-/`, which matches nothing. `cat -A` showed it as `/^Hodo-/`. It now
+first two runs. Written through a heredoc, the `\b` word boundary in
+`/\bodo-/` became a literal backspace character — the file contained
+`/\bodo-/`, which matches nothing. `cat -A` showed it as `/^Hodo-/`. It now
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
+
+### The entry about mangled escapes was itself mangled
+
+Worth recording because it is the same bug twice, the second time inside its own
+write-up.
+
+An earlier pass shipped a suppression whose `` had become a literal backspace
+(0x08) on the way through a generator. The entry documenting that was written
+the same way — and `` in *that* string became a backspace too, so the
+paragraph explaining the corruption contained three invisible control characters
+where it meant to show ``.
+
+Found by running the same control-character scan on the doc that the original
+fix ran on the harness. Two attempts to repair it as text reported success and
+changed nothing; replacing at the **byte level** (`b""` → `0x5C 0x62`) worked
+first time and could be verified by counting bytes before and after.
+
+**The rule:** when the thing you are writing *is* an escape sequence, write it as
+bytes or verify it as bytes. Text-level tooling is exactly what corrupted it, so
+text-level tooling is not what proves it fixed.
 
 ### The earlier sweep missed two groups because it searched for vocabulary
 
