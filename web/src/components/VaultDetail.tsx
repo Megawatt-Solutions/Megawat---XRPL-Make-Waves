@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Vault } from "@/lib/types";
 import { useDialog, scrimDismiss } from "./useDialog";
 import {
-  fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
+  CCY_SYMBOL, fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
   fmtDuration, fmtAgo, fmtDate, fmtAddress,
 } from "@/lib/format";
 import { raiseProgress, grossYieldBps, apyBpsIsGross } from "@/lib/vaults";
@@ -352,7 +352,13 @@ function RevenueCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof si
       <div className="rows">
         <div className="row"><span className="row-key">Net revenue (YTD)</span><span className="row-val accent num">{fmtMoney(snap.netYtd, vault.currency, 0)}</span></div>
         <div className="row"><span className="row-key">Annual run-rate</span><span className="row-val num">{fmtCompact(vault.annualRevenue, vault.currency)}</span></div>
-        <div className="row"><span className="row-key">Current price</span><span className="row-val num">{fmtMoney(snap.pricePerMwh, vault.currency)}/MWh</span></div>
+        {/* "196.76 €/MWh" three rows above this one, and "€138.30/MWh" here —
+            the same quantity written two ways inside 200px. The app writes this
+            unit as a suffix everywhere else: the Spreadcast bands, the results
+            table, the daily-spread line directly above. fmtMoney puts the
+            symbol in front of the number, which is right for a sum of money and
+            wrong for a price per unit. */}
+        <div className="row"><span className="row-key">Current price</span><span className="row-val num">{fmtNum(snap.pricePerMwh, 2)} {CCY_SYMBOL[vault.currency]}/MWh</span></div>
       </div>
     </div>
   );

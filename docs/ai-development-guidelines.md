@@ -3207,6 +3207,35 @@ elements — showed the difference between a passing check and a working one.
 Both the standalone and the folded-in version were canaried separately, because
 transcribing a check is a chance to break it.
 
+### The same quantity, written two ways, 200px apart
+
+Reviewed two pages never looked at before. `/spreadcast/how` is sound — and its
+timeline already carries the fix it needs: the column runs 15:00 · 11:45 ·
+~13:00 · 15:00, which reads as predictions closing six hours before they open,
+and an earlier pass added "the following day" to row two to carry the day
+boundary. Only one boundary exists (rows 2-4 are all the close day), so it is
+handled. Checked rather than re-fixed.
+
+The vault page's lower half had a smaller thing. Two prices per megawatt-hour
+sit three rows apart on one card:
+
+```
+YESTERDAY'S SPREAD  196.76 €/MWh
+Current price       €138.30/MWh
+```
+
+The app writes this unit as a suffix in about fifteen places — the Spreadcast
+bands, the results table, the daily-spread line directly above it. Only this row
+prefixes the symbol, because it reached for `fmtMoney`, which is right for a sum
+of money and wrong for a rate. `€138.30/MWh` is not incorrect in isolation; it is
+just not what the rest of the app says, and it is adjacent to the version that
+is.
+
+**On reviewing pages you have never seen:** the how-page cost nothing and found
+nothing, and that is still worth the pass. Its timeline *looked* wrong until the
+source explained it had already been argued about — which is the same amount of
+information as finding a bug, arriving cheaper.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
