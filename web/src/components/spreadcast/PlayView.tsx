@@ -648,6 +648,26 @@ export function PlayView() {
                   single caption is reachable, readable and announces once. */}
               <div
                 className="sc-hist"
+                // Thirty empty spans. They carry the shape of the last month at
+                // a glance for anyone who can see them, and nothing at all
+                // otherwise: no text, no label, and not focusable — the
+                // `.sc-hist span:focus-visible` rule in globals.css can never
+                // match, because nothing here can take focus.
+                //
+                // Same treatment the charts already use: name the picture and
+                // let its parts become presentational. The per-day detail stays
+                // pointer-only, which is acceptable because it is not exclusive
+                // — the distribution is in the stats row directly below, and
+                // every day is a row in the results log.
+                role="img"
+                aria-label={
+                  history.length
+                    ? `Daily price swings, last ${history.length} days: ` +
+                      `${Math.round(Math.min(...history.map((h) => h.swing)))} to ` +
+                      `${Math.round(Math.max(...history.map((h) => h.swing)))} euro per megawatt hour, ` +
+                      `average ${histAvg.toFixed(0)}. Band distribution follows.`
+                    : "Daily price swings: no data yet."
+                }
                 onPointerDown={(e) => {
                   const t = (e.target as HTMLElement).closest("[data-tip]");
                   if (t) setTip(t.getAttribute("data-tip"));

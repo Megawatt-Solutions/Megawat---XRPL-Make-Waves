@@ -1260,6 +1260,35 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Two bar strips that were pictures to some people and nothing to others
+
+Spreadcast draws its data twice as bars: 30 daily swings on Play, and 24 hourly
+prices inside an expanded archive day. Both were invisible to anyone not using a
+pointer.
+
+- **`.sc-hist`** — 30 `<span>`s with no text, no label, no role and **no
+  `tabindex`**. Which also made `.sc-hist span:focus-visible` in `globals.css` a
+  rule that could never match: nothing in there can take focus.
+- **`.sc-hourly-grid`** — 24 `<div>`s described only by `title`, already
+  established in this file as the weakest channel there is.
+
+Both now carry `role="img"` and a label built from the real numbers — *"Daily
+price swings, last 30 days: 89 to 292 euro per megawatt hour, average 163"*, and
+*"Hourly prices, 00:00 to 23:00: 20 to 204"* — which also makes their children
+presentational, so 30 empty spans stop being 30 anonymous nodes.
+
+**The per-day detail stays pointer-only, and that is a deliberate limit rather
+than an oversight.** Making 30 bars focusable would add 30 tab stops to reach
+data that is not exclusive to them: the band distribution sits in the stats row
+directly beneath, and every single day is a row in the results log. Naming the
+picture is the proportionate fix; rebuilding the strip as a keyboard-navigable
+widget is not.
+
+The dead `:focus-visible` half of that CSS rule was removed. It was harmless
+while it merely did nothing, but under `role="img"` a focusable descendant would
+be invalid — so leaving it would read as evidence of keyboard support that
+cannot exist there.
+
 ### Reading the warnings, and a hypothesis that was already solved
 
 Acting on the previous entry's "read the warnings": the production build is now

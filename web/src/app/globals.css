@@ -3164,7 +3164,11 @@ button {
 /* Spreadcast â€” recent-swings helper */
 .sc-hist { display: flex; align-items: flex-end; gap: 3px; height: 96px; margin-top: 14px; }
 .sc-hist span { flex: 1; min-height: 3px; opacity: 0.85; }
-.sc-hist span:hover, .sc-hist span:focus-visible { opacity: 1; }
+/* Hover only. The :focus-visible half of this rule could never match —
+   the bars are spans with no tabindex — and now that .sc-hist carries
+   role="img" a focusable descendant would be invalid anyway. Removed so
+   it does not read as evidence of keyboard support that is not there. */
+.sc-hist span:hover { opacity: 1; }
 .sc-hist-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 0.6875rem; }
 
 /* Chart readout — replaces the hover tooltip on touch. Reserves its own line

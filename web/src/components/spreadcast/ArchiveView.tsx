@@ -264,7 +264,18 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
               <span className="muted">Loading audit trail…</span>
             ) : (
               <>
-                <div className="sc-hourly-grid">
+                {/* 24 bars whose only description was a `title` — invisible on
+                    touch and announced inconsistently. Named as a picture, same
+                    as the strips elsewhere; the exact numbers stay available in
+                    the row this expands from. */}
+                <div
+                  className="sc-hourly-grid"
+                  role="img"
+                  aria-label={
+                    `Hourly prices, 00:00 to 23:00: ${min.toFixed(0)} to ${max.toFixed(0)} ` +
+                    `euro per megawatt hour.`
+                  }
+                >
                   {detail.hourly.map((v, i) => {
                     const t = (v - min) / (max - min || 1);
                     return (
