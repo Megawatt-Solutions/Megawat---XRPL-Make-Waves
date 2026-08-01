@@ -124,13 +124,29 @@ export default function PortfolioPage() {
           <div className="empty-state">
             <BriefcaseIcon size={26} />
             <div className="empty-state-title">No positions yet</div>
+            {/* This used to read "Deposit into a vault to start earning..." with
+                a Browse vaults button. Nothing in the app takes a deposit today:
+                both operational sites are showcases marked not investable, and
+                all four onchain vaults are status coming_soon, which disables
+                their deposit control. So the instruction sent someone to browse
+                six vaults, find no way in, and conclude they had missed
+                something.
+
+                The timeline here is not invented — it is the same one the
+                pipeline cards already state. And the second action is something
+                that genuinely works today, rather than a second loop back. */}
             <p className="empty-state-body">
-              Deposit into a vault to start earning a share of what its batteries make on the day-ahead market. Your
-              positions and claimable yield will show up here.
+              No vault is open for deposits yet — the pipeline sites start fundraising next quarter. Their targets and
+              capacity are on the vaults page, and Spreadcast is free to play in the meantime.
             </p>
-            <Link className="btn btn-accent btn-sm" href="/">
-              Browse vaults
-            </Link>
+            <div className="empty-state-actions">
+              <Link className="btn btn-accent btn-sm" href="/">
+                See the pipeline
+              </Link>
+              <Link className="btn btn-ghost btn-sm" href="/spreadcast">
+                Play Spreadcast
+              </Link>
+            </div>
           </div>
         )}
         {POSITIONS.map((p) => {

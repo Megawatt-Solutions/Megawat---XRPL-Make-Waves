@@ -95,11 +95,16 @@ export default function MarketplacePage() {
             <StoreIcon size={26} />
             <div className="empty-state-title">No positions listed right now</div>
             <p className="empty-state-body">
-              The secondary market is where holders sell a vault position before it matures. Nothing is listed yet —
-              list one from your portfolio, or check back once vaults are further into their term.
+              The secondary market is where holders sell a vault position before it matures. Nothing is listed yet,
+              and nothing can be until the pipeline sites start fundraising next quarter and the first positions
+              exist.
             </p>
-            <Link className="btn btn-ghost btn-sm" href="/portfolio">
-              Go to your portfolio
+            {/* Was "Go to your portfolio", which is empty for the same reason
+                this page is: no deposits are open, so no positions exist to
+                list. Sending someone from one empty state to another is a loop,
+                not a route. The pipeline is where the actual information is. */}
+            <Link className="btn btn-ghost btn-sm" href="/">
+              See the pipeline
             </Link>
           </div>
         )}
@@ -210,8 +215,9 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
             <LayersIcon size={26} />
             <div className="empty-state-title">Nothing to list yet</div>
             <p className="empty-state-body">
-              Listing sells part of a vault position you already hold. You don&apos;t have one yet — deposit into a
-              vault first, and it will show up here whenever you want to exit before the term ends.
+              Listing sells part of a vault position you already hold. No vault is open for deposits yet — the
+              pipeline sites start fundraising next quarter, and once you hold a position it will show up here to
+              list.
             </p>
             <div className="empty-state-actions">
               <Link className="btn btn-accent btn-sm" href="/" onClick={onClose}>

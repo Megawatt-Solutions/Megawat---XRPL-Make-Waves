@@ -1260,6 +1260,40 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Every CTA invited an action the app cannot perform
+
+Tracing what happens when a new user does the thing the app asks: **nothing in
+this app takes a deposit today.** Both operational sites are showcases marked
+"not investable", and all four onchain vaults are `status: "coming_soon"`, which
+sets `disabled={isComing}` on both deposit triggers.
+
+Three empty states did not know that:
+
+- **Portfolio** — *"Deposit into a vault to start earning…"* with a **Browse
+  vaults** button. Follow it, look at six vaults, find no way in, conclude you
+  have missed something.
+- **Marketplace** — *"list one from your portfolio"*, and a **Go to your
+  portfolio** button, which lands on the empty state above. One empty state
+  routing to another is a loop, not a route.
+- **The sell dialog** — *"deposit into a vault first"*, written by me two passes
+  ago while fixing a different dead end in the same dialog.
+
+All three now state the real position and offer something that works: deposits
+open when the pipeline sites start fundraising **next quarter** — the app's own
+wording from the pipeline cards, not a date invented here — with routes to the
+pipeline and to Spreadcast, which is genuinely playable today.
+
+**Two things worth carrying:**
+
+A dead end is easy to spot; a **loop** is not. Each of these CTAs looked
+reasonable in isolation and only failed when followed. Walking the journey is
+the only way that surfaces — no automated check models "did this button lead
+anywhere useful".
+
+And **I wrote one of them.** The sell-dialog copy was added while fixing that
+dialog's own dead end, and repeated the error one level out. Fixing a dead end
+is not the same as checking where the replacement points.
+
 ### Icons are all decorative — which is exactly why nothing must be icon-only
 
 Following the flag finding to the rest of the graphics: `Icons.tsx` sets
@@ -1956,7 +1990,8 @@ so zero takes the plural and `"0 positions"` is correct.
 
 ### The shipped app is mostly empty — look at it that way
 
-`LISTINGS`, `POSITIONS` and `investableVaults()` are all empty, so what a real
+`LISTINGS` and `POSITIONS` are empty and every vault is either a showcase or
+`coming_soon`, so what a real
 first-time visitor sees is almost entirely empty states. Several passes audited
 those surfaces *with fixtures*, which is the right way to reach the layouts —
 but it means nobody had looked at the app in the state it actually ships in.
@@ -2290,9 +2325,12 @@ widths therefore reported a clean page at every one of them — `.mk-head` was
 row CSS had never once rendered**, in this browser or any other, and the audit
 could not tell the difference between "correct" and "absent".
 
-This is now the **third and fourth** time the same blind spot has bitten. Also
-empty: `investableVaults()`, because every vault in `vaults.ts` is `kind:
-"showcase"` or `status: "coming_soon"`. So the entire investable path — the
+This is now the **third and fourth** time the same blind spot has bitten. The
+investable path is unreachable too — though **not** because `investableVaults()`
+is empty, as an earlier version of this note claimed. It returns **four**: the
+pipeline vaults are all `kind: "onchain"`. They are also all `status:
+"coming_soon"`, and both deposit triggers are `disabled={isComing}`, so the
+gate is the *status*, not the kind. The entire investable path — the
 deposit modal, its Amount field, the MAX button, `SiteChart`'s controls on an
 onchain vault — renders for nobody. Flipping one vault to `kind: "onchain"`
 for the length of an audit is enough to reach all of it, and immediately turned
