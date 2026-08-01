@@ -11,7 +11,7 @@
 // --eval's file must evaluate to an expression (it is wrapped in an async IIFE
 // and the completion value is returned by value).
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,6 +31,30 @@ const evalFile = arg("eval");
 const shot = arg("shot");
 const port = Number(arg("port", 9333));
 
+
+// Clear profiles left by earlier runs. The exit-time cleanup below is
+// best-effort and often cannot succeed: kill() takes down the Chrome parent but
+// not its renderer and GPU children, and on Windows those keep a handle on the
+// profile, so rmSync gets EPERM however long it retries. A stale directory is
+// removable a moment later, once every child has actually gone — so the next
+// run removes it. That bounds the mess at one directory instead of the 714 and
+// 9.8GB that filled the disk.
+// 10 minutes, not "any other directory": concurrent audits are normal here and
+// deleting a sibling run's live profile would break it.
+function sweepStaleProfiles(prefix) {
+  try {
+    const dir = tmpdir();
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const name of readdirSync(dir)) {
+      if (!name.startsWith(prefix)) continue;
+      const p = join(dir, name);
+      try {
+        if (statSync(p).mtimeMs < cutoff) rmSync(p, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      } catch { /* in use, or gone — either is fine */ }
+    }
+  } catch { /* never let housekeeping break a run */ }
+}
+sweepStaleProfiles("cdp-");
 const profile = mkdtempSync(join(tmpdir(), "cdp-"));
 const chrome = spawn(
   CHROME,
@@ -184,4 +208,16 @@ try {
   process.exitCode = 1;
 } finally {
   chrome.kill();
+  // Remove the throwaway profile. Leaving it behind filled the disk: 714 of
+  // these at ~14MB each, 9.8GB, until no tool could open a file for writing.
+  try {
+    // maxRetries because kill() returns before Windows releases the
+    // profile's file handles: the first version threw EPERM on a run whose
+    // audit had already completed cleanly. And the catch because failing to
+    // tidy up must never fail the audit — an unremoved directory is a
+    // nuisance, a crashed sweep loses the result.
+    rmSync(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 150 });
+  } catch (e) {
+    console.error(`warn: left ${profile} behind (${e.code}) — remove it if these accumulate`);
+  }
 }

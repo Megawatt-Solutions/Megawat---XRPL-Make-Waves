@@ -3392,6 +3392,48 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The audit scripts filled the disk
+
+Every audit here starts Chrome with a throwaway profile via `mkdtempSync` and
+kills it in a `finally`. None of the five ever deleted the directory. Across a
+session of measurement that reached **714 abandoned profiles at ~14MB each —
+9.8GB** — and then the disk was full and nothing on the machine could open a
+file for writing.
+
+The failure mode is worth recording because of where it lands. Every tool
+available for diagnosing it needs to write a file first, so Bash, PowerShell,
+Write and Edit all failed with ENOSPC before running a single byte of what they
+were asked to do. Only read-only tools still worked, which was enough to confirm
+the uncommitted work was intact and to read the scripts — and reading them is
+how the fix was found. **An outage that disables your own tooling is the case
+for having read-only paths that still function.**
+
+Two corrections on the way out, both from measuring rather than assuming:
+
+**The prefix I first told the user to delete was wrong.** I said `overlay-*`;
+the script actually uses `ov-`. Grepping the sources rather than trusting memory
+turned up the real set — `cdp-`, `resp-audit-`, `ov-`, `state-`, `a11y-` — and
+`cdp-` was the bulk of it, since that driver runs behind nearly every probe.
+
+**Deleting at exit does not work, and retries do not save it.** `chrome.kill()`
+takes down the parent, but the renderer and GPU children keep handles on the
+profile, so `rmSync` gets EPERM — even with `maxRetries: 20`. The first version
+of the fix therefore crashed a run whose audit had already completed cleanly,
+which is strictly worse than the leak.
+
+So the fix is in three parts: a **best-effort** removal at exit, wrapped in a
+catch that warns instead of throwing, because failing to tidy up must never fail
+a sweep; and a **sweep at startup** that removes same-prefix directories older
+than ten minutes, which are guaranteed released by then. The next run cleans up
+after the last one. Ten minutes rather than "everything else" because concurrent
+audits are normal here and deleting a live sibling's profile would break it.
+
+Measured after: one stale directory swept on the next run, six profiles total
+across the entire suite instead of unbounded growth.
+
+The tell was available all along and I never looked: `chrome.kill()` sitting
+alone in a `finally` block in five files, with `mkdtempSync` at the top of each.
+
 ### ch is a digit width, not a character
 
 Encoded last pass's finding as a check: characters per line, from Range line

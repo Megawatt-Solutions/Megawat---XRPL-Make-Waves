@@ -2694,6 +2694,28 @@ button {
    420 next door came to exist. */
 .prose-note { max-width: 58ch; }
 
+/* Short captions balance their lines. Each of these is a phrase the reader
+   takes as one unit, so a single word dropping to a line of its own reads as a
+   mistake rather than as prose ending. Measured before this rule:
+
+     .v2-metric-sub   "…€37.0K replacement fund"      "fund" alone at 11% @320
+     .tile-sub        "…Opens for fundraising next quarter"  "quarter" 17% @390
+     .row-val         "Site secured, permitting under way"   "way" 12% @360
+     .sc-timeline span "Predictions open for the day after tomorrow." 24% @430
+
+   Not applied to paragraphs. A short final line is how prose ends, and
+   balancing body copy would be both wrong and, past a handful of lines,
+   something browsers decline to do anyway. */
+.v2-metric-sub,
+.tile-sub,
+.row-val,
+.page-sub,
+.legend-desc,
+.btn,
+.vault-card .muted,
+.card > .muted,
+.sc-timeline .t span { text-wrap: balance; }
+
 /* ─── User-supplied text ──────────────────────────────────────────
    User-supplied text has no length limit and no guaranteed break
    opportunity. A display name is typed into a form with no maxlength, and an

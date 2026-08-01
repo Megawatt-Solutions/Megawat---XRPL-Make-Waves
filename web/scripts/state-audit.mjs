@@ -11,7 +11,7 @@
 // range selectors and filters re-render layout, so most of what the app can
 // draw had never been looked at.
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -190,8 +190,38 @@ class CDP {
 }
 const connect = (u) => new Promise((r, j) => { const ws = new WebSocket(u); ws.onopen = () => r(new CDP(ws)); ws.onerror = () => j(new Error("ws")); });
 
+// Chrome gets a throwaway profile per run, and it must be removed on the way
+// out. Not doing so filled the disk: 714 abandoned directories at ~14MB each,
+// 9.8GB, until nothing could open a file for writing — including every tool
+// that would have diagnosed it. chrome.kill() was always here; deleting what
+// mkdtempSync created was not.
+
+// Clear profiles left by earlier runs. The exit-time cleanup below is
+// best-effort and often cannot succeed: kill() takes down the Chrome parent but
+// not its renderer and GPU children, and on Windows those keep a handle on the
+// profile, so rmSync gets EPERM however long it retries. A stale directory is
+// removable a moment later, once every child has actually gone — so the next
+// run removes it. That bounds the mess at one directory instead of the 714 and
+// 9.8GB that filled the disk.
+// 10 minutes, not "any other directory": concurrent audits are normal here and
+// deleting a sibling run's live profile would break it.
+function sweepStaleProfiles(prefix) {
+  try {
+    const dir = tmpdir();
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const name of readdirSync(dir)) {
+      if (!name.startsWith(prefix)) continue;
+      const p = join(dir, name);
+      try {
+        if (statSync(p).mtimeMs < cutoff) rmSync(p, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      } catch { /* in use, or gone — either is fine */ }
+    }
+  } catch { /* never let housekeeping break a run */ }
+}
+sweepStaleProfiles("state-");
+const PROFILE = mkdtempSync(join(tmpdir(), "state-"));
 const chrome = spawn(findChrome(), ["--headless=new", `--remote-debugging-port=${PORT}`,
-  `--user-data-dir=${mkdtempSync(join(tmpdir(), "state-"))}`, "--no-first-run",
+  `--user-data-dir=${PROFILE}`, "--no-first-run",
   "--no-default-browser-check", "--disable-gpu", "--hide-scrollbars",
   "--force-device-scale-factor=1", "about:blank"], { stdio: "ignore" });
 
@@ -242,4 +272,13 @@ states exercised: ${states}   disclosures opened: ${disclosures}   problem state
   if (!problems) console.log("  clean.");
   if (problems) exitCode = 1;
 } catch (e) { console.error(String(e)); exitCode = 1; }
-finally { chrome.kill(); process.exit(exitCode); }
+finally { chrome.kill(); try {
+    // maxRetries because kill() returns before Windows releases the
+    // profile's file handles: the first version threw EPERM on a run whose
+    // audit had already completed cleanly. And the catch because failing to
+    // tidy up must never fail the audit — an unremoved directory is a
+    // nuisance, a crashed sweep loses the result.
+    rmSync(PROFILE, { recursive: true, force: true, maxRetries: 20, retryDelay: 150 });
+  } catch (e) {
+    console.error(`warn: left ${PROFILE} behind (${e.code}) — remove it if these accumulate`);
+  } process.exit(exitCode); }

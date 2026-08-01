@@ -28,7 +28,7 @@
 // Requires a server on --base (default :3100). Prefer a production build:
 // the dev server recompiles under a sustained sweep and the timings drift.
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -372,6 +372,51 @@ for (const el of all) {
       detail: cpl + " chars/line over " + lineCount + " lines" });
 }
 
+// Stranded last line — a short title wrapping so a fragment sits alone.
+// Every vault is "<City> 01", so the name always ended in a two-character token
+// and "01" landed on its own line at 320 and 360 on all six landing-page cards.
+//
+// Deliberately NOT run on paragraphs. A short final line is simply how prose
+// ends; flagging it would report every well-set paragraph in the app. The
+// defect only exists where the block is short enough that the reader takes it
+// as one unit — a title, a label, a stat caption. Hence the 2-8 word window.
+//
+// Leaf elements only, for the reason the check above already learned twice: a
+// flex row with a dot and a taller badge produces several distinct rect tops
+// for one visual line, so container geometry reports wraps that do not exist.
+for (const el of all) {
+  if (el.children.length) continue;
+  const txt = (el.textContent || "").trim().replace(/\s+/g, " ");
+  const words = txt ? txt.split(" ").length : 0;
+  if (words < 2 || words > 8) continue;
+  if (inScroller(el)) continue;
+  const cs2 = getComputedStyle(el);
+  if (/mono|Mono|Courier/.test(cs2.fontFamily)) continue;
+  // An inline fragment inside a longer sentence is not a unit the reader sees.
+  // <b>×3 cap</b> in "growing to a ×3 cap from day 5" broke as "×3" / "cap" and
+  // was reported as a stranded word; nothing is stranded — the sentence around
+  // it wraps normally and the eye never treats the bold run as its own block.
+  // Only judge an element whose text is essentially all its parent renders.
+  if (cs2.display === "inline") {
+    const parentText = (el.parentElement ? el.parentElement.textContent || "" : "").trim();
+    if (parentText.length > txt.length + 2) continue;
+  }
+  const box = el.getBoundingClientRect();
+  if (box.width < 40) continue;
+  const rng = document.createRange();
+  rng.selectNodeContents(el);
+  const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
+  if (!rects.length) continue;
+  const tops = [...new Set(rects.map((r) => Math.round(r.top)))].sort((a, b) => a - b);
+  if (tops.length < 2) continue;
+  const lastRow = rects.filter((r) => Math.round(r.top) === tops[tops.length - 1]);
+  const lastW = Math.max(...lastRow.map((r) => r.right)) - Math.min(...lastRow.map((r) => r.left));
+  const pct = Math.round((lastW / box.width) * 100);
+  if (pct < 25)
+    findings.push({ kind: "stranded-last-line", el: label(el),
+      detail: '"' + txt.split(" ").pop() + '" alone at ' + pct + "% over " + tops.length + " lines" });
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
@@ -428,7 +473,31 @@ const run = () => {
     if (lines < 2) continue;
     if (Math.round(txt.length / lines) > 95) longline++;
   }
-  return { overflow, tiny, spill, longline };
+  let stranded = 0;
+  for (const el of [...document.querySelectorAll("body *")].filter(visible)) {
+    if (el.children.length) continue;
+    const t = (el.textContent || "").trim().replace(/\s+/g, " ");
+    const w = t ? t.split(" ").length : 0;
+    if (w < 2 || w > 8 || inScroller(el)) continue;
+    const c = getComputedStyle(el);
+    if (/mono|Mono|Courier/.test(c.fontFamily)) continue;
+    if (c.display === "inline") {
+      const pt = (el.parentElement ? el.parentElement.textContent || "" : "").trim();
+      if (pt.length > t.length + 2) continue;
+    }
+    const b = el.getBoundingClientRect();
+    if (b.width < 40) continue;
+    const g = document.createRange();
+    g.selectNodeContents(el);
+    const rs = [...g.getClientRects()].filter((r) => r.height > 0);
+    if (!rs.length) continue;
+    const tp = [...new Set(rs.map((r) => Math.round(r.top)))].sort((a, b2) => a - b2);
+    if (tp.length < 2) continue;
+    const lr = rs.filter((r) => Math.round(r.top) === tp[tp.length - 1]);
+    const lw = Math.max(...lr.map((r) => r.right)) - Math.min(...lr.map((r) => r.left));
+    if (Math.round((lw / b.width) * 100) < 25) stranded++;
+  }
+  return { overflow, tiny, spill, longline, stranded };
 };
 const baseline = run();
 const wide = document.createElement("div");
@@ -453,14 +522,27 @@ const longp = document.createElement("p");
 longp.style.cssText = "width:1400px;font-size:12px;max-width:none";
 longp.textContent = ("the quick brown fox jumps over the lazy dog and keeps running well past the point where any reader would lose their place ").repeat(3);
 document.body.appendChild(longp);
+// A long word then a two-letter one, in a box just wide enough that the short
+// token cannot fit beside it — text-wrap: normal so the balancer does not undo
+// the very thing being tested.
+const runt = document.createElement("div");
+// 110px, chosen by measurement rather than arithmetic: "Extraordinarily 01" at
+// 16px still fits on one line at 140 and 150, so the first version of this
+// canary asserted a defect it had not actually created and reported the check
+// as broken. It breaks at 130 and below; 110 sits mid-range rather than on the
+// boundary, where a font-metric change would silently un-fire it.
+runt.style.cssText = "width:110px;font-size:16px;text-wrap:normal";
+runt.textContent = "Extraordinarily 01";
+document.body.appendChild(runt);
 const defect = run();
-wide.remove(); small.remove(); spilled.remove(); longp.remove();
+wide.remove(); small.remove(); spilled.remove(); longp.remove(); runt.remove();
 const restored = run();
 return { baseline, defect, restored,
   overflowCheckFires: defect.overflow > baseline.overflow && restored.overflow === baseline.overflow,
   tapCheckFires: defect.tiny === baseline.tiny + 1 && restored.tiny === baseline.tiny,
   spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill,
-  measureCheckFires: defect.longline === baseline.longline + 1 && restored.longline === baseline.longline };
+  measureCheckFires: defect.longline === baseline.longline + 1 && restored.longline === baseline.longline,
+  strandedCheckFires: defect.stranded === baseline.stranded + 1 && restored.stranded === baseline.stranded };
 `;
 
 // ── minimal CDP client ───────────────────────────────────────────────────
@@ -508,9 +590,34 @@ const connect = (u) => new Promise((res, rej) => {
   ws.onerror = (e) => rej(new Error("ws: " + e.message));
 });
 
+
+// Clear profiles left by earlier runs. The exit-time cleanup below is
+// best-effort and often cannot succeed: kill() takes down the Chrome parent but
+// not its renderer and GPU children, and on Windows those keep a handle on the
+// profile, so rmSync gets EPERM however long it retries. A stale directory is
+// removable a moment later, once every child has actually gone — so the next
+// run removes it. That bounds the mess at one directory instead of the 714 and
+// 9.8GB that filled the disk.
+// 10 minutes, not "any other directory": concurrent audits are normal here and
+// deleting a sibling run's live profile would break it.
+function sweepStaleProfiles(prefix) {
+  try {
+    const dir = tmpdir();
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const name of readdirSync(dir)) {
+      if (!name.startsWith(prefix)) continue;
+      const p = join(dir, name);
+      try {
+        if (statSync(p).mtimeMs < cutoff) rmSync(p, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      } catch { /* in use, or gone — either is fine */ }
+    }
+  } catch { /* never let housekeeping break a run */ }
+}
+sweepStaleProfiles("resp-audit-");
+const PROFILE = mkdtempSync(join(tmpdir(), "resp-audit-"));
 const chrome = spawn(findChrome(), [
   "--headless=new", `--remote-debugging-port=${PORT}`,
-  `--user-data-dir=${mkdtempSync(join(tmpdir(), "resp-audit-"))}`,
+  `--user-data-dir=${PROFILE}`,
   "--no-first-run", "--no-default-browser-check", "--disable-gpu",
   "--hide-scrollbars", "--force-device-scale-factor=1", "about:blank",
 ], { stdio: "ignore" });
@@ -557,7 +664,7 @@ try {
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
-    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires) {
+    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires || !c.strandedCheckFires) {
       console.error("\nCANARY FAILED — the checks do not detect a defect they are given.");
       exitCode = 1;
     } else {
@@ -630,5 +737,17 @@ try {
   exitCode = 1;
 } finally {
   chrome.kill();
+  // Remove the throwaway profile. Leaving it behind filled the disk: 714 of
+  // these at ~14MB each, 9.8GB, until no tool could open a file for writing.
+  try {
+    // maxRetries because kill() returns before Windows releases the
+    // profile's file handles: the first version threw EPERM on a run whose
+    // audit had already completed cleanly. And the catch because failing to
+    // tidy up must never fail the audit — an unremoved directory is a
+    // nuisance, a crashed sweep loses the result.
+    rmSync(PROFILE, { recursive: true, force: true, maxRetries: 20, retryDelay: 150 });
+  } catch (e) {
+    console.error(`warn: left ${PROFILE} behind (${e.code}) — remove it if these accumulate`);
+  }
   process.exit(exitCode);
 }
