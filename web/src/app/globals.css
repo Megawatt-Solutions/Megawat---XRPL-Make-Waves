@@ -343,7 +343,16 @@ button {
   gap: 9px;
   padding: 6px 12px 6px 7px;
   background: var(--card);
-  border: 1px solid var(--border-2);
+  /* --border-control, not --border-2 (0.14 alpha). Two of the three things
+     wearing this class are operable — the header button that opens the wallet
+     modal, and the explorer link on a vault page — and the boundary measured
+     1.40:1 against its surround, under the 3:1 WCAG 1.4.11 asks of a control's
+     boundary. Same root cause as .perf-toggle: a decorative border rung used on
+     an operable control.
+
+     Only visible while a wallet is connected, which is why no sweep had ever
+     seen it: every audit before --as-connected ran signed out. */
+  border: 1px solid var(--border-control);
   cursor: pointer;
   transition: all var(--t-ui) var(--ease);
   font-family: var(--mono);

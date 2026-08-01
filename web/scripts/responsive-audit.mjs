@@ -54,6 +54,21 @@ const ROUTES = arg("routes",
 ).split(",");
 // Common 2026 viewport widths: Android baseline, the iPhone cluster, tablets
 // both orientations, and the laptop/desktop modes that dominate desktop traffic.
+// --as-connected: reach the signed-in UI without touching wallet.tsx.
+//
+// The portfolio table, the vault position/claim cards and the marketplace sell
+// picker are all gated on `connected` from useWallet(), so every sweep before
+// this measured only the signed-out half of the app. wallet.tsx is out of scope
+// to modify, but it restores its session from localStorage on load — so seeding
+// the keys it already reads reaches the same state through the app's own
+// mechanism, with no code change.
+//
+// Watch-only, and the address is the XRPL black-hole account: public, inert,
+// belongs to nobody. It reads balances and signs nothing.
+const CONNECTED_SEED =
+  'localStorage.setItem("mw.xrplAddress","rrrrrrrrrrrrrrrrrrrrrhoLvTp");' +
+  'localStorage.setItem("mw.xrplVia","watch");';
+
 // Any route that lost its leading slash was rewritten by MSYS. On Git Bash an
 // argument beginning with "/" is converted to a Windows path, so
 // --routes "/no-such-page" arrives as "C:/Program Files/Git/no-such-page" and
@@ -258,6 +273,7 @@ try {
   const { sessionId } = await browser.send("Target.attachToTarget", { targetId, flatten: true });
   const s = (m, p) => browser.send(m, p, sessionId);
   await s("Page.enable");
+  if (flag("as-connected")) await s("Page.addScriptToEvaluateOnNewDocument", { source: CONNECTED_SEED }, sessionId);
   await s("Runtime.enable");
 
   const evaluate = async (body) => {

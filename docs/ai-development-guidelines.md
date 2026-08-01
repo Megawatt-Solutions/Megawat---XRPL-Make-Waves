@@ -2959,6 +2959,45 @@ section bar comes with it and the visitor stays where they were headed.
   someone told me about". Both audits now carry both failure pages in their
   default routes.
 
+### Every audit in this session measured the signed-out half of the app
+
+The portfolio table, the vault position and claim cards, and the marketplace
+sell picker are all gated on `connected` from `useWallet()`. Every sweep before
+this one ran on a throwaway browser profile, so every one of them measured the
+signed-out app and nothing else.
+
+**The first attempt to reach it was wrong.** `POSITIONS` is `[]` in
+`portfolio.ts`, so the obvious move was a temporary fixture — and it changed
+nothing on screen, because the gate is `connected`, not the data. Worth knowing
+before concluding anything from a fixture: check what actually gates the branch,
+not what looks like it should.
+
+The way in needed no code change at all. `wallet.tsx` is out of scope to modify,
+but it *restores its session from localStorage on load* — `mw.xrplAddress` and
+`mw.xrplVia`. Seeding those keys before navigation
+(`Page.addScriptToEvaluateOnNewDocument`) reaches the signed-in state through
+the app's own mechanism. Watch-only, using the XRPL black-hole account
+`rrrrrrrrrrrrrrrrrrrrrhoLvTp` — public, inert, belongs to nobody, reads
+balances and signs nothing. Never the real user's address.
+
+Both audits now take `--as-connected`, and it found something on its first run:
+**`button.wallet-pill` at 1.40:1**. That is the header control that opens the
+wallet modal — operable, and only rendered while connected, so no sweep had
+ever seen it. Same root cause as `.perf-toggle` two passes ago: a decorative
+border rung (`--border-2`, 0.14 alpha) on an operable control, where
+`--border-control` (0.36) exists for exactly this. Two of the three elements
+wearing that class are operable; the third is a static badge and is unharmed by
+a stronger border.
+
+Signed-in sweeps after the fix: 24 a11y runs and 48 responsive runs, 0 findings,
+in both the fixtured and the real-data condition.
+
+**On the fixture discipline.** The rule written down earlier — never put a
+temporary fixture in a file with uncommitted work — held. Tree confirmed clean
+before, `git checkout --` on that one path after, `git status` showing only the
+three intended changes, and `.next` grepped for the fixture's contents to make
+sure the build carried none of it forward.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
