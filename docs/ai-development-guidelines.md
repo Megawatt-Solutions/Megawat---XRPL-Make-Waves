@@ -1260,6 +1260,32 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### "Updated per block", on a page that never reads a block
+
+Seeing `/dashboard-v2` whole — a page modified repeatedly this session but never
+viewed end to end — turned up one more provenance claim of the kind already
+corrected there for "value locked" and "depositor yield".
+
+Section 01 was headed `meta="Updated per block"`. `lib/protocol.ts` is titled
+*"protocol-level overview mock data"*; every figure in that section is a static
+constant derived from `VAULTS`, and the only thing that moves is the yield
+odometer accruing client-side at a **modelled** rate (`tvl × apy ÷
+seconds-per-year`). Nothing reads a block. Next to a "XRPL — Mainnet" ribbon
+that reads as a statement about where the numbers come from.
+
+It was also the odd one out: the sibling metas describe *content* ("TVL &
+depositor APY — historical", "Deployed & pipeline capital"), not update
+frequency. Now "Across the operating sites".
+
+**Flagged, not changed — for the founders.** The ribbon above it renders a
+pulsing green dot and **"All systems operational"** from a hardcoded string with
+`className="ribbon-live"`. Nothing checks anything: if the app or the ledger
+connection were down, it would still say this. A status indicator that cannot
+report bad news is worse than no indicator, because it is read as evidence. But
+whether to wire it to a real health check or remove it is a product decision,
+and the same restraint applies as with the "Total Value Locked" label — the
+sub-line was corrected, the headline left to whoever owns the positioning.
+
 ### The entry about mangled escapes was itself mangled
 
 Worth recording because it is the same bug twice, the second time inside its own

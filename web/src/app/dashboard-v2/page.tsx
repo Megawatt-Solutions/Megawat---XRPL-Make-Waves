@@ -83,7 +83,18 @@ export default function DashboardV2Page() {
       <SpreadcastStrip />
 
       {/* 01 — Hero metrics */}
-      <SectionHead index="01" name="Protocol metrics" meta="Updated per block" />
+      {/* Not "Updated per block". Nothing in this section reads a block:
+          lib/protocol.ts is headed "protocol-level overview mock data",
+          every figure here is a static constant derived from VAULTS, and the
+          only thing that moves is the yield odometer accruing client-side at
+          a MODELLED rate (tvl x apy / seconds-per-year). Beside a "XRPL —
+          Mainnet" ribbon, "updated per block" reads as a provenance claim,
+          which is the same overstatement already corrected on this page for
+          "value locked" and "depositor yield".
+
+          It was also the odd one out: the other two section metas describe
+          what the section contains rather than how often it changes. */}
+      <SectionHead index="01" name="Protocol metrics" meta="Across the operating sites" />
       <div className="panel">
         <Ticks />
         <div className="v2-metrics">
