@@ -41,6 +41,15 @@ const WIDTHS = (arg("widths", "320,390")).split(",").map(Number);
 const FORCE_H = arg("height") ? Number(arg("height")) : null;
 const HEIGHTS = { 320: 658, 360: 800, 390: 844, 414: 896, 658: 320, 844: 390, 896: 414 };
 
+// --as-connected: see the overlays that only exist with a wallet attached.
+// wallet.tsx restores its session from localStorage on load, so seeding the
+// keys it already reads reaches that state without modifying it. Watch-only,
+// XRPL black-hole account — public, inert, signs nothing.
+const CONNECTED_SEED =
+  'localStorage.setItem("mw.xrplAddress","rrrrrrrrrrrrrrrrrrrrrhoLvTp");' +
+  'localStorage.setItem("mw.xrplVia","watch");';
+const asConnected = process.argv.includes("--as-connected");
+
 // name, route, selector to click (null = already open), selector that should appear
 const CASES = [
   { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]" },
@@ -48,6 +57,7 @@ const CASES = [
   { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay" },
   { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay" },
   { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay" },
+  { name: "wallet:sheet",      route: "/",               open: ".wallet-pill",     expect: ".sheet-panel, [role=dialog]", needsConnected: true },
 ];
 
 const AUDIT = String.raw`
@@ -140,6 +150,7 @@ try {
   const { sessionId } = await b.send("Target.attachToTarget", { targetId, flatten: true });
   const s = (m, p) => b.send(m, p, sessionId);
   await s("Page.enable"); await s("Runtime.enable");
+  if (asConnected) await s("Page.addScriptToEvaluateOnNewDocument", { source: CONNECTED_SEED }, sessionId);
   const ev = async (expr) => {
     const r = await s("Runtime.evaluate", { expression: `(async () => { ${expr} })()`, awaitPromise: true, returnByValue: true });
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description?.slice(0,120) || "eval threw");
@@ -149,6 +160,7 @@ try {
   for (const w of WIDTHS) {
     await s("Emulation.setDeviceMetricsOverride", { width: w, height: FORCE_H || HEIGHTS[w] || 800, deviceScaleFactor: 1, mobile: true });
     for (const c of CASES) {
+      if (c.needsConnected && !asConnected) continue;
       const loaded = b.once("Page.loadEventFired");
       const url = BASE + c.route + (c.route.includes("?") ? "" : "?onboarding=0");
       await s("Page.navigate", { url });

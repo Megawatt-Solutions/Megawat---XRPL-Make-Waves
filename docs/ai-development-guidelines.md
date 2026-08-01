@@ -2998,6 +2998,39 @@ before, `git checkout --` on that one path after, `git status` showing only the
 three intended changes, and `.next` grepped for the fixture's contents to make
 sure the build carried none of it forward.
 
+### The last unaudited primitive, and a test that lied about focus
+
+`--as-connected` immediately paid for itself twice. The first was the wallet
+pill. The second is that `Sheet` — recorded two passes ago as "the one overlay
+primitive still unaudited, because both of its users need session state" — is
+reachable through `WalletModal` once a session exists.
+
+Measured, it is correct on every count: `role="dialog"`, `aria-modal="true"`,
+`aria-labelledby`, a close button, initial focus inside, focus trap, body scroll
+lock, Escape, scrim dismiss, focus restored on close. Geometry too — 560×280 in
+a 658×320 landscape viewport, because `max-height: min(88svh, calc(100svh -
+40px))` caps it. The `.modal` primitive was 487px tall in that same viewport and
+needed rescuing. The earlier note that `Sheet` was "structurally safe by
+construction" was right, and is now evidence rather than inference.
+
+**The test claimed one failure, and the test was wrong.** `focusRestoredToClose`
+came back false — on code whose whole purpose is focus restore. The cause was in
+the harness: it opened the dialog with a programmatic `el.click()`, and **a
+programmatic click does not move focus**. So `useDialog` captured
+`document.body` as its restore target and dutifully restored to it. Focusing the
+trigger first, the way a real click or an Enter press does, restores to the
+wallet pill exactly as written.
+
+The general shape: when simulating an interaction, ask what *else* the real
+gesture does. A click focuses. A tap does not hover. A keyboard activation both
+focuses and fires. Simulating only the payload and not the side effects produces
+failures in whichever code depends on the side effect — and those failures are
+convincing, because they land on exactly the feature you were testing.
+
+This also gives `docs/wallet-tsx-handoff.md` a measured side-by-side: ten dialog
+behaviours, `Sheet` has all ten, `XrplConnectModal` has one (scrim dismiss, its
+only exit). That is the whole argument for the change in that file, on evidence.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

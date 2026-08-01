@@ -273,6 +273,39 @@ and there is nothing focusable to activate. That is the WAI-ARIA dialog pattern'
 one hard requirement, and it is worth moving this item up the list — it is a
 dead end, not a degradation.
 
+### Side by side with `Sheet`, measured 2026-08-01
+
+`Sheet` was previously unmeasurable — both of its users need session state. It
+is reachable now by seeding the two localStorage keys `wallet.tsx` already reads
+on load (`mw.xrplAddress`, `mw.xrplVia`), which changes no code. So the two
+dialogs can finally be compared on evidence rather than on reading:
+
+| | `Sheet` (WalletModal) | `XrplConnectModal` |
+|---|---|---|
+| `role="dialog"` | yes | no |
+| `aria-modal="true"` | yes | no |
+| accessible name | `aria-labelledby="sheet-title"` | none |
+| close button | yes | **none** |
+| initial focus inside | yes | no |
+| focus trap | yes | no |
+| Escape closes | yes | **no** |
+| scrim dismiss | yes | yes (the only way out) |
+| body scroll locked | yes | no |
+| focus restored on close | yes | no |
+
+Every row on the left is what `useDialog` provides in two lines. The right-hand
+column is the entire content of this item.
+
+Geometry too: the sheet is 560×280 in a 658×320 landscape viewport — it fits,
+because `max-height: min(88svh, calc(100svh - 40px))` caps it. The `.modal`
+primitive that backs the connect dialog was 487px tall in that same viewport and
+had to be rescued by a change to `.overlay` in globals.css.
+
+*Note on testing this yourself:* activate the trigger with `el.focus()` before
+`el.click()`. A programmatic click does not move focus, so `useDialog` captures
+`document.body` as its restore target and focus restore looks broken when it is
+not.
+
 ### One part of this got fixed from outside the file
 
 The same modal was **unreachable in landscape**: at 844×390 its content ran to
