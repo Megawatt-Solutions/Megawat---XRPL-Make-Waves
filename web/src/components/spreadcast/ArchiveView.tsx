@@ -240,8 +240,31 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
   const max = detail ? Math.max(...detail.hourly) : 1;
   return (
     <>
+      {/* The row keeps its click handler — a big pointer target is the nicer
+          interaction and it costs nothing. But a <tr onClick> is not reachable
+          any other way: no tabindex, no role, so the ▸ marker advertised a
+          disclosure only a mouse could open, and the page's own instruction
+          ("click a day for the full price curve and everyone's revealed
+          predictions") was addressed to half the audience.
+
+          Unlike the bar strips, this detail is not duplicated on the page, so
+          naming the picture was not an option — it needed a real control. The
+          button lives in the cell rather than on the row so the table keeps its
+          semantics, and carries aria-expanded/aria-controls so the state is
+          announced rather than only drawn. stopPropagation because the row
+          handler would otherwise toggle a second time and cancel it out. */}
       <tr className="sc-arch-row" onClick={onToggle}>
-        <td className="sc-mono">{open ? "▾ " : "▸ "}{r.day}</td>
+        <td className="sc-mono">
+          <button
+            type="button"
+            className="sc-arch-toggle"
+            aria-expanded={open}
+            aria-controls={`arch-detail-${r.day}`}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          >
+            <span aria-hidden="true">{open ? "▾ " : "▸ "}</span>{r.day}
+          </button>
+        </td>
         <td className="num" style={{ fontWeight: 700 }}>{r.spread.toFixed(2)}</td>
         <td>
           <span className="sc-band-chip" style={{ "--bc": `var(${BAND_VARS[r.outcomeBand]})` } as React.CSSProperties}>
@@ -259,7 +282,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
       </tr>
       {open && (
         <tr className="sc-arch-detail">
-          <td colSpan={5}>
+          <td colSpan={5} id={`arch-detail-${r.day}`}>
             {!detail ? (
               <span className="muted">Loading audit trail…</span>
             ) : (

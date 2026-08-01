@@ -1260,6 +1260,37 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### An instruction addressed to half the audience
+
+`/spreadcast/log` tells you, in its own subtitle: *"Click a day for the full
+price curve and everyone's revealed predictions."* The day rows were
+`<tr onClick={onToggle}>` — no `tabIndex`, no `role`, no button. A `<tr>` is not
+focusable, so the `▸` marker advertised a disclosure that **only a pointer could
+open**, and that sentence was addressed to half the people reading it.
+
+This is a step up in severity from the bar strips in the previous entry. There,
+naming the picture was enough because the data existed elsewhere — the stats row,
+the results log. Here the thing behind the disclosure (hourly curve, revealed
+predictions, permalink, share) has no other route on the page, so it needed a
+**real control**, not a label.
+
+The button sits **inside the cell**, not on the row:
+
+- the table keeps its semantics — a row is not a button;
+- `aria-expanded` and `aria-controls` make the state announced rather than only
+  drawn as a triangle;
+- the row keeps its own `onClick`, because a large pointer target is the nicer
+  interaction and costs nothing — with `stopPropagation` on the button, or the
+  row handler fires second and toggles it straight back. **That is worth
+  testing explicitly**: a double-toggle looks exactly like a control that does
+  nothing, and only shows up if you check that one activation produces one
+  state change.
+
+Sized to the 24px floor while there. The text alone measured 94×**21**; the row
+is clickable too so the real pointer target is far bigger, but the control is
+what takes focus and draws the ring, and it should not be the one thing on the
+page under the minimum.
+
 ### Two bar strips that were pictures to some people and nothing to others
 
 Spreadcast draws its data twice as bars: 30 daily swings on Play, and 24 hourly

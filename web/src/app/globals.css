@@ -2865,6 +2865,27 @@ button {
 }
 
 .sc-arch-row { cursor: pointer; }
+/* The real disclosure control. Looks exactly like the text it replaced — the
+   row already reads as clickable — but it is focusable, activates on Enter and
+   Space, and reports its expanded state. */
+.sc-arch-toggle {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  /* 24px floor (WCAG 2.5.8). The text alone measured 94x21, and while the whole
+     row is also clickable — so the pointer target is really much larger — the
+     control itself is what takes focus and draws the ring, so it should not be
+     the one thing on this page under the minimum. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
 .sc-arch-row:hover td { background: var(--card-2); }
 .sc-band-chip {
   display: inline-block;
