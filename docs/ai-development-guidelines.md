@@ -1260,6 +1260,43 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A decorative flag that announced itself before every location
+
+With the automated sweep clean, what is left is what automation cannot judge —
+content and redundancy. `Flag` renders `role="img"` with **both** an
+`aria-label` and a `<title>`, and with no `title` prop the label falls back to
+the bare ISO code.
+
+All six call sites place a flag immediately before text that already names the
+place. Measured, that produced:
+
+```
+"SI Ljubljana, Slovenia"        "SI BESS Ljubljana 01"
+```
+
+— a cryptic two-letter code in front of every location, **18 times on
+`/dashboard-v2` alone**. Not information; a stutter before the real label.
+
+The component's own header already said what it is: *"the flag is a location
+cue, not a rendition."* It is now decorative by default — `aria-hidden`, no
+role, no `<title>` — with an explicit `title` prop as the opt-in for a flag that
+ever has to stand alone. `NetworkPanel` was passing `title={s.location}` beside a
+row that spells the location out, so it announced the location **twice**; that
+prop is gone.
+
+Verified across 24 flags on two routes: all decorative, none named, none
+carrying a `<title>`, all still rendering, and the row announcement reduced to
+"BESS Ljubljana 01 Ljubljana, Slovenia Operational 12.2% Gross yield".
+
+**Untested in situ, and worth saying:** no caller now passes `title`, so the
+named branch is type-checked but not exercised on any page. It is three lines
+and exists for a future standalone use.
+
+**Checked at the same time and correct:** all six flag codes match their
+locations — 🇸🇮 Slovenia ×2, 🇷🇸 Serbia, 🇩🇪 Germany, 🇱🇹 Lithuania, 🇷🇴 Romania.
+A wrong flag is exactly the class of error no automated check would catch, so it
+was worth confirming rather than assuming.
+
 ### Full regression sweep — 88 combinations, clean
 
 After roughly twenty-five passes of point fixes it was worth asking whether the

@@ -50,11 +50,26 @@ export function Flag({
   const w = size;
   const h = Math.round(size * 0.72);
 
+  // Decorative unless the caller asks otherwise.
+  //
+  // Every one of these sits immediately before text that already names the
+  // place — "SI Ljubljana, Slovenia", "SI BESS Ljubljana 01". With a name of
+  // its own the flag announced the bare country code before each of them, 18
+  // times on the overview page alone: not information, just a stutter in front
+  // of the real label. Passing an explicit `title` opts back in, for a flag
+  // that ever has to stand on its own.
+  //
+  // This matches what the note at the top of this file already says the flag
+  // is for — "a location cue, not a rendition".
+  const label = title
+    ? ({ role: "img", "aria-label": title } as const)
+    : ({ "aria-hidden": true } as const);
+
   // Unknown country: show the code rather than nothing, so it degrades to
   // roughly what the emoji fallback did instead of disappearing silently.
   if (!spec) {
     return (
-      <span className="flag flag-fallback" aria-label={title ?? cc}>
+      <span className="flag flag-fallback" {...label}>
         {cc || "?"}
       </span>
     );
@@ -67,11 +82,10 @@ export function Flag({
       width={w}
       height={h}
       viewBox={`0 0 ${n * 10} ${Math.round(n * 10 * 0.72)}`}
-      role="img"
-      aria-label={title ?? cc}
+      {...label}
       preserveAspectRatio="none"
     >
-      <title>{title ?? cc}</title>
+      {title && <title>{title}</title>}
       {spec.bands.map((fill, i) =>
         spec.vertical ? (
           <rect key={i} x={(i * n * 10) / n} y="0" width={(n * 10) / n} height={n * 10 * 0.72} fill={fill} />

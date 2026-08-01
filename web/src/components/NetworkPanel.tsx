@@ -45,7 +45,9 @@ export function NetworkPanel() {
                   wants first in a list of sites. The status dot moves inline
                   with the text it describes, instead of floating loose in its
                   own column where it read as decoration. */}
-              <Flag code={s.flag} size={18} title={s.location} />
+              {/* No title: the location is spelled out in this same row, so naming
+                  the flag only repeats it. */}
+              <Flag code={s.flag} size={18} />
               <span className="site-id">
                 <span className="site-name">{s.name}</span>
                 <span className="site-loc">
