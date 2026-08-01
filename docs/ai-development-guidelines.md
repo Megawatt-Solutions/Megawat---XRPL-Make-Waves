@@ -3352,6 +3352,39 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Reading the two overlays that had never been readable
+
+Both of the overlays unlocked last pass turned out to be well built. The sell
+modal: role=dialog, aria-modal, a label that resolves, every control at 40px or
+above, and copy that matches the page behind it. The wallet profile sheet is
+tidy too — a real scroller, honest "watch-only · unfunded (1 XRP base reserve)"
+provenance, and a clear note that deposits settle in RLUSD.
+
+The finding was in what the sheet *says*. Its most prominent element is a green
+card with a verified check reading **"Accredited Investor · Megawatt Compliance
+· XRPL Credentials (XLS-70) · Jul 2026"** with an ELIGIBLE badge. `buildProfile`
+sets `kycLevel: 2` unconditionally, so that appears for any address that
+connects — measured on three, including two real funded mainnet accounts that
+belong to other people.
+
+The clue that it is placeholder data is inside the panel itself: "unfunded (1
+XRP base reserve)" sits about 60px above "Accredited Investor". An account that
+has never transacted, credentialed by a named issuer on a date. **A panel that
+contradicts itself within one screen is usually showing one real value and one
+constant** — that is a quick way to spot mock data dressed as fact.
+
+Documented, not changed. The data lives in wallet.tsx, which is out of scope,
+and how to present an accreditation is a legal decision rather than a design
+one. Worth distinguishing from the other placeholders already logged: the
+hardcoded "All systems operational" ribbon claims something about
+infrastructure; this claims something about an identified person, with an issuer
+and a date attached. The presentational half is self-contained in
+WalletModal.tsx if the founders want it softened.
+
+Also worth noting what did NOT happen: two overlays measured clean and no code
+changed. A pass whose output is one documented flag is a real result, not a
+wasted one — the alternative is inventing a change to have something to show.
+
 ### Three green rows for one modal
 
 Pointed the new click sweep at the money flows and it immediately disagreed with
