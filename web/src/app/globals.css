@@ -2664,6 +2664,27 @@ button {
    and 2560 all rendered the same 140. It was wrong at every desktop width. */
 .sc-notice { color: var(--text-2); font-size: 0.8125rem; max-width: 68ch; }
 
+/* Explanatory prose sitting under a data view — the leaderboard's legend and
+   the how page's band paragraph. Both ran past the measure once the layout gave
+   them a full-width column: 106 chars/line over 3 lines from 768px up, and 98
+   over 2 at tablet widths.
+   58ch, and the number is not what it looks like. `ch` is the advance width of
+   the digit "0", which in this face is noticeably wider than the average
+   lowercase letter — so a 75ch cap measured out at 98 REAL characters per line,
+   still over the ceiling, and the check went on firing after the "fix".
+   Measured here: 75ch = 662px = 98 chars, i.e. ch overstates prose by ~1.3x.
+   58ch lands around 76.
+
+   Worth remembering wherever a measure is set in ch: the unit is a digit width,
+   not a character count, and the two differ by a quarter or more in proportional
+   type. The .sc-notice cap above has the same bias — 68ch measures 84 — which is
+   inside the ceiling but closer to it than the number suggests.
+
+   One class for both call sites so this lives in one place; the alternative was
+   a second and third inline maxWidth chosen separately, which is how the 440 and
+   420 next door came to exist. */
+.prose-note { max-width: 58ch; }
+
 /* ─── User-supplied text ──────────────────────────────────────────
    User-supplied text has no length limit and no guaranteed break
    opportunity. A display name is typed into a form with no maxlength, and an

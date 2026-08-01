@@ -225,7 +225,7 @@ export function LeaderboardView() {
           board fills as the week runs, and every prize tier is still open.
         </p>
       )}
-      <p className="muted" style={{ fontSize: "0.75rem", marginTop: 12 }}>
+      <p className="muted prose-note" style={{ fontSize: "0.75rem", marginTop: 12 }}>
         Verified = XRPL wallet connected. &ldquo;Prediction in&rdquo; = prediction awaiting today&apos;s 15:00 result;
         &ldquo;on-chain&rdquo; = that prediction is locked on XRPL mainnet. Prize pool is split across the top 10 of the season leaderboard. Prize-eligibility requires verified
         status; awards are promotional and occasional, announced per cycle.

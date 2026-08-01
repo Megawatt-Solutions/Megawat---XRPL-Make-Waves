@@ -336,6 +336,42 @@ for (const el of all) {
       detail: Math.round(textRight - box.right) + "px past its own box" });
 }
 
+// Measure — characters per line. Comfortable is 45-75; past roughly 90 the eye
+// starts losing its place on the return sweep to the next line. The Spreadcast
+// fine print sat at 140 and no check here could see it, because every other
+// rule in this file asks whether a box fits and that paragraph fit perfectly.
+//
+// Three conditions, each one earned:
+//
+//  - MULTI-LINE only. A single-line strip has no return sweep, so the number is
+//    meaningless there. .sc-legal is one line of "·"-delimited tokens at 102
+//    and is fine; capping it would wrap it for no reading benefit.
+//  - Substantial text only (>= 120 chars). A long label or a table cell is not
+//    prose and should not be judged as prose.
+//  - Proportional type only. Mono blocks here are hashes and addresses, where
+//    the character count is the content, not a sentence.
+//
+// 95 rather than 90 as the trip point: the ceiling is a soft one, and a rule
+// that fires at 91 would generate argument instead of fixes.
+for (const el of all) {
+  if (el.children.length) continue;
+  const txt = (el.textContent || "").trim();
+  if (txt.length < 120) continue;
+  if (inScroller(el)) continue;
+  const cs = getComputedStyle(el);
+  if (/mono|Mono|Courier/.test(cs.fontFamily)) continue;
+  const rng = document.createRange();
+  rng.selectNodeContents(el);
+  const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
+  if (!rects.length) continue;
+  const lineCount = new Set(rects.map((r) => Math.round(r.top))).size;
+  if (lineCount < 2) continue;
+  const cpl = Math.round(txt.length / lineCount);
+  if (cpl > 95)
+    findings.push({ kind: "line-too-long", el: label(el),
+      detail: cpl + " chars/line over " + lineCount + " lines" });
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
@@ -378,7 +414,21 @@ const run = () => {
     const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
     if (rects.length && Math.max(...rects.map((r) => r.right)) > el.getBoundingClientRect().right + 2) spill++;
   }
-  return { overflow, tiny, spill };
+  let longline = 0;
+  for (const el of [...document.querySelectorAll("body *")].filter(visible)) {
+    if (el.children.length) continue;
+    const txt = (el.textContent || "").trim();
+    if (txt.length < 120 || inScroller(el)) continue;
+    if (/mono|Mono|Courier/.test(getComputedStyle(el).fontFamily)) continue;
+    const rng = document.createRange();
+    rng.selectNodeContents(el);
+    const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
+    if (!rects.length) continue;
+    const lines = new Set(rects.map((r) => Math.round(r.top))).size;
+    if (lines < 2) continue;
+    if (Math.round(txt.length / lines) > 95) longline++;
+  }
+  return { overflow, tiny, spill, longline };
 };
 const baseline = run();
 const wide = document.createElement("div");
@@ -396,13 +446,21 @@ const spilled = document.createElement("p");
 spilled.style.cssText = "width:20px;white-space:nowrap;overflow:visible";
 spilled.textContent = "text far wider than twenty pixels";
 document.body.appendChild(spilled);
+// Wide enough to force a long measure, and TWO lines so the multi-line
+// condition is exercised rather than bypassed — a one-line block is exempt by
+// design, so a canary that fits on one line would prove nothing.
+const longp = document.createElement("p");
+longp.style.cssText = "width:1400px;font-size:12px;max-width:none";
+longp.textContent = ("the quick brown fox jumps over the lazy dog and keeps running well past the point where any reader would lose their place ").repeat(3);
+document.body.appendChild(longp);
 const defect = run();
-wide.remove(); small.remove(); spilled.remove();
+wide.remove(); small.remove(); spilled.remove(); longp.remove();
 const restored = run();
 return { baseline, defect, restored,
   overflowCheckFires: defect.overflow > baseline.overflow && restored.overflow === baseline.overflow,
   tapCheckFires: defect.tiny === baseline.tiny + 1 && restored.tiny === baseline.tiny,
-  spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill };
+  spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill,
+  measureCheckFires: defect.longline === baseline.longline + 1 && restored.longline === baseline.longline };
 `;
 
 // ── minimal CDP client ───────────────────────────────────────────────────
@@ -499,7 +557,7 @@ try {
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
-    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires) {
+    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires) {
       console.error("\nCANARY FAILED — the checks do not detect a defect they are given.");
       exitCode = 1;
     } else {

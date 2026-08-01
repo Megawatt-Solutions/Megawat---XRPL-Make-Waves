@@ -3352,6 +3352,46 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### ch is a digit width, not a character
+
+Encoded last pass's finding as a check: characters per line, from Range line
+boxes, on multi-line prose. It found two more immediately — the leaderboard's
+legend at 106 cpl over 3 lines from 768px up, and the how page's band paragraph
+at 98 at tablet widths. Both real, both invisible to every other rule here
+because each asks whether a box fits and both paragraphs fit perfectly.
+
+Then the fix did not work, and the reason is worth keeping.
+
+I capped both at `max-width: 75ch` and the check kept firing at 98. The class
+was applied and binding — computed `max-width: 662px`, parent 712 — so 662px was
+fitting 98 characters. **`ch` is the advance width of the digit "0"**, which in a
+proportional face is noticeably wider than the average lowercase letter. Here the
+ratio is about 1.3: 75ch measured out at 98 real characters. To get 75 characters
+you want roughly 58ch.
+
+So a rule written as "75ch for a 75-character measure" is off by a quarter, in
+the permissive direction, and reads as if it were precise. The `.sc-notice` cap
+from last pass has the same bias — 68ch measures 84 — which is inside the ceiling
+but closer to it than the number implies. Both now carry the measured figure in
+the comment rather than the nominal one.
+
+The general lesson: **a unit named after a character is not a character count.**
+`ch`, `ex` and `em` are all font-metric units, and if the thing being controlled
+is legibility rather than layout, the only way to know the cap worked is to
+measure the rendered result. Which is exactly why the check earns its place —
+it caught its own fix being wrong.
+
+Three conditions on the check, each one earned rather than assumed:
+multi-line only (a single-line strip has no return sweep, so `.sc-legal` at 102
+is fine and stays), 120+ characters (a long label is not prose), and
+proportional type only (mono blocks here are hashes, where the character count
+IS the content). Trip point 95 rather than 90, because a rule that fires at 91
+produces argument instead of fixes.
+
+Canary covers it — silent, fires on a forced two-line 1400px paragraph, silent
+again. Two lines deliberately: a one-line canary would pass the multi-line
+exemption and prove nothing.
+
 ### 140 characters per line, at every desktop width
 
 The sweep stopped at 1440 and 1920 is the most common desktop resolution, so I

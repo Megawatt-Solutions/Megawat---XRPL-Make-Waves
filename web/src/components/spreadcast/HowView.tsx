@@ -16,7 +16,7 @@ export function HowView() {
             The swing is the gap between the day&apos;s highest and lowest hourly price on Slovenia&apos;s electricity
             market, in €/MWh.
           </p>
-          <p style={{ marginTop: 10 }}>
+          <p className="prose-note" style={{ marginTop: 10 }}>
             You pick one of five bands, from Calm to Wild. Bands adjust every Monday to recent prices, so each one
             is roughly a 20% chance — your edge is reading the weather, sunshine and demand. Pure skill.
           </p>
