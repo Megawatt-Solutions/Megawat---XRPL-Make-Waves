@@ -36,8 +36,23 @@ function findChrome() {
 const BASE = arg("base", "http://localhost:3100");
 const ROUTES = arg("routes",
   "/,/dashboard-v2,/portfolio,/marketplace,/vault/bess-ljubljana-01," +
-  "/vault/bess-belgrade-01,/spreadcast,/spreadcast/board,/spreadcast/log,/spreadcast/how"
+  "/vault/bess-belgrade-01,/spreadcast,/spreadcast/board,/spreadcast/log,/spreadcast/how," +
+  // The 404 is a page users reach and no sweep had ever covered it.
+  "/__not-found-probe"
 ).split(",");
+// Any route that lost its leading slash was rewritten by MSYS. On Git Bash an
+// argument beginning with "/" is converted to a Windows path, so
+// --routes "/no-such-page" arrives as "C:/Program Files/Git/no-such-page" and
+// Page.navigate answers the useless "Cannot navigate to invalid URL". Fail with
+// the cause instead of the symptom.
+for (const r of ROUTES) {
+  if (!r.startsWith("/")) {
+    console.error(`Route ${JSON.stringify(r)} does not start with "/".`);
+    console.error("On Git Bash, prefix the command with MSYS_NO_PATHCONV=1 — it rewrites leading slashes into Windows paths.");
+    process.exit(2);
+  }
+}
+
 const WIDTHS = arg("widths", "390,1280").split(",").map(Number);
 const PORT = Number(arg("port", 12600));
 const SETTLE = Number(arg("settle", 800));

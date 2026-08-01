@@ -2874,6 +2874,47 @@ a branch allows one, and the build fails with "Expected corresponding JSX
 closing tag". A plain `/* … */` block is whitespace and goes anywhere, which is
 why the comment already sitting there used that form.
 
+### The pages the audits could not see, and the flag that hid them
+
+Every sweep in this session ran against a fixed list of ten routes. The failure
+pages were not on it — so the 404 and both error boundaries had never been
+measured once, despite being pages users actually reach.
+
+They turned out to be in good shape, which is worth stating rather than
+assuming: `/no-such-page` returns a real 404 with title "Page not found —
+Megawatt", an `h1`, copy naming a likely cause ("a specific vault… may have
+been renamed or closed"), and two ways out. `error.tsx` has an `h1`, a `reset`
+button and two escape links; `spreadcast/error.tsx` the same. Swept now: 0
+responsive findings across four widths including landscape, 0 a11y findings,
+tab order clean at both widths.
+
+**The reason they were invisible is the durable part.** Pointing an audit at a
+new route on this platform silently fails:
+
+```
+--routes "/no-such-page"
+  -> C:/Program Files/Git/no-such-page
+  -> {"code":-32000,"message":"Cannot navigate to invalid URL"}
+```
+
+Git Bash (MSYS) rewrites any argument beginning with `/` into a Windows path.
+The error names the symptom and nothing else, and it is the same failure that
+made an earlier `--routes` attempt look broken for no visible reason — that one
+was written off as "some arg-parsing quirk" and moved past, which is exactly how
+a tool ends up with a permanent blind spot.
+
+Two fixes, both in `responsive-audit.mjs` and `a11y-audit.mjs`:
+
+- the failure pages are now in the **default** route list, so they are covered
+  whether or not anyone remembers them;
+- a startup guard rejects any route not beginning with `/` and names the cause:
+  *"On Git Bash, prefix the command with MSYS_NO_PATHCONV=1."*
+
+An audit's blind spots are decided by its route list, and a route list is easy
+to treat as scenery. The question worth asking of any harness is not "what did
+it find" but "what can it not see" — here the answer was every page that only
+appears when something has gone wrong.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
