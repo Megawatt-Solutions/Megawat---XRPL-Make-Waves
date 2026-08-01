@@ -215,7 +215,12 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
                 <div className="globe-tip-name"><Flag code={m.flag} size={13} /> {m.name}</div>
                 <div className="globe-tip-sub">{m.location} · {m.capacityMw} MW / {m.energyMwh} MWh</div>
                 <div className="globe-tip-sub">
-                  <span className="globe-tip-status">{m.status.replace("_", " ")}</span> · {fmtPct(bpsToPct(m.apyBps))} APY
+                  {/* "APY" was hardcoded here for every marker, including the
+                      two showcase sites whose number is a gross yield on capex.
+                      VaultCard, VaultDetail and now VaultsOverview all draw
+                      this distinction; the globe was the last surface still
+                      flattening it. */}
+                  <span className="globe-tip-status">{m.status.replace("_", " ")}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.kind === "showcase" ? "gross yield" : "APY"}
                 </div>
               </div>
             </div>

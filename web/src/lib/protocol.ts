@@ -196,6 +196,12 @@ export interface BessMarker {
   capacityMw: number;
   energyMwh: number;
   apyBps: number;
+  // Carried so the globe tooltip can name the number it is showing. For a
+  // showcase site apyBps is a gross yield on capex, not a depositor APY, and
+  // without kind the tooltip had no way to tell and called every site's number
+  // "APY". Status cannot stand in for this: a showcase site and an investable
+  // one can both be "operational".
+  kind: Vault["kind"];
   status: Vault["status"];
   coords: [number, number]; // [lat, lng]
 }
@@ -209,6 +215,7 @@ export function bessMarkers(): BessMarker[] {
     capacityMw: v.spec.powerKw / 1000,
     energyMwh: v.spec.energyKwh / 1000,
     apyBps: v.apyBps,
+    kind: v.kind,
     status: v.status,
     coords: BESS_COORDS[v.id],
   }));

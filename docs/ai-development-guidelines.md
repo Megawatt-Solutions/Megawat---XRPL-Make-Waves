@@ -1990,6 +1990,54 @@ other surfaces make the same claim. A correction applied only where the problem
 was noticed leaves the earlier, higher-traffic surface still saying the wrong
 thing — and the overview is seen far more often than any detail page.
 
+### …and it had not reached two more. Sweep by *field*, not by component
+
+The entry above ended with "ask which other surfaces make the same claim". I
+asked it by listing the components I could think of, found two, fixed both, and
+considered it closed. That method finds the surfaces you remember.
+
+Asking it mechanically instead — *who reads this field?* — found two more:
+
+```
+grep -rn "apyBps" src --include=*.tsx --include=*.ts
+```
+
+Five surfaces render `vault.apyBps`. Two named it correctly. Three did not:
+
+| Surface | Before | Why it was wrong |
+|---|---|---|
+| `VaultCard` | "Gross yield" / "APY" | correct already |
+| `VaultDetail` | "gross" / "APY" | correct already |
+| `VaultsOverview` | **"APY"** for every row | column header, all six rows |
+| `BessGlobe` tooltip | **"APY"** hardcoded | all six map markers |
+| `portfolio` | "APY" | unreachable — `POSITIONS` is `[]` |
+
+`vaults.ts` annotates the field at source — `apyBps: 1220, // gross yield on
+capex (showcase headline)` — so both offending surfaces were printing a number
+under a label the data itself contradicts. Worse, `VaultsOverview` *blends* the
+two showcase gross yields into a "Total Deployed" figure and labelled that
+"APY" too: today that group is 100% showcase vaults, so every APY figure in it
+was a gross yield. A gross yield on capex and a depositor APY are not the same
+promise, and the wrong one was the more favourable one.
+
+Two lessons, and the second is the durable one:
+
+1. **Status cannot stand in for kind.** `BessMarker` carried `status` but not
+   `kind`, so the tooltip had nothing to branch on. A showcase site and an
+   investable site can both be `operational` — the field that answers "can I buy
+   this" has to be the one you carry.
+2. **Enumerate by data, not by memory.** Components are what you recall; a field
+   reference is what the compiler can enumerate. For any fix that changes *what
+   a number is called* or *what a user is told*, grep the field and check every
+   consumer. Four passes in a row found a missed sibling by hand; the first
+   field-grep found two at once and proved the remaining three complete.
+
+Guard the derived cases too. The group marker is computed
+(`g.rows.every(r => r.vault.kind === "showcase")`), not hardcoded to "deployed":
+add an investable vault to that group and the blend stops being purely gross,
+the marker disappears on its own, and the per-row markers still carry the
+distinction.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

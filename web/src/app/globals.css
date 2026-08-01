@@ -1817,6 +1817,28 @@ button {
   .v2-row { grid-template-columns: 2fr 1.2fr 0.8fr 1fr 1.35fr !important; }
   .v2-row > :last-child { white-space: nowrap; }
 }
+/* The same "not investable" statement VaultCard and VaultDetail make, sized for
+   a dense table cell. It deliberately does NOT reuse .vc-availability: that
+   rule is a card footer (margin-top, padding-top, border-top) and inside a
+   table row the divider would read as a row separator in the wrong place.
+   Wording, colour and the blue dot are shared; only the chrome differs.
+
+   Kept at 0.75rem — the same size as the location line above it, not smaller.
+   This is the qualifier that tells you the row cannot be bought, so it must not
+   be the smallest text in the row. It wraps to two lines in the narrow name
+   column below ~700px, hence flex-start plus a non-shrinking dot nudged onto
+   the first line's optical centre. */
+.v2-avail {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+.v2-avail .dot { flex: none; margin-top: 5px; }
+
 .v2-head { padding: 14px 10px 10px; border-bottom: 1px solid var(--border); }
 .v2-group {
   background: rgba(255, 255, 255, 0.035);
