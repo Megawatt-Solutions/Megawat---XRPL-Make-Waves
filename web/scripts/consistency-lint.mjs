@@ -75,6 +75,41 @@ const RULES = [
   },
 ];
 
+// Cross-file rule: one value must not be formatted to two precisions.
+//
+// Regexes catch a bad line. This catches a bad PAIR — snap.netYtd was written
+// fmtMoney(…, 0) in the Revenue card and fmtMoney(…) in the metrics card, and
+// at 1440 both cards are on screen together reading "€12,950" and "€12,950.00".
+// Neither line is wrong alone, which is why every single-line rule above was
+// blind to it, and why it is the same shape as the nine sibling-misses that
+// prompted this file: a call site got an argument and its twin did not.
+const MONEY_CALL = /\bfmt(?:Money|Num)\s*\(\s*([A-Za-z_$][\w.$]*)\s*(?:,\s*([^,()]+?)\s*)?(?:,\s*(\d+)\s*)?\)/g;
+function precisionSplits(fileList, read) {
+  const byValue = new Map();
+  for (const f of fileList) {
+    const src = stripComments(read(f));
+    MONEY_CALL.lastIndex = 0;
+    let m;
+    while ((m = MONEY_CALL.exec(src))) {
+      const [, value, , decimals] = m;
+      // A bare literal or a loop variable says nothing; only field accesses
+      // name the same quantity reliably across call sites.
+      if (!value.includes(".")) continue;
+      const d = decimals === undefined ? "default" : decimals;
+      const line = src.slice(0, m.index).split("\n").length;
+      if (!byValue.has(value)) byValue.set(value, []);
+      byValue.get(value).push({ file: f, line, d, text: m[0] });
+    }
+  }
+  const out = [];
+  for (const [value, uses] of byValue) {
+    const kinds = [...new Set(uses.map((u) => u.d))];
+    if (kinds.length < 2) continue;
+    out.push({ value, kinds, uses });
+  }
+  return out;
+}
+
 const files = walk(ROOT);
 const findings = [];
 for (const f of files) {
@@ -91,6 +126,17 @@ for (const f of files) {
         snippet: raw.split("\n")[line - 1].trim().slice(0, 88),
       });
     }
+  }
+}
+
+for (const split of precisionSplits(files, (f) => readFileSync(f, "utf8"))) {
+  for (const u of split.uses) {
+    findings.push({
+      file: relative(".", u.file).replace(/\\/g, "/"),
+      line: u.line, id: "precision-split",
+      why: `${split.value} is formatted to ${split.kinds.join(" and ")} decimals across ${split.uses.length} call sites — one value, two presentations`,
+      snippet: u.text,
+    });
   }
 }
 
@@ -112,11 +158,24 @@ if (flag("canary")) {
     console.log(`  ${fires ? "fires" : "SILENT"}  ${rule.id}`);
     if (!fires) ok = false;
   }
+  // precision-split is a cross-FILE rule: no single line violates it, so it
+  // needs a pair rather than a sample. Both directions matter — a rule that
+  // fires on a matched pair too would flag every consistent call site in the
+  // codebase, which is worse than not having it.
+  const pair = { "a.tsx": "const a = fmtMoney(snap.netYtd, ccy, 0);", "b.tsx": "const b = fmtMoney(snap.netYtd, ccy);" };
+  const matched = { "a.tsx": "const a = fmtMoney(snap.netYtd, ccy, 0);", "b.tsx": "const b = fmtMoney(snap.netYtd, ccy, 0);" };
+  const keys = Object.keys(pair);
+  const splitFires = precisionSplits(keys, (f) => pair[f]).length === 1;
+  const splitSilent = precisionSplits(keys, (f) => matched[f]).length === 0;
+  console.log(`  ${splitFires && splitSilent ? "fires" : "SILENT"}  precision-split` +
+    `  (mismatched pair: ${splitFires ? "fires" : "MISSED"}; matched pair: ${splitSilent ? "silent" : "FALSE POSITIVE"})`);
+  if (!splitFires || !splitSilent) ok = false;
+
   console.log(ok ? "\ncanary ok: every rule fires on a violation." : "\nCANARY FAILED — a rule cannot detect its own defect.");
   process.exit(ok ? 0 : 1);
 }
 
-console.log(`files scanned: ${files.length}   rules: ${RULES.length}   violations: ${findings.length}\n`);
+console.log(`files scanned: ${files.length}   rules: ${RULES.length + 1}   violations: ${findings.length}\n`);
 for (const f of findings) {
   console.log(`  ${f.file}:${f.line}  [${f.id}]`);
   console.log(`      ${f.snippet}`);

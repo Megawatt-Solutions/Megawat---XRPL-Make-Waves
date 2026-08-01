@@ -484,8 +484,13 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
           <div className="battery-pct num">{snap.socPct.toFixed(1)}%</div>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>
-          <Mini label="MWh charged" value={fmtNum(snap.chargedMwh, 2)} />
-          <Mini label="MWh discharged" value={fmtNum(snap.dischargedMwh, 2)} />
+          {/* Unit in the value, not the label. The third row of this same card
+              is "Health / 98.9%" — unit in the value — so the card disagreed
+              with itself, and the metrics card two columns right writes the
+              identical numbers as "Energy charged / 361.40 MWh". Three
+              spellings, one screen. */}
+          <Mini label="Charged" value={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+          <Mini label="Discharged" value={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
           <Mini label="Health" value={`${snap.healthPct.toFixed(1)}%`} />
         </div>
       </div>
@@ -519,8 +524,13 @@ function LatestMetricsCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
     <div className="card">
       <div className="card-title">Latest BESS metrics</div>
       <div className="rows" style={{ marginTop: 6 }}>
-        <Row k="Gross revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency)} />
-        <Row k="Net revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency)} accent />
+        {/* Same two values the Revenue card shows, and at 1440 both cards are
+            on screen together — it read "€15,620" there against "€15,620.00"
+            here. The zero decimals were added at those call sites and not at
+            these; cents on a €15,620 YTD figure carry no information and only
+            invite "which of these is right?". */}
+        <Row k="Gross revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency, 0)} />
+        <Row k="Net revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency, 0)} accent />
         <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
         <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
         <Row k="Activation events" v={fmtNum(snap.activations)} />

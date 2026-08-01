@@ -3352,6 +3352,54 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The rule I wrote to encode a fix found a worse instance of it
+
+Two surfaces had never been looked at: the board at phone width, and the vault
+detail below the performance toggle.
+
+The board was fine. The one thing that looked wrong there — a bare "x" button
+beside Connect Wallet where desktop reads "x XRPL MAINNET" — was the XRPL logo
+with the words as 1x1 sr-only spans and a title attribute. Correctly built.
+Worth recording as a near miss: the fix I was reaching for would have *removed*
+an accessible name to solve a problem that did not exist. Measure before
+touching anything that merely looks odd.
+
+The vault detail had a real one. Two cards side by side at 1440 showed the same
+two figures at different precision: "EUR 15,620" and "EUR 12,950" in the Revenue
+card against "EUR 15,620.00" and "EUR 12,950.00" in Latest BESS metrics. Same
+value, same period, two `fmtMoney` call sites, and only one of them had been
+given the `0`. Neither line is wrong on its own — which is exactly why every
+single-line rule in consistency-lint was blind to it.
+
+So I added a **cross-file** rule: group `fmtMoney`/`fmtNum` calls by their value
+expression, flag any value formatted to two different precisions. It found one
+more immediately, and the one it found was worse than the one it was written
+for.
+
+`SiteMonitor` renders a "Revenue" card whose first row falls back to
+`todayValue` when a site has no solar. On five of the six vaults that produced:
+
+    Revenue            <- card title
+    Revenue   EUR 2,477
+    Today     EUR 2,477.00
+
+The same number twice, in adjacent rows, under a heading that already says
+"Revenue". It sits behind a collapsed "Live performance & energy flow"
+disclosure at the bottom of the page, which is why nothing had ever seen it —
+neither a human scrolling nor any of the four audits, which only exercise the
+default collapsed state.
+
+Two lessons worth keeping. **A rule written to encode a fix is worth more than
+the fix** — this one paid for itself the moment it ran. And **the canary for a
+cross-file rule has to test both directions**: fires on a mismatched pair,
+silent on a matched one. A version that only checked "does it fire" would have
+passed while flagging every consistent call site in the codebase.
+
+While there: the State of charge card disagreed with itself, writing "MWh
+charged / 361.40" (unit in the label) directly above "Health / 98.9%" (unit in
+the value), with the card two columns right writing the identical numbers a
+third way as "Energy charged / 361.40 MWh".
+
 ### A box can be in bounds while its text is not
 
 Opened an archive day for the first time. The panel rendered six column headers

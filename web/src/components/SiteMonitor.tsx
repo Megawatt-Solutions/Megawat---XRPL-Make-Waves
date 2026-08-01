@@ -48,8 +48,17 @@ export function SiteMonitor({ vault }: { vault: Vault }) {
         <div className="card site-card">
           <div className="site-card-title">{vault.spec.hasSolar ? "Savings" : "Revenue"}</div>
           <div className="rows" style={{ marginTop: 2 }}>
-            <div className="row"><span className="row-key">{tel.savings.primaryLabel}</span><span className="row-val accent num">{vault.spec.hasSolar ? fmtPct(tel.savings.selfSufficiencyPct, 0) : fmtMoney(tel.savings.todayValue, tel.savings.currency, 0)}</span></div>
-            <div className="row"><span className="row-key">Today</span><span className="row-val num">{fmtMoney(tel.savings.todayValue, tel.savings.currency)}</span></div>
+            {/* Solar sites only. A non-solar site has no distinct primary
+                metric, so this row fell back to todayValue — and rendered
+                "Revenue €2,477" directly above "Today €2,477.00", inside a card
+                whose title is already "Revenue". One number, two precisions,
+                adjacent rows, on five of the six vaults. Self-sufficiency is a
+                genuinely different measure, so the solar case keeps it. */}
+            {vault.spec.hasSolar && (
+              <div className="row"><span className="row-key">{tel.savings.primaryLabel}</span><span className="row-val accent num">{fmtPct(tel.savings.selfSufficiencyPct, 0)}</span></div>
+            )}
+            {/* Today carries the accent when it is the headline number. */}
+            <div className="row"><span className="row-key">Today</span><span className={`row-val num${vault.spec.hasSolar ? "" : " accent"}`}>{fmtMoney(tel.savings.todayValue, tel.savings.currency, 0)}</span></div>
             <div className="row"><span className="row-key">This Month</span><span className="row-val num">{fmtCompact(tel.savings.monthValue, tel.savings.currency)}</span></div>
           </div>
         </div>
