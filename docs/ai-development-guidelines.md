@@ -3352,6 +3352,51 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The rule I tried to write and then deleted
+
+Three of the last four defects were a ternary asserting a field is boolean when
+it is not, so I swept every user-facing ternary in the app against its field's
+real value space. **No new defects.** `via`, `kind`, `Currency`, the chart's
+`mode` and the leaderboard's `scope` are all genuinely binary; the plural
+ternaries are correct English (verified on a live boundary — the board reads
+"1 player, this week" and "9 players, this season"); the multi-value ones are
+already handled by chains or compound conditions.
+
+Getting there took two instrument corrections, both worth recording because
+both would have hidden a real defect rather than invented one:
+
+**The first regex misread compound conditions.** Matching
+`field === "lit" ?` captured only the LAST comparison in a `||` chain, so
+`v.status === "active" || v.status === "operational" ? "deployed" : "pipeline"`
+— correct code — was reported as a single-value test. The failure mode is the
+dangerous direction: a properly-guarded multi-value field looks like a naive
+binary, so a sweep built on it would flag good code and, worse, teach me to
+distrust its output.
+
+**Then the lint rule I wrote to encode the pattern was not viable.** First
+version matched the bare name `mode` and produced 14 hits in SiteChart, whose
+`mode` is a local `"power" | "energy"` view toggle — same name, unrelated type.
+Narrowing to dot-qualified access dropped it to 6, and all 6 were still false:
+four are legitimate ternary CHAINS where the chain continues in the else-branch
+or spans lines, and two are compound conditions where my `||` guard looked after
+the `?` while the `||` sat before it.
+
+Handling chains, multi-line expressions and compound conditions correctly is
+parsing, not pattern matching. So I deleted the rule and left the file exactly
+as it was. **A lint that fires six times on correct code is worse than no lint**
+— the other nine rules are trustworthy precisely because they sit at zero, and
+one noisy rule would teach everyone to skim past all of them. That is the note
+already written at the top of that file about listedFaceValue, and it applied to
+my own work this time.
+
+The real answer for this defect class is not a regex at all: it is
+exhaustiveness checking. A `switch` over the union with a `default` that assigns
+to `never` makes the compiler refuse to build when a member is unhandled. That
+is worth doing to `VaultStatus` and `MarketMode` if this shape appears again —
+it is the only version of this rule that cannot produce a false positive.
+
+This pass changed no code. The sweep was the work, and its result was "clean".
+
 ### A ledger does not measure megawatt-hours
 
 Audited the rest of the provenance claims the way the SIMULATED one should have
