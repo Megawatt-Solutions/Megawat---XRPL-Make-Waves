@@ -1413,6 +1413,15 @@ button {
 @media (max-width: 640.98px) {
   .page { padding: 20px 16px 60px; }
   .tile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* Reserve the icon's vertical band before the value starts.
+     .tile-icon is top: 16px and 34px tall, so it owns y 16-50 inside the tile,
+     while content begins at the 18px padding. When the label happens to fit on
+     ONE line the value rides up into that band — at 430px "16.1 MW" landed
+     under the icon, while 390 was clear only because the label wrapped to two
+     lines and pushed it down. A min-height on the label makes that accidental
+     clearance deliberate. Two columns only: at four-across the tiles are wide
+     enough that the value never reaches the icon horizontally. */
+  .tile > .caps { min-height: 32px; }
   .vault-grid { grid-template-columns: 1fr; }
 }
 

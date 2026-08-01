@@ -168,6 +168,84 @@ for (const el of all) {
   if (el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)
     findings.push({ kind: "clipped-text", el: label(el), detail: "scroll=" + el.scrollWidth + " client=" + el.clientWidth });
 }
+
+// ── text sitting underneath something that paints over it ─────────────────
+// The blind spot the other checks share: an out-of-flow element takes no space,
+// so nothing overflows and nothing clips when it lands on a label. A tile icon
+// landing on its own label was found by eye, not by any check, after a layout
+// change pushed the label into a band that had always been empty.
+const alpha = (c) => {
+  let m = (c || "").match(/rgba?\(([^)]+)\)/);
+  if (m) { const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; }
+  m = (c || "").match(/color\(\s*srgb\s+([^)]+)\)/);
+  if (m) { const p = m[1].split(/[\s/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; }
+  return 0;
+};
+// Absolute only. A fixed bar is positioned against the VIEWPORT and page content
+// scrolling beneath it is what the bar is for; measured at one scroll offset
+// that reads as dozens of collisions with the phone tab bar. What matters here
+// is decoration positioned against a COMPONENT.
+const overlays = all.filter((el) => {
+  const cs = getComputedStyle(el);
+  if (cs.position !== "absolute") return false;
+  const r = el.getBoundingClientRect();
+  // A scrim spanning the page is doing its job, not colliding with it.
+  if (r.width * r.height > innerWidth * innerHeight * 0.6) return false;
+  if (r.width < 4 || r.height < 4) return false;
+  return alpha(cs.backgroundColor) > 0.05 || el.tagName === "IMG" || !!el.querySelector("svg, img");
+});
+const clashed = new Set();
+for (const el of all) {
+  if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+  // Glyph bounds, not the block's box: a full-width label's BOX always sits
+  // under a right-aligned icon, while its letters usually do not.
+  const rg = document.createRange();
+  rg.selectNodeContents(el);
+  const glyphs = [...rg.getClientRects()].filter((g) => g.width > 1 && g.height > 1);
+  if (!glyphs.length) continue;
+  const elPositioned = getComputedStyle(el).position !== "static";
+  // Effective z, not the element's own. z-index lives on whichever ancestor
+  // establishes the stacking context, so comparing the two leaf elements said a
+  // tile icon (z auto) painted over the phone tab bar's labels — when
+  // .bottom-nav carries z-index: 60 and is plainly on top. In landscape, where
+  // the viewport is short enough for a tile to sit under the bar, that produced
+  // three confident findings about text nobody is covering.
+  const effZ = (n) => {
+    let z = 0;
+    for (let p = n; p && p !== document.documentElement; p = p.parentElement) {
+      const v = Number(getComputedStyle(p).zIndex);
+      if (!Number.isNaN(v) && v > z) z = v;
+    }
+    return z;
+  };
+  const zEl = effZ(el);
+  for (const ob of overlays) {
+    if (ob === el || ob.contains(el) || el.contains(ob)) continue;
+    const o = ob.getBoundingClientRect();
+    const zOb = effZ(ob);
+    // Paint order, not document order: a positioned element paints above
+    // in-flow content whatever the source order, and StatTile emits its icon
+    // BEFORE the label — a document-order test saw nothing on the very case
+    // this check exists for.
+    const onTop = zOb > zEl || (zOb === zEl && !elPositioned) ||
+      (zOb === zEl && elPositioned && (el.compareDocumentPosition(ob) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+    if (!onTop) continue;
+    for (const g of glyphs) {
+      const ox = Math.min(g.right, o.right) - Math.max(g.left, o.left);
+      const oy = Math.min(g.bottom, o.bottom) - Math.max(g.top, o.top);
+      if (ox > 2 && oy > 2) {
+        const key = label(el) + "|" + label(ob);
+        if (!clashed.has(key)) {
+          clashed.add(key);
+          findings.push({ kind: "text-under-overlay", el: label(el),
+            detail: label(ob) + " covers " + Math.round(ox) + "x" + Math.round(oy) });
+        }
+        break;
+      }
+    }
+  }
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();

@@ -3165,6 +3165,48 @@ separated by a `border-right` — a rule between options, like `.seg-btn` and
 and there is no fill distinction to measure. A fill matching its surround is now
 treated as no boundary, the same as having none.
 
+### Text under an overlay: the check the other three could not have
+
+Last pass found a glyph collision by eye and noted that nothing automated
+catches it — an out-of-flow element takes no space, so nothing overflows and
+nothing clips when it lands on a label. That check now exists, inside
+`responsive-audit.mjs`. It found a second collision immediately: at **430px**
+the "Total Capacity" value `16.1 MW` sat under its own tile icon. 390 was clear
+only by luck — the label wrapped to two lines there and pushed the value down.
+A `min-height` on the label makes that accidental clearance deliberate.
+
+**Getting it to work took four corrections, each of which made it silently
+useless or uselessly loud:**
+
+1. **Paint order is not document order.** A positioned element paints above
+   in-flow content whatever the source order, and `StatTile` emits its icon
+   *before* the label. A document-order test reported **nothing** on the very
+   collision the check was written for — it passed clean and I nearly believed
+   it.
+2. **z-index lives on the stacking context, not the leaf.** Comparing the two
+   elements' own `z-index` concluded a tile icon painted over the phone tab
+   bar's labels, when `.bottom-nav` carries `z-index: 60`. Three confident
+   findings in landscape about text nobody covers. Effective z — the highest
+   z-index on the element or any ancestor — is the honest comparison.
+3. **A full-screen scrim is not a collision.** Without excluding overlays that
+   span the viewport, the first run reported 90 hits, every one of them the
+   onboarding scrim doing exactly its job.
+4. **A fixed bar is not either.** Page content scrolling beneath the tab bar is
+   what the bar is for; measured at one scroll offset that reads as 55 more.
+   The check is about decoration positioned against a *component*.
+
+The scratchpad sweeper also turned out never to have received the
+`?onboarding=0` fix the committed scripts got weeks of passes ago — which is
+how correction 3 arose. Tooling that lives outside the repo does not inherit
+the repo's lessons.
+
+**And the canary mattered more here than anywhere.** The check reported "clean"
+across 30 runs while being incapable of detecting anything at all. Only
+reverting the known fix and confirming it fired — 0 → 2 → 0, naming the exact
+elements — showed the difference between a passing check and a working one.
+Both the standalone and the folded-in version were canaried separately, because
+transcribing a check is a chance to break it.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
