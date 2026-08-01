@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/lib/wallet";
-import { TopNav } from "@/components/TopNav";
+import { TopNav, BottomNav } from "@/components/TopNav";
 import { Onboarding } from "@/components/Onboarding";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -104,6 +104,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div id="main-content" tabIndex={-1}>
             {children}
           </div>
+          {/* After the content, not beside the header. The bar is position:
+              fixed so this changes nothing visually, but it puts the five tab
+              stops where the eye finds them — at the end — instead of between
+              the header and the page. */}
+          <BottomNav />
           {/* Inside AppProviders (it reads useWallet) and last in DOM/tab
               order, so its focus trap sits at the end of the document. */}
           <Onboarding />

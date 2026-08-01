@@ -89,7 +89,29 @@ export function TopNav() {
         </div>
       </header>
 
-      {/* Mobile bottom tab bar */}
+      {modal && <WalletModal onClose={() => setModal(false)} />}
+    </>
+  );
+}
+
+/* The phone tab bar, rendered AFTER the page content in layout.tsx rather than
+   alongside the header here.
+
+   It is position: fixed, so where it sits in the DOM has no effect on where it
+   is drawn — but it decides where it lands in the tab order. Emitted next to
+   the header, a keyboard user on a phone went: header at the top of the screen,
+   then five stops at the BOTTOM of the screen, then back up to the content.
+   Measured on every route at 390px as a jump from docY 778 to docY 58-395;
+   desktop was unaffected because the bar is display: none there.
+
+   DOM order now follows visual order, which is what 2.4.3 asks for and what a
+   sighted keyboard user experiences directly. */
+export function BottomNav() {
+  const pathname = usePathname();
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" || pathname.startsWith("/vault") : pathname.startsWith(href);
+
+  return (
       <nav className="bottom-nav" aria-label="Sections">
         {LINKS.map((l) => {
           const Icon = l.icon;
@@ -109,8 +131,5 @@ export function TopNav() {
           );
         })}
       </nav>
-
-      {modal && <WalletModal onClose={() => setModal(false)} />}
-    </>
   );
 }

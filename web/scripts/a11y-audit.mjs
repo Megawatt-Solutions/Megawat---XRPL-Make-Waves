@@ -3,6 +3,7 @@
 //
 //   node scripts/a11y-audit.mjs                 # all checks, all routes
 //   node scripts/a11y-audit.mjs --canary        # prove each check can fail
+//   node scripts/a11y-audit.mjs --tab-order     # walk the real Tab sequence
 //   node scripts/a11y-audit.mjs --widths 390    # one width
 //
 // Companion to responsive-audit.mjs (geometry) and overlay-audit.mjs (sheets
@@ -338,7 +339,79 @@ try {
   };
   const goto = async (url) => { const l = b.once("Page.loadEventFired"); await s("Page.navigate", { url }); await l; await sleep(SETTLE); };
 
-  if (flag("canary")) {
+  if (flag("tab-order")) {
+    // 2.4.3. el.focus() proves an element CAN take focus; it says nothing about
+    // the sequence a keyboard user actually gets. This dispatches real Tab keys.
+    // String.raw, not a plain template. In an ordinary template literal \s is an
+    // unrecognised escape and collapses to "s", so /\s+/g silently became /s+/g
+    // — it replaced the LETTER s. The symptom was letters disappearing from the
+    // output: "Vilnius" read as "Vilniu", ".skip-link" as ".kip-link".
+    const DESC = String.raw`(() => {
+      const a = document.activeElement;
+      if (!a || a === document.body) return { none: true };
+      const r = a.getBoundingClientRect();
+      const cls = typeof a.className === "string" ? a.className.trim().split(/\s+/).slice(0,2).join(".") : "";
+      return { tag: a.tagName.toLowerCase(), cls,
+        text: (a.textContent || "").trim().replace(/\s+/g," ").slice(0,26) || a.getAttribute("aria-label") || "",
+        // DOCUMENT y. Tab scrolls the page, so a viewport-relative reading
+        // shrinks as you move DOWN the document — that reported four order
+        // violations on a long page which were purely scrolling.
+        docY: Math.round(r.top + window.scrollY),
+        // 2px, not 1. Focusing an element below the fold scrolls it flush with
+        // the viewport edge, and sub-pixel rounding lands it a fraction over —
+        // measured bottom=901 against innerHeight=900. Three vault cards were
+        // reported as focused off-screen on that single pixel.
+        onScreen: r.top >= -2 && r.bottom <= window.innerHeight + 2 && r.width > 0,
+        inBottomNav: !!a.closest(".bottom-nav"),
+        hidden: r.width === 0 && r.height === 0,
+        // Exact identity, by marking the node itself. A string key of
+        // tag+class+text cannot tell the two charts' "1W" buttons apart and
+        // ended the walk 24 stops early; including position instead breaks on
+        // position:fixed elements, whose document offset moves as you scroll.
+        repeat: a.dataset.tabseen === "1" ? true : (a.dataset.tabseen = "1", false) };
+    })()`;
+    for (const w of WIDTHS) {
+      await s("Emulation.setDeviceMetricsOverride", { width: w, height: w < 768 ? 844 : 900, deviceScaleFactor: 1, mobile: w < 768 });
+      for (const route of ROUTES) {
+        await goto(BASE + withFlag(route));
+        await ev("document.body.focus(); window.scrollTo(0,0); return true;");
+        const seq = []; let cycled = -1;
+        for (let i = 0; i < 80; i++) {
+          for (const t of ["rawKeyDown", "keyUp"])
+            await s("Input.dispatchKeyEvent", { type: t, key: "Tab", code: "Tab", windowsVirtualKeyCode: 9, nativeVirtualKeyCode: 9 });
+          // 220ms, not 45. Focus styles and the skip link's reveal animate over
+          // 0.15s; sampling mid-transition reported the skip link as focused
+          // while off-screen, which it is not once it lands.
+          // scroll-behavior: smooth means focus scrolling ANIMATES; sampling
+          // before it lands reports elements as focused off-screen when they
+          // are on their way in. 420ms clears both that and the 0.15s reveal.
+          await sleep(420);
+          const d = (await s("Runtime.evaluate", { expression: DESC, returnByValue: true })).result.value;
+          if (d.none) continue;
+          if (d.repeat) { cycled = i; break; }
+          seq.push(d);
+        }
+        const ghosts = seq.filter(x => x.hidden);
+        const off = seq.filter(x => !x.hidden && !x.onScreen);
+        const jumps = [];
+        for (let i = 1; i < seq.length; i++)
+          if (!seq[i-1].hidden && !seq[i].hidden && seq[i].docY < seq[i-1].docY - 60)
+            jumps.push(`${seq[i-1].tag}.${seq[i-1].cls}@${seq[i-1].docY} -> ${seq[i].tag}.${seq[i].cls}@${seq[i].docY}`);
+        // Report tab-bar reachability explicitly: reordering the DOM to fix
+        // focus order must never orphan the five destinations it contains.
+        const inBar = seq.filter(x => x.inBottomNav).length;
+        const bad = ghosts.length || off.length || jumps.length;
+        console.log(`  [${w}] ${route.padEnd(26)} ${String(seq.length).padStart(3)} stops` +
+          (cycled >= 0 ? " (cycles)" : " (NO CYCLE)") +
+          (inBar ? `  tabbar=${inBar}` : "") +
+          (bad ? `  ** ghosts=${ghosts.length} offscreen=${off.length} jumps=${jumps.length}` : "  ok"));
+        for (const g of ghosts) console.log(`        tabbable but 0x0: ${g.tag}.${g.cls} "${g.text}"`);
+        for (const o of off) console.log(`        focused off-screen: ${o.tag}.${o.cls} "${o.text}"`);
+        for (const j of jumps) console.log(`        order jump: ${j}`);
+        if (bad || cycled < 0) exitCode = 1;
+      }
+    }
+  } else if (flag("canary")) {
     await s("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await ev(CANARY);
