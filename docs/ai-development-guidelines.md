@@ -3352,6 +3352,34 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The aria-label was more accurate than the headline
+
+Looked at the Spreadcast play view at desktop for the first time — it had only
+ever been seen at 390px. The page's "Latest result" headline read
+**196.76 EUR** where the quantity is a *rate*: every sibling on the same screen
+writes it in full. The bands say "< 141 EUR/MWh", the stats row "avg 164
+EUR/MWh", the results table "196.76 EUR/MWh".
+
+The detail that makes it worth recording: the chart two cards up carries
+`aria-label="…euro per megawatt hour…"`. **The accessible description was more
+precise than the visible headline beside it.** Alt text is usually the thing
+that drifts behind the UI; here it was the only place that had the unit right,
+which is a reminder that a11y text is written deliberately and visible text is
+often written fast.
+
+Checked the fix did not cost layout: the strip is 129px tall at 320 either way,
+and 87→88px at 390. **1px is not a wrapped row** — a row here is 30-40px — but
+my check reported `addedRows: true` on it, because the comparison was
+`>` against a raw pixel height. A threshold that cannot tell rounding from
+reflow will keep saying yes.
+
+One environment note: `€` cannot be printed to this terminal (Windows codepage),
+so a shell grep for it silently matches nothing and reads as "clean". The
+verification that counted was the CDP measurement, which handles Unicode
+properly and returned the element text exactly, plus a *negative* assertion —
+no `\d+\.\d+ €` unfollowed by `/` anywhere on the page. When the display layer
+cannot show a character, assert on its absence rather than its presence.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

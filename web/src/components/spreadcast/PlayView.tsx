@@ -710,7 +710,13 @@ export function PlayView() {
               <h2>Latest result · {latest.day}</h2>
               <div className="sc-result-strip">
                 <div>
-                  <div className="sc-result-num">{latest.spread.toFixed(2)} €</div>
+                  {/* €/MWh, not €. A swing is a rate, and every other surface
+                      says so: the bands above read "< 141 €/MWh", the stats row
+                      "avg 164 €/MWh", the results table "196.76 €/MWh". Even
+                      the chart's own aria-label two cards up spells it "euro per
+                      megawatt hour" — so the accessible description was more
+                      precise than the headline it sits beside. */}
+                  <div className="sc-result-num">{latest.spread.toFixed(2)} €/MWh</div>
                   <div className="muted" style={{ fontSize: "0.75rem" }}>price swing</div>
                 </div>
                 <span
