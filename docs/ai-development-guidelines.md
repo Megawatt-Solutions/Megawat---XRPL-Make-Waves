@@ -1260,6 +1260,38 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### A setting that was right when written, and wrong once the image landed
+
+The Spreadcast result page exists to be pasted into a chat, so its share tags
+matter more than its layout. Reading the *rendered* tags rather than the
+metadata source found `twitter:card` = **`summary`** on every route.
+
+`summary` renders a small square thumbnail. Every card this app ships — the
+root, each vault, and each settled result — is **1200×630 landscape**, so X was
+cropping all of them to a postage stamp.
+
+The interesting part is *why*, and it is not carelessness. The comment directly
+above it read: *"No og:image yet: that needs a real brand asset, not one
+invented here."* `summary` was **correct when written** — there was no image, so
+a small card was all there was to show. `opengraph-image.tsx` landed later in
+the same body of work and the card type was never revisited. The comment stayed
+behind asserting a state that had stopped being true.
+
+Now `summary_large_image`, verified on five routes by reading the served HTML.
+
+**The generalisable bit:** a setting justified by an absence needs revisiting
+when the absence is filled. Grepping for `twitter:card` in the source would have
+shown a value that looked deliberate and had a comment defending it. Only
+fetching the page and reading what a share crawler actually receives exposed the
+mismatch between the card type and the image beside it.
+
+Also checked on the same page and found correct, so nobody re-does it: the
+result OG image renders this day's real numbers (184.70, Swingy · 176–244, the
+right band colour) — the `params`-not-awaited bug recorded earlier is not
+present here; `generateMetadata` awaits `params` and supplies a per-result
+title and description; and `.sc-result`'s 720px centred measure is a deliberate
+choice for a context-free landing page, not a misalignment to fix.
+
 ### A header row over nothing, again — and a fixture in the wrong file
 
 `/spreadcast/log` rendered its **Weekly blockchain anchors** table as four

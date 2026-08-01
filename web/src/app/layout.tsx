@@ -46,7 +46,6 @@ export const metadata: Metadata = {
   // There were no og: tags at all, so a link pasted into Slack, WhatsApp or
   // anywhere else rendered as a bare URL with no preview — for a product whose
   // vault links are meant to be shared, that is the link doing no work.
-  // No og:image yet: that needs a real brand asset, not one invented here.
   openGraph: {
     type: "website",
     siteName: "Megawatt",
@@ -54,7 +53,14 @@ export const metadata: Metadata = {
     description:
       "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
   },
-  twitter: { card: "summary" },
+  // summary_large_image, not summary. This was correct when written — the
+  // comment above used to end "no og:image yet" and there was none, so a small
+  // thumbnail was all X could show. opengraph-image.tsx landed afterwards and
+  // this was never revisited: every card the app ships is 1200x630 landscape
+  // (root, each vault, and every settled Spreadcast result), and `summary`
+  // crops all of them to a square postage stamp. The result pages are the ones
+  // that hurt — their entire purpose is being pasted into a chat.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
