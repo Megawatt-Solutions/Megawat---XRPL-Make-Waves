@@ -24,13 +24,42 @@ export function LeaderboardView() {
   const [scope, setScope] = useState<"week" | "season">("week");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [rows, setRows] = useState<Row[] | null>(null);
+  // `rows === null` meant BOTH "still loading" and "the fetch died", because
+  // there was no .catch() at all. Block the API and this table shows its
+  // loading skeleton forever — no message, no retry, and the status region
+  // below announces "Loading leaderboard" and never says anything again.
+  // RoundContext already handles its own failures properly and PlayView renders
+  // "Market feed unavailable · Try again" off the back of it; the two
+  // view-local fetches on this page and the Log page never got the same.
+  const [failed, setFailed] = useState(false);
+  // Retry needs its own dependency. Re-setting scope/verifiedOnly to the values
+  // they already hold does NOT re-run the effect — React bails out on identical
+  // state — so a retry built that way is a button that does nothing.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     setRows(null);
+    setFailed(false);
     fetch(`/api/spreadcast/leaderboard?scope=${scope}${verifiedOnly ? "&verified=1" : ""}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => setRows(d.rows));
-  }, [scope, verifiedOnly]);
+      // A 500 answers with a body, so .json() resolves and the old code treated
+      // an error response as data. Status has to be checked before parsing.
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((d) => {
+        if (!cancelled) setRows(d.rows ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scope, verifiedOnly, attempt]);
+
+  const retry = () => setAttempt((a) => a + 1);
 
   return (
     <>
@@ -92,7 +121,9 @@ export function LeaderboardView() {
           Polite, not assertive: it is the result of something the user just
           did, not an interruption worth cutting across them for. */}
       <div className="sr-only" role="status" aria-live="polite">
-        {rows == null
+        {failed
+          ? "Leaderboard unavailable. Could not load the leaderboard."
+          : rows == null
           ? "Loading leaderboard"
           : `${rows.length} ${rows.length === 1 ? "player" : "players"}, ${
               scope === "week" ? "this week" : "this season"
@@ -114,7 +145,19 @@ export function LeaderboardView() {
             </tr>
           </thead>
           <tbody>
-            {rows == null ? (
+            {failed ? (
+              <tr>
+                <td colSpan={8} style={{ padding: "22px 12px", textAlign: "center" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Leaderboard unavailable</div>
+                  <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 420 }}>
+                    Standings can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+                  </p>
+                  <button className="btn btn-ghost btn-sm" onClick={retry}>
+                    Try again
+                  </button>
+                </td>
+              </tr>
+            ) : rows == null ? (
               // Placeholder rows keep the table's height while it loads, so
               // the panel doesn't collapse and then jump.
               <>

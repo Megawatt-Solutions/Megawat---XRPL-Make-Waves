@@ -2659,6 +2659,50 @@ to be the thing worth checking.
 No behaviour was changed this pass. Two components were verified and two
 comments corrected, which is the honest outcome when the code is already right.
 
+### Block the API and watch: two pages loaded forever
+
+Failure states are the least-designed part of most apps and nothing here had
+ever exercised one. CDP's `Fetch` domain can fail or 500 any request, so the
+question "what does a user actually see when the API is down" is answerable.
+
+The answer differed by page, and the good one was already in the codebase:
+
+| Route | API failing |
+|---|---|
+| `/spreadcast` | **"Market feed unavailable" + "Try again"** — correct |
+| `/spreadcast/board` | **"Loading leaderboard" forever** |
+| `/spreadcast/log` | **six shimmering skeleton rows, forever** |
+
+`RoundContext` handles its own failures properly and `PlayView` renders off the
+back of it. The two *view-local* fetches never got the same treatment — neither
+had a `.catch()` at all, so a rejected promise left the state at `null`, which
+those components read as "still loading". Sixth instance this session of a
+pattern existing in the app and not reaching its siblings.
+
+Skeleton rows are a promise that data is coming. When the request has already
+died, that promise is a lie, and it never expires.
+
+Both now distinguish the two meanings of `null`, render the same
+unavailable-plus-retry treatment, and check `r.ok` **before** `.json()` — a 500
+still returns a body, so the old code would have parsed an error response as
+data. Verified against both `Fetch.failRequest` and a synthetic 500.
+
+**Two things I got wrong while fixing it, both caught by testing rather than
+review:**
+
+1. **The first retry did nothing.** It re-set `scope` and `verifiedOnly` to the
+   values they already held, expecting the effect to re-run. React bails out on
+   identical state, so the button was decorative. Retries need their own
+   dependency — an attempt counter.
+2. **"Shows an error" is not the same as "recovers".** Asserting the failure
+   text appears would have passed the broken retry. The test that matters runs
+   the whole arc: fail the request → confirm the failure state → *stop* failing
+   → click Try again → confirm real rows arrive. Both pages now pass it
+   (leaderboard returns a real player, the log returns 10 settled rounds).
+
+An error state you cannot leave is barely better than no error state, and
+nothing about the markup tells you which one you have built.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

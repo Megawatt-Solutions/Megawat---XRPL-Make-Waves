@@ -42,14 +42,40 @@ export function ArchiveView() {
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, Detail>>({});
 
+  // Same gap as LeaderboardView: no .catch(), so a failed fetch left `rounds`
+  // null forever and the table sat on its loading skeleton with no message and
+  // no way to retry. Six shimmering placeholder rows are a promise that data is
+  // coming; when the request has already died, that promise is false.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
+    let cancelled = false;
+    setFailed(false);
     fetch("/api/spreadcast/archive", { cache: "no-store" })
-      .then((r) => r.json())
+      // Status before parse: a 500 still returns a body, so .json() resolves
+      // and an error response would otherwise be read as data.
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
       .then((d) => {
-        setRounds(d.rounds);
-        setAnchors(d.anchors);
+        if (cancelled) return;
+        setRounds(d.rounds ?? []);
+        setAnchors(d.anchors ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const retry = () => {
+    setRounds(null);
+    setAttempt((a) => a + 1);
+  };
 
   const toggle = async (day: string) => {
     if (openDay === day) return setOpenDay(null);
@@ -80,7 +106,19 @@ export function ArchiveView() {
             </tr>
           </thead>
           <tbody>
-            {rounds == null ? (
+            {failed ? (
+              <tr>
+                <td colSpan={5} style={{ padding: "22px 12px", textAlign: "center" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Results unavailable</div>
+                  <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 440 }}>
+                    Past rounds can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+                  </p>
+                  <button className="btn btn-ghost btn-sm" onClick={retry}>
+                    Try again
+                  </button>
+                </td>
+              </tr>
+            ) : rounds == null ? (
               <>
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <tr key={n} aria-hidden="true">
