@@ -12,6 +12,7 @@ import createGlobe from "cobe";
 import { bessMarkers } from "@/lib/protocol";
 import { fmtPct, bpsToPct } from "@/lib/format";
 import { Flag } from "./Flag";
+import { statusLabel } from "./vaultStatus";
 
 const MARKERS = bessMarkers();
 
@@ -220,7 +221,10 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
                       VaultCard, VaultDetail and now VaultsOverview all draw
                       this distinction; the globe was the last surface still
                       flattening it. */}
-                  <span className="globe-tip-status">{m.status.replace("_", " ")}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.kind === "showcase" ? "gross yield" : "APY"}
+                  {/* Was `status.replace("_", " ")` — the raw enum value with an
+                      underscore swapped out, which produced a third spelling of
+                      a status the rest of the app already had a word for. */}
+                  <span className="globe-tip-status">{statusLabel(m.status)}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.kind === "showcase" ? "gross yield" : "APY"}
                 </div>
               </div>
             </div>

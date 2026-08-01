@@ -6,13 +6,7 @@ import { socSeries } from "@/lib/bess";
 import { Sparkline } from "./Sparkline";
 import { BoltIcon, SunIcon, BatteryIcon } from "./Icons";
 import { Flag } from "./Flag";
-
-const STATUS_BADGE: Record<Vault["status"], { cls: string; label: string }> = {
-  active: { cls: "badge-active", label: "Active" },
-  fundraising: { cls: "badge-fundraising", label: "Fundraising" },
-  operational: { cls: "badge-operational", label: "Operational" },
-  coming_soon: { cls: "badge-soon", label: "Coming soon" },
-};
+import { STATUS_BADGE } from "./vaultStatus";
 
 const STATUS_CARD: Record<Vault["status"], string> = {
   active: "vc-active",

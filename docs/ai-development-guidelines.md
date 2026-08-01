@@ -2093,6 +2093,45 @@ in the data layer, not a symbol — summing mixed currencies is a maths problem,
 not a formatting one. That is flagged in `ASSET_CURRENCY` rather than guessed
 at.
 
+### One status, three words — the map was duplicated, so it drifted
+
+`STATUS_BADGE` existed twice. The copies had diverged on exactly one key:
+
+| Surface | `coming_soon` rendered as |
+|---|---|
+| `VaultCard` (homepage, marketplace) | "Coming soon" |
+| `VaultsOverview` (dashboard table) | **"Pipeline"** |
+| `BessGlobe` tooltip | **"coming soon"** — `status.replace("_", " ")` on the raw enum |
+
+Four vaults, three names, one status. Patching the table to say "Coming soon"
+would have fixed today's symptom and left the mechanism — two maps, no
+compiler relationship between them — intact for the next status to drift.
+Both copies were deleted and replaced with one `vaultStatus.ts`.
+
+**Choosing between the two words was the actual design decision**, and
+"Pipeline" lost for a reason better than "the other one is more common". The
+dashboard table already groups its rows under a "Total Pipeline" header, so a
+badge reading "Pipeline" on every row inside that group restated the header. It
+also flattened a live distinction: that group can hold `coming_soon` *and*
+`fundraising` vaults, which need telling apart from each other rather than
+labelling with the name of the bucket they share. The other three labels all
+describe the vault's own state — "Pipeline" was the only one naming a
+container. It stays where it genuinely is one: the group header, and
+`VaultDetail`'s phase heading.
+
+Two details worth carrying forward:
+
+- **The drifted copy was typed `Record<string, …>`; the correct one was
+  `Record<Vault["status"], …>`.** The weaker type is how they got out of sync
+  without anyone noticing — a new status would have been a build error in one
+  file and an `undefined` crash on `badge.cls` in the other. The consolidated
+  map uses the strict key type.
+- **Width was provable rather than measurable.** `.badge` is
+  `font-family: var(--mono)` and uppercase, so "COMING SOON" is exactly as wide
+  as "OPERATIONAL" — 11 characters either way — and the Status column is
+  already sized for the latter (globals.css says so in two media queries).
+  Monospace turns a layout question into a character count.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

@@ -6,15 +6,9 @@ import type { VaultRow } from "@/lib/protocol";
 import { fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
 import { Flag } from "./Flag";
+import { STATUS_BADGE } from "./vaultStatus";
 
 const COLS = "2.3fr 1.3fr 0.8fr 1fr 1fr";
-
-const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
-  active: { cls: "badge-active", label: "Active" },
-  operational: { cls: "badge-operational", label: "Operational" },
-  fundraising: { cls: "badge-fundraising", label: "Fundraising" },
-  coming_soon: { cls: "badge-soon", label: "Pipeline" },
-};
 
 export function VaultsOverview() {
   const [tab, setTab] = useState<"vaults" | "yield">("vaults");
