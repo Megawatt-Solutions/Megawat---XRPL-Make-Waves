@@ -801,7 +801,6 @@ button {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: grid;
-  place-items: center;
   z-index: 1000;
   animation: fade var(--t-ui) var(--ease);
   padding: 20px;
@@ -817,6 +816,29 @@ button {
      This was invisible for the whole rehaul because the route sweep never
      opened a modal. */
   grid-template-columns: minmax(0, 1fr);
+
+  /* The same rule got its WIDTH fixed and not its HEIGHT.
+     .modal is 487px tall. Rotate a phone to landscape — 844x390 — and it
+     exceeds the viewport by ~100px inside a position: fixed box with no
+     overflow, so the bottom simply is not reachable. Measured: "Open in Xaman
+     app" sat at bottom=449 against a 390px viewport, no scroll container moved
+     it, and scrollIntoView() did nothing. On a landscape phone you could not
+     connect a wallet at all. The same modal backs the Sell and Deposit flows.
+
+     `safe center` is the point of the fix, not `center`. Plain centring in grid
+     (and flex) splits the overflow evenly and pushes the TOP out of the box
+     too, where it is unreachable in the other direction — the classic
+     centred-overflow trap. `safe` falls back to start-alignment the moment
+     content stops fitting, so it centres when there is room and scrolls
+     cleanly when there is not.
+
+     .sheet-panel already handled short viewports properly, with
+     max-height: min(88svh, ...) over a scrolling .sheet-body. This is the
+     other overlay primitive catching up. */
+  align-items: safe center;
+  justify-items: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 /* Hit areas for the two bare buttons in modal chrome. Both were styled inline
    with no padding, so the close X measured 18x27 and the "Max" shortcut 32x19

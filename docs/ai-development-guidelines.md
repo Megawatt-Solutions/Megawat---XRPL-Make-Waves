@@ -2388,6 +2388,59 @@ problem and wrong about the trigger, and it took ground truth (revenue ÷ capex)
 to see that. A fix built on a plausible-but-untested premise looks exactly like
 a correct one until something independent contradicts it.
 
+### Rotate the phone: the connect button was unreachable
+
+Every viewport tested until now was portrait. Rotating gives a *short* viewport,
+and that is a different failure mode entirely — nothing about width predicts it.
+
+At **844×390** the `.modal` is 487px tall inside a `position: fixed` `.overlay`
+that had no `overflow-y`. Measured:
+
+```
+modal height        487   viewport height 390
+"Open in Xaman app" bottom = 449          (59px below the fold)
+reachableByScrolling: null                (no scroller moved it)
+scrollIntoView():     no effect
+```
+
+**On a landscape phone you could not connect a wallet.** The same `.modal`
+backs the Sell and Deposit flows, so all three were affected.
+
+The rule already carried a comment about being fixed for exactly this reason:
+
+> *"This was invisible for the whole rehaul because the route sweep never opened a modal."*
+
+An earlier pass fixed `.overlay`'s **width** overflow and left its **height**
+overflow, in the same rule. Fifth instance of a fix landing on one axis of a
+problem and not the other.
+
+**`safe center` is the fix, not `center`.** Plain centring in grid (and flex)
+splits overflow evenly and pushes the *top* out of the box as well, unreachable
+in the other direction — the classic centred-overflow trap, where "fixing" the
+bottom strands the header. `safe` falls back to start-alignment the moment
+content stops fitting. Verified both ends: at `scrollTop: 0` the modal top sits
+at 20px (the overlay padding), and `maxScroll` is exactly the 137px of overflow.
+Centring is untouched where it fits — gaps measured 168/168, 65/65, 206/206 at
+390×844, 320×658 and 1440×900.
+
+`.sheet-panel` already did this properly, with `max-height: min(88svh, ...)`
+over a scrolling `.sheet-body`. Two overlay primitives, and only one knew about
+short viewports.
+
+**The audit passed this before it caught it, and the reason is worth keeping.**
+The first version credited `document.body` scrolling as "the content is
+reachable". Body scrolling is irrelevant once the panel is inside a
+`position: fixed` ancestor — the page moves and the overlay does not. The check
+now ignores `bodyScrolls` when anything in the chain is fixed. Canaried against
+the shipped CSS by reverting it in the live page: `overflow-y: visible` +
+`center` → CTA unreachable; restore → reachable.
+
+`node scripts/overlay-audit.mjs --widths 658,844` for landscape. One overlay
+stays unaudited: the Spreadcast provably-fair `Sheet` needs a committed
+prediction, and reaching it would mean submitting one in a live daily game on
+the user's account. Its CSS was checked instead — capped height over a scrolling
+body, structurally safe.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
