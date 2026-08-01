@@ -47,8 +47,10 @@ const BASE = arg("base", "http://localhost:3100");
 const ROUTES = arg("routes",
   "/,/dashboard-v2,/portfolio,/marketplace,/vault/bess-ljubljana-01," +
   "/vault/bess-belgrade-01,/spreadcast,/spreadcast/board,/spreadcast/log,/spreadcast/how," +
-  // The 404 is a page users reach and no sweep had ever covered it.
-  "/__not-found-probe"
+  // Failure pages are pages users reach, and no sweep had ever covered
+  // them. The nested one matters most: a result URL is the thing here
+  // built to be shared, so its dead links arrive from strangers.
+  "/__not-found-probe,/spreadcast/result/__no-such-day"
 ).split(",");
 // Common 2026 viewport widths: Android baseline, the iPhone cluster, tablets
 // both orientations, and the laptop/desktop modes that dominate desktop traffic.

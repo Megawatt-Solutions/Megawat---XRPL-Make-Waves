@@ -2915,6 +2915,50 @@ to treat as scenery. The question worth asking of any harness is not "what did
 it find" but "what can it not see" — here the answer was every page that only
 appears when something has gone wrong.
 
+### The title knew where it was; the page did not
+
+Continuing "what can the harness not see": listing every `page.tsx` against the
+audit route list showed one page route never measured —
+`/spreadcast/result/[day]`. It swept clean. The interesting part was the route's
+*failure* path, since a result URL is the one thing here built to be shared: it
+has its own opengraph-image, so its dead links arrive from chat apps weeks
+later, from people who have never seen the app.
+
+Every malformed day already returned a correct 404 — `9999-99-99`,
+`not-a-date`, `2026-08-01x`, and a `../../etc` traversal attempt. What did not
+match was the page behind it:
+
+| | |
+|---|---|
+| `<title>` | "Result not found · Spreadcast — Megawatt" |
+| `<h1>` | "Page not found" |
+| body | *"If you followed a link to a specific **vault**, it may have been renamed or closed"* |
+| exits | Browse vaults · Play Spreadcast |
+
+`generateMetadata` returns `{ title: "Result not found" }` when the round is
+missing, so the route knew exactly what had happened — but `notFound()` had no
+boundary nearer than the root, and the root 404 is written about vaults. A
+stranger opening a shared result link got a correct tab title and an
+explanation of something else entirely.
+
+A nested `not-found.tsx` in the `[day]` segment now answers the question the
+visitor actually has: "No round settled on that date… the link may point at a
+date that has not settled yet, or one from before Spreadcast started", with
+exits to the log and today's round. It inherits the Spreadcast layout, so the
+section bar comes with it and the visitor stays where they were headed.
+
+**Two things worth carrying:**
+
+- **A correct `<title>` can hide an incorrect page.** The metadata and the body
+  come from different places in the App Router, and only the metadata was
+  route-aware. Anything that checks titles — the earlier pass that verified all
+  14 links resolve with correct per-route titles — would have called this
+  healthy.
+- **404 copy is written for the person who arrives, not the developer who
+  routes.** "Browse vaults" is a poor answer to "what was the spread on the day
+  someone told me about". Both audits now carry both failure pages in their
+  default routes.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
