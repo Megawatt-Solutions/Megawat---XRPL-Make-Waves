@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { StatTile } from "@/components/StatTile";
 import { VaultCard } from "@/components/VaultCard";
 import { VAULTS, dashboardMetrics, vaultsByStatus } from "@/lib/vaults";
-import { fmtCompact, fmtNum, plural } from "@/lib/format";
+import { fmtCompact, fmtNum, fmtPower, fmtEnergy, plural } from "@/lib/format";
 import { ASSET_CURRENCY } from "@/lib/protocol";
 import { CoinsIcon, ShieldIcon, LayersIcon, BoltIcon } from "@/components/Icons";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
@@ -66,8 +66,8 @@ export default function DashboardPage() {
         />
         <StatTile
           label="Total Capacity"
-          value={`${m.totalMw.toFixed(1)} MW`}
-          sub={`${totalMwh.toFixed(1)} MWh storage`}
+          value={fmtPower(m.totalMw * 1000)}
+          sub={`${fmtEnergy(totalMwh * 1000)} storage`}
           icon={<BoltIcon size={18} />}
         />
       </div>

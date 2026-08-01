@@ -7,7 +7,7 @@ import { VaultsOverview } from "@/components/VaultsOverview";
 import { NetworkPanel } from "@/components/NetworkPanel";
 import { Sparkline } from "@/components/Sparkline";
 import { ASSET_CURRENCY, PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
-import { CCY_SYMBOL, fmtPct, bpsToPct, fmtCompact, plural } from "@/lib/format";
+import { CCY_SYMBOL, fmtPct, bpsToPct, fmtCompact, fmtPower, fmtEnergy, plural } from "@/lib/format";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
@@ -142,7 +142,7 @@ export default function DashboardV2Page() {
               {CAPACITY.mw.toFixed(1)} <span className="v2-metric-unit">MW</span>
             </div>
             <div className="v2-metric-sub">
-              {CAPACITY.mwh.toFixed(1)} MWh storage across {plural(CAPACITY.sites, "site")}
+              {fmtEnergy(CAPACITY.mwh * 1000)} storage across {plural(CAPACITY.sites, "site")}
             </div>
           </div>
 
@@ -176,7 +176,7 @@ export default function DashboardV2Page() {
       <SectionHead
         index="03"
         name="Global network"
-        meta={`${CAPACITY.sites} sites · ${CAPACITY.mw.toFixed(1)} MW / ${CAPACITY.mwh.toFixed(1)} MWh`}
+        meta={`${CAPACITY.sites} sites · ${fmtPower(CAPACITY.mw * 1000)} / ${fmtEnergy(CAPACITY.mwh * 1000)}`}
       />
       <div className="panel">
         <Ticks />

@@ -3309,6 +3309,49 @@ has `raised: 0`, so it evaluates to zero and shows nothing wrong — which is
 exactly why it would ship. Flagged, not fixed: reconciling those two is a data
 decision, not a formatting one.
 
+### A lint for the mistakes this codebase actually makes
+
+Nine instances of the same shape — a helper introduced, and the call sites that
+did not change staying invisible in the diff — is enough to stop relying on
+remembering. `scripts/consistency-lint.mjs` encodes the six rules this session
+paid for, as static greps over source. No browser, no server, runs in a second.
+
+| rule | what it caught originally |
+|---|---|
+| `raw-status-enum` | one status spelled three ways |
+| `kind-decides-yield-label` | a gross yield labelled "APY" |
+| `asset-figure-as-USD` | €2.44M summed and printed as $2.44M |
+| `raw-megawatt-field` | 350 kW shown as 0.3 MW |
+| `currency-prefixed-rate` | €138.30/MWh beside 196.76 €/MWh |
+| `usdc-in-copy` | "Settled in USDC" on an RLUSD protocol |
+
+**On its first run it caught an incomplete fix of mine from this same
+session.** `Vault remaining` had two call sites; a scripted edit landed on one
+and silently missed the other, so line 837 said €3.20M while line 743 still
+said "$3,200,000 of room left". Both were in a diff I had reviewed. The lint
+found it in a second.
+
+**It also produced two false positives immediately, which is the more useful
+half.** `listedFaceValue` looked asset-side and is not — marketplace face value
+is `shares × 1.00` of an RLUSD-pegged token, so USD is right there. And
+`VaultDetail` labels `split.depositorBps` as "Net yield" or "Depositor APY",
+which *is* correctly keyed on `kind`: a showcase site has no depositors. Both
+rules were narrowed the same day they were written. **A lint that flags correct
+code gets switched off**, so the cost of a loose rule is not noise, it is the
+whole tool.
+
+Three other things worth keeping:
+
+- **Strip comments before matching.** The first `status.replace` grep returned
+  only the comments explaining its removal. A rule that matches its own
+  documentation reports the fix as the defect.
+- **Canary every rule against a synthetic violation.** A regex typo produces a
+  lint that passes everything, and passing is indistinguishable from clean.
+  `--canary` asserts all six fire.
+- **Only lint what can diverge.** Eleven `toFixed(1)}%` call sites are exactly
+  `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
+  the output actually differs.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

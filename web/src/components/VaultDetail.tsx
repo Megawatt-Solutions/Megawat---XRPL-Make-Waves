@@ -740,7 +740,11 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
     : tooMuch
     ? `That's more than your balance of ${fmtMoney(rlusdBalance, "USD")} RLUSD.`
     : overCap
-    ? `This vault has ${fmtMoney(remaining, "USD")} of room left.`
+    // vault.currency, not "USD". `remaining` is capex minus raised — both
+    // asset-side, both EUR — and the tile at the top of this page calls that
+    // quantity "Target raise €3.20M". The balance line directly above is RLUSD
+    // and correctly stays USD; the vault's room is not the same currency.
+    ? `This vault has ${fmtMoney(remaining, vault.currency)} of room left.`
     : null;
   const showBlocker = amount.trim() !== "" && !!blocker;
 
