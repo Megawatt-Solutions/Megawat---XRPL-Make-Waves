@@ -2529,6 +2529,53 @@ Also measured this pass and clean: **text contrast across the whole app** —
 real background through translucent ancestors. Zero failures against 4.5:1
 (3:1 for large). Canaried at 0 → 265 → 0 by forcing `#3a3a3a` text.
 
+### Non-text contrast: 30 failures that did not exist, then one that did
+
+Text contrast was measured last pass. This is its complement — WCAG 1.4.11, the
+3:1 a control needs to be distinguishable from its surroundings, and to show
+its **state**. `--border-control` was solved by hand against the lightest
+surface in the app, and hand-solved values are exactly what drifts.
+
+**The first run reported 30 failures, all at `0.00:1 via none`.** Every one was
+the instrument:
+
+1. **`color-mix()` does not compute to `rgba()`.** It computes to
+   `color(srgb 0.498039 0.658824 0.85098 / 0.08)`. An `rgba?\(` regex reads
+   every one of them as "no colour", i.e. as a control with no fill and no
+   border. This stylesheet uses `color-mix()` for most tints, so the parser was
+   blind to most of the app.
+2. **Only `border-top` was inspected.** `.site-row` carries its boundary on
+   `border-bottom`; `.seg-btn.active` on `border-left`. A top-only read called
+   both unbounded.
+
+A ratio of exactly `0.00` should have been the tell — it does not mean "very
+low contrast", it means "nothing was measured". A real failure has a real
+number.
+
+Third correction, this one to the standard rather than the code: **a control
+with no fill and no border is exempt.** Its text identifies it and 1.4.3 covers
+that; 1.4.11 does not demand a boundary the design never drew. 52 of 208
+controls are text-only. Counting them as failures would have meant restyling
+the app to satisfy a misreading.
+
+**What survived all of that was one finding.** The range selector
+(1W/1M/3M/1Y/ALL) marked its selected segment with a 12%-alpha tint and an
+accent text colour — measured against an unselected sibling, **1.29:1** on fill
+and **1.73:1** on text. Both under 3:1, on the visual information whose whole
+job is to say which range you are looking at.
+
+The fix reuses the app's own idiom rather than inventing one: `.v2-tab.active`
+and `.nav-link.active` both mark themselves with an accent underline, so
+`.seg-btn.active` now does too, via `inset box-shadow` so nothing shifts by a
+pixel inside a bordered group. Measured after: **11.55:1**, against
+`.v2-tabs`' existing **12.18:1** — the same language at the same strength.
+
+Two neighbours were measured and left alone, which is the other half of the
+job: `.v2-tabs` already passed at 12.18 (its accent underline — my first check
+reported "fill 1.00" because it only compared fills), and the Spreadcast band
+cards, the core interaction of the game, already mark selection at **7.42:1**
+with `aria-checked` flipping correctly.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

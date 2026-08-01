@@ -1514,7 +1514,24 @@ button {
 }
 .seg-btn:first-child { border-left: none; }
 .seg-btn:hover { color: var(--text); }
-.seg-btn.active { background: var(--accent-dim); color: var(--accent); }
+/* Which range is selected was carried by a 12%-alpha tint and an accent text
+   colour. Measured against an unselected sibling: fill 1.29:1, text 1.73:1 —
+   both well under the 3:1 that WCAG 1.4.11 asks of the visual information
+   identifying a component's STATE. Legible, but only if you can already see it.
+
+   The underline is the app's own existing idiom for "active" — .v2-tab.active
+   marks itself with border-bottom-color: var(--accent), and .nav-link.active
+   does the same. Reusing it keeps one visual language for one meaning, and
+   accent against these surfaces is far past 3:1 where the tint was not.
+
+   inset box-shadow rather than a border so nothing shifts by a pixel: the
+   segments sit inside a bordered group with 1px dividers between them, and
+   adding real border width would move every sibling. */
+.seg-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
 
 @keyframes flowMove {
   from { stroke-dashoffset: 0; }
