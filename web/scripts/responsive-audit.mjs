@@ -118,7 +118,23 @@ const label = (el) => {
   const txt = (el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 34);
   return el.tagName.toLowerCase() + cls + (txt ? ' "' + txt + '"' : "");
 };
-const all = [...document.querySelectorAll("body *")].filter(visible);
+// Laid out is not the same as seen. getClientRects() returns boxes for anything
+// with geometry, including elements at opacity: 0 — and this app has six of
+// them permanently in the DOM: the globe tooltips, which only fade in on hover
+// or selection. They are positioned against a rotating globe, so they drift in
+// and out of overflowing the viewport, and a geometry check that counts them
+// fails intermittently on something nobody can see. Opacity is inherited
+// visually, so an ancestor at 0 hides its children too.
+const painted = (el) => {
+  if (!el.getClientRects().length) return false;
+  for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.visibility === "hidden" || cs.visibility === "collapse") return false;
+    if (parseFloat(cs.opacity) === 0) return false;
+  }
+  return true;
+};
+const all = [...document.querySelectorAll("body *")].filter(painted);
 // An element inside overflow-x:auto is MEANT to exceed it — the vault table
 // deliberately scrolls sideways below 641px. Flagging those is pure noise.
 const inScroller = (el) => {

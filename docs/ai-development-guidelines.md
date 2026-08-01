@@ -3072,6 +3072,47 @@ siblings in a ternary branch (`Expected corresponding JSX closing tag`). In both
 places the fix is the same — put it in children position, or use a plain
 `/* … */` block, which is whitespace and goes anywhere.
 
+### Laid out is not the same as seen
+
+Every audit measured each page in the state it loads in and no other. Tabs,
+range selectors and filters all re-render layout, so most of what the app can
+draw had never been looked at. `scripts/state-audit.mjs` clicks through every
+option of every mutually-exclusive group and re-runs the geometry checks after
+each: **80 states across seven routes and four widths, 0 problems.** Canaried
+by injecting an overflow *after* each state change — 8 of 9 states report it
+while the default state stays clean, which is exactly the blind spot it closes.
+
+**The first run found three overflows that were not real, and the cause was in
+every audit written this session.** `visible()` has always been
+`getClientRects().length > 0` — which is true of anything with geometry,
+including elements at `opacity: 0`. This app keeps six of those permanently in
+the DOM: the globe tooltips, which fade in on hover or selection. They are
+positioned against a *rotating* globe, so they drift in and out of overflowing
+the viewport.
+
+That is worse than a false positive; it is an intermittent one. `responsive-audit`
+has reported clean all session partly because the pins happened to sit
+favourably each time. Both committed audits now use `painted()` — client rects,
+plus no ancestor at `opacity: 0` or `visibility: hidden`, since opacity is
+inherited visually.
+
+Applied to geometry and contrast only, deliberately. `opacity: 0` text is still
+in the accessibility tree, so its *name* and *structure* still matter; what
+cannot matter is the contrast of something invisible or whether an unseen box
+overhangs the viewport.
+
+**Two process notes.** The first attempt built the state mode by string-surgery
+on `responsive-audit`'s check source, injecting a loop that called a function
+that source does not have. The assert caught it before anything was written; a
+mode assembled by rewriting another mode's text would have been worse than no
+mode. And the backtick rule bit for the second time — the check body contained
+`` `${sel} → ${name}` ``, which ends the `String.raw` block it is embedded in
+and fails with `Unexpected identifier '$'`, pointing nowhere near the cause.
+Concatenation, not interpolation, inside anything injected.
+
+The MSYS guard added last pass also caught a mistake of mine on its first
+outing, which is the nicest thing that can happen to a guard.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

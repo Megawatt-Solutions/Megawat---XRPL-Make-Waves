@@ -119,11 +119,27 @@ const label = (el) => {
 `;
 
 const CHECKS = COLOUR + String.raw`
+// Laid out is not the same as seen. getClientRects() returns boxes for anything
+// with geometry, including elements at opacity: 0 — and this app has six of
+// them permanently in the DOM: the globe tooltips, which only fade in on hover
+// or selection. They are positioned against a rotating globe, so they drift in
+// and out of overflowing the viewport, and a geometry check that counts them
+// fails intermittently on something nobody can see. Opacity is inherited
+// visually, so an ancestor at 0 hides its children too.
+const painted = (el) => {
+  if (!el.getClientRects().length) return false;
+  for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.visibility === "hidden" || cs.visibility === "collapse") return false;
+    if (parseFloat(cs.opacity) === 0) return false;
+  }
+  return true;
+};
 const findings = [];
 
 // ── 1.4.3 text contrast ───────────────────────────────────────────────────
 let textChecked = 0;
-for (const el of [...document.body.querySelectorAll("*")].filter(visible)) {
+for (const el of [...document.body.querySelectorAll("*")].filter(painted)) {
   const own = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).length;
   if (!own) continue;
   const cs = getComputedStyle(el);
@@ -153,7 +169,7 @@ for (const el of [...document.body.querySelectorAll("*")].filter(visible)) {
 // should act on, which is how an audit stops being read.
 const CTRL = "button, a.btn, input:not([type=hidden]), select, textarea, [role=button]";
 let ctrlChecked = 0, textOnly = 0;
-for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
+for (const el of [...document.querySelectorAll(CTRL)].filter(painted)) {
   const r0 = el.getBoundingClientRect();
   if (r0.width < 4 || r0.height < 4) continue;
   const cs = getComputedStyle(el);
