@@ -36,6 +36,22 @@ export const viewport: Viewport = {
 // repeat the brand. Pages set `title: "Portfolio"` and get "Portfolio —
 // Megawatt"; `default` covers routes that set nothing.
 export const metadata: Metadata = {
+  // Every og:image and twitter:image is emitted as an ABSOLUTE url, resolved
+  // against this. Unset, Next falls back to http://localhost:3000 and says so
+  // at build time:
+  //
+  //   ⚠ metadataBase property in metadata export is not set for resolving
+  //     social open graph or twitter images, using "http://localhost:3000"
+  //
+  // which means every share card points at a host only the developer can
+  // reach, and renders with no image at all for everyone else. That makes the
+  // cards themselves — root, each vault, each settled Spreadcast result —
+  // silently worthless off this machine.
+  //
+  // The production origin is not invented here: it comes from
+  // NEXT_PUBLIC_SITE_URL, with the dev origin as the fallback so local builds
+  // behave exactly as before. Set it wherever the app is deployed.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
     template: "%s — Megawatt",
     default: "Megawatt — BESS Vaults",

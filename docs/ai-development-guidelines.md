@@ -1260,6 +1260,43 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The share cards pointed at localhost
+
+Directly downstream of the previous entry, and the reason it matters: fixing
+`twitter:card` to `summary_large_image` is worthless if the image URL is not
+reachable. It was not. The build says so, and had been saying so:
+
+```
+⚠ metadataBase property in metadata export is not set for resolving social
+  open graph or twitter images, using "http://localhost:3000"
+```
+
+`og:image` and `twitter:image` are emitted as **absolute** URLs resolved
+against `metadataBase`. Unset, every card in the app — root, each vault, each
+settled Spreadcast result — pointed at a host only this machine can reach, and
+would render with **no image at all** for everyone else.
+
+Now `metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")`.
+The production origin is **not invented here** — it comes from the environment,
+with the dev origin as the fallback so local builds behave exactly as before.
+`NEXT_PUBLIC_SITE_URL` is documented in `.env.example` by name, per §6.
+
+Verified end to end rather than by reading the diff: built and served with
+`NEXT_PUBLIC_SITE_URL=https://megawatt.example`, then fetched three routes and
+confirmed every `og:image` resolved to that origin with `summary_large_image`
+alongside. Then the server was stopped and the app rebuilt without the variable,
+so the working state is unchanged.
+
+**Two build warnings had been printing this whole time.** Neither was a test
+failure, so neither stopped anything, and the definition of done in §6 only asks
+for a *clean build* — which this was, warnings and all. Read the warnings.
+
+**Still missing, and deliberately not added:** `robots.txt` and `sitemap.xml`.
+Both are absent, and for a product whose vault and result links are meant to be
+found that is a real gap — but it is SEO infrastructure rather than UI, and
+inventing a canonical domain to populate a sitemap is exactly the guess this
+entry avoided making for `metadataBase`. Flagged for whoever owns the domain.
+
 ### A setting that was right when written, and wrong once the image landed
 
 The Spreadcast result page exists to be pasted into a chat, so its share tags
