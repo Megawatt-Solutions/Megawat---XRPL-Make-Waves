@@ -1595,7 +1595,13 @@ button {
   justify-content: space-between;
   padding: 15px 22px;
   background: var(--card);
-  border: 1px solid var(--border);
+  /* --border-control, not --border. This is an operable control, and --border
+     is the decorative rung (0.1 alpha, "brand ring value") — it measured
+     1.24:1 against this button's own surround, where WCAG 1.4.11 asks 3:1 of
+     the boundary identifying a component. --border-control exists for exactly
+     this and was solved against the lightest surface in the app; it was applied
+     to five places and this one was not among them. */
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text);
   font-size: 0.9375rem;

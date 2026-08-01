@@ -2742,6 +2742,54 @@ does, and it is easy to miss precisely because it *is* text — a check looking
 for unlabelled icons walks straight past it. Worth scanning for elsewhere: any
 element whose entire content is one character is carrying meaning it cannot say.
 
+### Consolidating the checks found the bug the checks had
+
+Three sweeps came up clean this pass — icon-only controls (0 unnamed), the
+single-character scan flagged last time (11 hits, all fine in context), and
+long user-supplied names in the leaderboard (a 60-character unbroken word makes
+the cell grow 198→506px at 1440 and wrap to two lines at 390; no page overflow,
+`overflow-wrap: anywhere` absorbs it).
+
+So the deliverable became `scripts/a11y-audit.mjs` — the contrast, structure,
+focus and naming checks written across this session, which until now existed
+only in a scratchpad. Writing them down as one tool immediately exposed four
+faults in them:
+
+1. **Text contrast was measured against the wrong background.** I reused
+   `bgOf(el, skipSelf=true)` from the non-text check. A *border* sits against
+   the parent's background; *text* sits on its own element's. That reported
+   "Connect Wallet" at **1.00:1** — dark text measured against the dark page
+   instead of the bright green button it is painted on. Twelve invented
+   failures.
+2. **box-shadow was not counted as a boundary**, so the check was blind to the
+   app's own idiom. Both `.seg-btn.active` and `.sc-seg button.on` mark
+   themselves with an inset accent underline; the audit called a state marked
+   at 11:1 a 1.19:1 failure.
+3. **Non-operable elements were in the control list.** Status badges state
+   their status in words and `.chain-btn` is a non-interactive span. Twenty
+   findings per run that nobody should act on — which is how an audit stops
+   being read.
+4. **A single-side border is not a boundary.** `.seg-btn`'s `border-left`
+   separates it from the next segment; `.site-row`'s `border-bottom` is a row
+   rule. Counting those asks the design to outline every list row. Borders now
+   count only when they enclose (≥3 sides).
+
+21 findings → 1. And the one that survived was real: **`.perf-toggle` drew its
+border with `--border` (0.1 alpha, commented "brand ring value") instead of
+`--border-control` (0.36), the token that exists precisely because controls
+need 3:1.** Measured 1.24:1. The token has five uses in the stylesheet and this
+control was not one of them — the seventh sibling-miss this session, and the
+sharpest, because the codebase already contains the exact answer.
+
+Also worth remembering: **a backtick inside a `String.raw` block ends the
+template.** A comment reading `` `inset 0 -2px 0 var(--accent)` `` broke the
+whole script with "Unexpected identifier". Injected page scripts cannot contain
+backticks, and the failure looks nothing like its cause.
+
+After: **0 findings** across 20 route/width runs — 1715 text nodes, 52 bounded
+controls, 56 text-only exempt, 314 focusable elements. Canaried at
+0 → 265/28/1 → 0.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
