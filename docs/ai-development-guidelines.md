@@ -3352,6 +3352,48 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Copy that asserts a live state is wrong for part of every day
+
+Read the Spreadcast explainer and the onboarding flow for meaning rather than
+geometry. The onboarding copy checks out against the app — Ljubljana and Metlika
+really are the live sites, the 11:45 cutoff and European settlement match the
+clock and the log.
+
+One defect, on the how page's closing CTA: **"Tomorrow's round is open now."**
+That sentence is contradicted twice by the same page. THE CLOCK, four panels up,
+says predictions open "for the day after tomorrow" — so after 15:00 the open
+round is not tomorrow's. And predictions close at 11:45, so for the 3h15m until
+the next 15:00 no round is open at all. Static copy asserting a live state is
+false for part of every day. Replaced with the schedule, which is true at every
+hour and tells a reader when to come back instead of implying they are late.
+
+The rest of the pass was three of my own wrong assumptions, each caught by
+looking:
+
+**"The onboarding dialog has no accessible name."** It does. My probe read
+`aria-labelledby` in the return object, which JavaScript evaluates *after* the
+Escape dispatch two lines above had already unmounted the sheet. Read the state
+of a thing before you poke it.
+
+**"The background scrolls behind the modal."** It does not. `window.scrollTo()`
+is programmatic and `overflow: hidden` has never blocked that — it blocks user
+input. The only honest test is trusted input, so cdp.mjs gained a `--wheel`
+flag that dispatches through the Input domain. With a control (no overlay:
+0 to 400; sheet open: 0 to 0) the lock is provably working. **A scroll-lock
+check without a control proves nothing** — an instrument that cannot detect
+scrolling reports "locked" everywhere.
+
+**"overlay-audit doesn't cover onboarding."** It is the first entry in the
+list. I had only ever read the tail of its output.
+
+What that last one did surface: `spreadcast:fair` prints "trigger not present —
+skipped" at every width and always has. Its trigger only renders once a
+signed-in user has committed, and `commit` is React state, so no storage seeding
+reaches it — the "Provably fair" sheet has never been measured. The skip line
+was honest but read like any other row, so the audit now ends by naming every
+case that ran at no width, with its precondition. **Dead coverage that looks
+like coverage is worse than a gap you can see.**
+
 ### Reading the page, not measuring it
 
 Last pass concluded automation finds defects of shape, not meaning, so this one

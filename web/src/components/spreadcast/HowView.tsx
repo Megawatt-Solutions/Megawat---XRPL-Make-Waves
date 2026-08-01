@@ -98,8 +98,20 @@ export function HowView() {
       <div className="sc-next-step">
         <div>
           <div className="sc-next-step-title">Ready to call one?</div>
+          {/* Was "Tomorrow's round is open now", which this page's own CLOCK
+              section contradicts twice over. That section says predictions open
+              "for the day after tomorrow", so after 15:00 the open round is not
+              tomorrow's; and predictions close at 11:45, so for the 3h15m until
+              the next 15:00 no round is open at all. Static copy asserting a
+              live state is wrong for part of every day.
+
+              The schedule is the honest version of the same invitation — it is
+              true at every hour, and it tells a reader when to come back rather
+              than implying they are already late. Timezone repeated here on
+              purpose: the CLOCK panel states it once, but this block sits well
+              below it and has to stand on its own. */}
           <p className="sc-next-step-sub">
-            One pick a day, free, no deposit. Tomorrow&apos;s round is open now.
+            One pick a day, free, no deposit. A new round opens every day at 15:00 Ljubljana time.
           </p>
         </div>
         <Link className="btn btn-accent" href="/spreadcast">

@@ -51,9 +51,15 @@ const CONNECTED_SEED =
 const asConnected = process.argv.includes("--as-connected");
 
 // name, route, selector to click (null = already open), selector that should appear
+const skipped = new Map();
 const CASES = [
   { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]" },
-  { name: "spreadcast:fair",   route: "/spreadcast",     open: ".sc-commit-why",   expect: "[role=dialog], .sheet" },
+  // Never runs anonymously: .sc-commit-why only renders once a signed-in user
+  // has committed a prediction, and `commit` is React state set by the commit
+  // flow, so no amount of storage seeding reaches it. Kept in the list so the
+  // summary at the bottom keeps saying it is unmeasured.
+  { name: "spreadcast:fair",   route: "/spreadcast",     open: ".sc-commit-why",   expect: "[role=dialog], .sheet",
+    precondition: "needs a committed prediction by a signed-in user" },
   { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay" },
   { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay" },
   { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay" },
@@ -167,13 +173,13 @@ try {
       await loaded; await sleep(800);
       if (c.open) {
         const clicked = await ev(`const t=document.querySelector(${JSON.stringify(c.open)}); if(!t) return false; t.click(); return true;`);
-        if (!clicked) { console.log(`  [${w}] ${c.name}: trigger not present — skipped`); continue; }
+        if (!clicked) { skipped.set(c.name, (skipped.get(c.name) || 0) + 1); console.log(`  [${w}] ${c.name}: trigger not present — skipped`); continue; }
         await sleep(700);
       }
       let res;
       try { res = await ev(AUDIT.replace("SELECTOR", JSON.stringify(c.expect))); }
       catch (e) { console.log(`  [${w}] ${c.name}: ERROR ${e.message}`); continue; }
-      if (!res.opened) { console.log(`  [${w}] ${c.name}: did not open — skipped`); continue; }
+      if (!res.opened) { skipped.set(c.name, (skipped.get(c.name) || 0) + 1); console.log(`  [${w}] ${c.name}: did not open — skipped`); continue; }
       const flags = [];
       if (res.overflowsRight) flags.push("OVERFLOWS-RIGHT");
       if (res.tallerThanViewport && !res.scrollable && !res.bodyScrolls) flags.push("TALLER-THAN-VIEWPORT-NO-SCROLL");
@@ -183,6 +189,23 @@ try {
       for (const t of res.tinyControls) console.log(`         tiny: "${t.t}" ${t.size}`);
       for (const t of res.controlsBelowFold.slice(0,3)) console.log(`         below fold: "${t.t}" bottom=${t.bottom}`);
     }
+  }
+  // A case that skips at EVERY width is not coverage, it is a gap that reads
+  // like a passing line. spreadcast:fair has never run once: its trigger only
+  // renders after a signed-in user commits a prediction, so the "Provably fair"
+  // sheet has never been measured. Saying so at the end costs two lines and is
+  // the difference between a known gap and an invisible one.
+  const never = [...skipped].filter(([, n]) => n === WIDTHS.length).map(([n]) => n);
+  if (never.length) {
+    console.log("");
+    console.log(`cases that never ran at any width: ${never.join(", ")}`);
+    for (const n of never) {
+      const c = CASES.find((x) => x.name === n);
+      console.log(`  ${n} — trigger ${JSON.stringify(c && c.open)}${c && c.precondition ? " · " + c.precondition : ""}`);
+    }
+  } else {
+    console.log("");
+    console.log("every case ran at every width.");
   }
 } catch (e) { console.log("fatal: " + e); process.exitCode = 1; }
 finally { chrome.kill(); }

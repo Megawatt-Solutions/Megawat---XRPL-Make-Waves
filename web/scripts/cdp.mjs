@@ -1,0 +1,187 @@
+// Minimal Chrome DevTools Protocol driver — no dependencies.
+//
+// The playwright MCP server hangs in this environment (it hung with no browser
+// installed AND after chromium was installed, so it is the server, not the
+// browser). Node 24 ships a global WebSocket, and Chrome speaks CDP over one,
+// so driving the browser directly is both simpler and fully under our control.
+//
+//   node cdp.mjs --url http://localhost:3100/ --width 375 --height 812 \
+//                --eval audit.js [--shot out.png] [--settle 900]
+//
+// --eval's file must evaluate to an expression (it is wrapped in an async IIFE
+// and the completion value is returned by value).
+import { spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const CHROME =
+  "C:/Users/Jax/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
+
+function arg(name, dflt = null) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i === -1 ? dflt : process.argv[i + 1];
+}
+
+const url = arg("url");
+const width = Number(arg("width", 1280));
+const height = Number(arg("height", 900));
+const settle = Number(arg("settle", 900));
+const evalFile = arg("eval");
+const shot = arg("shot");
+const port = Number(arg("port", 9333));
+
+const profile = mkdtempSync(join(tmpdir(), "cdp-"));
+const chrome = spawn(
+  CHROME,
+  [
+    "--headless=new",
+    `--remote-debugging-port=${port}`,
+    `--user-data-dir=${profile}`,
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--force-device-scale-factor=1",
+    "about:blank",
+  ],
+  { stdio: "ignore" }
+);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function endpoint() {
+  for (let i = 0; i < 100; i++) {
+    try {
+      const r = await fetch(`http://127.0.0.1:${port}/json/version`);
+      if (r.ok) return (await r.json()).webSocketDebuggerUrl;
+    } catch {}
+    await sleep(150);
+  }
+  throw new Error("chrome did not expose a debugging endpoint");
+}
+
+class CDP {
+  constructor(ws) {
+    this.ws = ws;
+    this.id = 0;
+    this.pending = new Map();
+    this.waiters = [];
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.id !== undefined && this.pending.has(m.id)) {
+        const { resolve, reject } = this.pending.get(m.id);
+        this.pending.delete(m.id);
+        m.error ? reject(new Error(JSON.stringify(m.error))) : resolve(m.result);
+      } else if (m.method) {
+        this.waiters = this.waiters.filter((w) => {
+          if (w.method !== m.method) return true;
+          w.resolve(m.params);
+          return false;
+        });
+      }
+    };
+  }
+  send(method, params = {}, sessionId) {
+    const id = ++this.id;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.ws.send(JSON.stringify({ id, method, params, sessionId }));
+    });
+  }
+  once(method, timeout = 30000) {
+    return new Promise((resolve, reject) => {
+      const w = { method, resolve };
+      this.waiters.push(w);
+      setTimeout(() => {
+        this.waiters = this.waiters.filter((x) => x !== w);
+        reject(new Error(`timeout waiting for ${method}`));
+      }, timeout);
+    });
+  }
+}
+
+function connect(wsUrl) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => resolve(new CDP(ws));
+    ws.onerror = (e) => reject(new Error("ws error: " + e.message));
+  });
+}
+
+try {
+  const browserWs = await endpoint();
+  const browser = await connect(browserWs);
+
+  // Own page target, attached flat so one socket carries the session.
+  const { targetId } = await browser.send("Target.createTarget", { url: "about:blank" });
+  const { sessionId } = await browser.send("Target.attachToTarget", { targetId, flatten: true });
+
+  const s = (method, params) => browser.send(method, params, sessionId);
+
+  await s("Page.enable");
+  await s("Runtime.enable");
+  const media = arg("media");   // e.g. prefers-reduced-motion=reduce
+  if (media) {
+    const [name, value] = media.split("=");
+    await s("Emulation.setEmulatedMedia", { features: [{ name, value }] });
+  }
+  await s("Emulation.setDeviceMetricsOverride", {
+    width, height, deviceScaleFactor: 1, mobile: width < 768,
+  });
+
+  // Runs before any page script — the only way to seed storage the app reads
+  // during its own initialisation.
+  const init = arg("init");
+  if (init) await s("Page.addScriptToEvaluateOnNewDocument", { source: init });
+
+  const loaded = browser.once("Page.loadEventFired");
+  await s("Page.navigate", { url });
+  await loaded;
+  await sleep(settle);
+
+  let out = null;
+  if (evalFile) {
+    const src = readFileSync(evalFile, "utf8");
+    const res = await s("Runtime.evaluate", {
+      expression: `(async () => { ${src} })()`,
+      awaitPromise: true,
+      returnByValue: true,
+    });
+    if (res.exceptionDetails) {
+      out = { error: res.exceptionDetails.exception?.description || "eval threw" };
+    } else {
+      out = res.result.value;
+    }
+  }
+
+  // A scroll lock can only be tested with TRUSTED input. window.scrollTo() is
+  // programmatic and overflow:hidden never blocks it, so an in-page probe
+  // reports "background scrolls" on a page that is correctly locked. A wheel
+  // dispatched through the Input domain is real input and settles it.
+  const wheel = arg("wheel");
+  if (wheel) {
+    const readY = async () =>
+      (await s("Runtime.evaluate", { expression: "window.scrollY", returnByValue: true })).result.value;
+    const y0 = await readY();
+    await s("Input.dispatchMouseEvent", {
+      type: "mouseWheel", x: Math.round(width / 2), y: Math.round(height / 2),
+      deltaX: 0, deltaY: Number(wheel), pointerType: "mouse",
+    });
+    await sleep(500);
+    const y1 = await readY();
+    out = { ...(out ?? {}), wheel: { before: y0, after: y1, backgroundScrolled: y1 !== y0 } };
+  }
+
+  if (shot) {
+    const { data } = await s("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+    writeFileSync(shot, Buffer.from(data, "base64"));
+  }
+
+  console.log(JSON.stringify(out ?? { ok: true }, null, 2));
+} catch (err) {
+  console.log(JSON.stringify({ error: String(err) }));
+  process.exitCode = 1;
+} finally {
+  chrome.kill();
+}
