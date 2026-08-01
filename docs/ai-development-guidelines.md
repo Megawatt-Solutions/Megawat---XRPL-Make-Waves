@@ -1260,6 +1260,35 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Full regression sweep — 88 combinations, clean
+
+After roughly twenty-five passes of point fixes it was worth asking whether the
+app still holds together, rather than hunting for a twenty-sixth. Eleven routes
+(including the 404 and a settled result page) × eight widths from 320 to 1440,
+run against a **fresh production build** rather than the dev server, which
+degrades badly under sustained sweeps.
+
+`doc-overflow`, `clip-h`, `clip-v`, `label-in-name` and `ragged-row`: **zero
+findings across all 88.**
+
+**That number means nothing without a canary, and the first canary lied.** It
+targeted `d.querySelector('p, .card, div')`, which returned a **0×0 empty div** —
+Next's root marker. Both clipping checks correctly skip elements with no text
+or under 2px, so it could never have fired, and the run reported
+`CHECKS INERT — result meaningless`. Retargeted at a real text-bearing element
+the horizontal check fired at 828px and the vertical at 173px, and both went
+silent once the element was restored.
+
+So the clean result stands — but only because the first canary was disbelieved
+rather than the sweep. **A canary needs to be checked as carefully as the thing
+it validates**, and "it didn't fire" has two explanations, exactly as "it found
+nothing" does.
+
+A smaller version of the same mistake in the restore step: `Object.assign(style,
+{h, ov, ws, w})` sets four meaningless properties, because those are not CSS
+property names. The third state only completed after restoring with
+`style.removeProperty('white-space')` and friends.
+
 ### "Updated per block", on a page that never reads a block
 
 Seeing `/dashboard-v2` whole — a page modified repeatedly this session but never
