@@ -3031,6 +3031,47 @@ This also gives `docs/wallet-tsx-handoff.md` a measured side-by-side: ten dialog
 behaviours, `Sheet` has all ten, `XrplConnectModal` has one (scrim dismiss, its
 only exit). That is the whole argument for the change in that file, on evidence.
 
+### A reference to something that is not there yet
+
+The archive rows on `/spreadcast/log` expand to a price curve and the revealed
+predictions — real interactive UI that no audit had rendered, because every
+sweep measures pages as they load. Expanding one is clean: 10 rows become 13,
+the detail appears, nine charts draw, no overflow at 390 or 1280.
+
+The disclosure semantics were already right — a real `<button>` inside the cell
+carrying `aria-expanded`, added by an earlier pass with a comment explaining
+that a `<tr onClick>` "advertised a disclosure only a mouse could open". State
+tracks correctly: false → true → false.
+
+One thing did not. `aria-controls` was set unconditionally, but the detail row
+is rendered **lazily** — its content is fetched on first open — so while
+collapsed the attribute pointed at an id that is not in the document. A
+dangling `aria-controls` is worse than none: it promises the accessibility tree
+a relationship it cannot follow, and `aria-expanded` is what actually carries
+the state. `aria-controls` is optional in the disclosure pattern, so it is now
+present exactly when its target is: absent closed, present and resolving open.
+
+Fixing it *properly* would have meant rendering all ten detail panels up front
+so the ids always exist — trading a lazy fetch for eager work on every row, to
+satisfy a validity nit. Removing the attribute when it cannot be true is the
+cheaper truth.
+
+**Two harness mistakes, both about reading state at the wrong moment:**
+
+- The probe captured `aria-controls` **once, before opening**, then called
+  `getElementById` on that stale value for all three samples — so it reported
+  "does not resolve" in every state including the one where it does. Attributes
+  that change have to be re-read on each observation, not closed over.
+- The first sample found the `<tr>` rather than the `<button>` and concluded
+  there was no `aria-expanded` anywhere. The row *and* the button are both
+  clickable by design; a selector that takes the first match takes the wrong one.
+
+**And a JSX rule, hit twice this session:** `{/* … */}` is a *child expression*.
+It cannot go between attributes (`'...' expected`) and it cannot be one of two
+siblings in a ternary branch (`Expected corresponding JSX closing tag`). In both
+places the fix is the same — put it in children position, or use a plain
+`/* … */` block, which is whitespace and goes anywhere.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

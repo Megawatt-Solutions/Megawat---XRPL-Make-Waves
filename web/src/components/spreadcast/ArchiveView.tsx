@@ -293,11 +293,21 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
           handler would otherwise toggle a second time and cancel it out. */}
       <tr className="sc-arch-row" onClick={onToggle}>
         <td className="sc-mono">
+          {/* aria-controls only while the target exists. The detail row is
+              rendered lazily — its content is fetched on first open — so when
+              collapsed this pointed at an id that is not in the document.
+              Measured: the reference resolved false closed, true open.
+
+              A dangling aria-controls is worse than none. It promises a
+              relationship the accessibility tree cannot follow, and it is
+              aria-expanded that carries the state a disclosure has to announce;
+              aria-controls is optional in that pattern. So it is present
+              exactly when it is true. */}
           <button
             type="button"
             className="sc-arch-toggle"
             aria-expanded={open}
-            aria-controls={`arch-detail-${r.day}`}
+            aria-controls={open ? `arch-detail-${r.day}` : undefined}
             onClick={(e) => { e.stopPropagation(); onToggle(); }}
           >
             <span aria-hidden="true">{open ? "▾ " : "▸ "}</span>{r.day}
