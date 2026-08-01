@@ -307,6 +307,18 @@ export function Onboarding() {
         <span className="ob-grab" aria-hidden="true" />
 
         <div className="ob-head">
+          {/* How far through you are was carried entirely by the dots in the
+              footer, and those are correctly aria-hidden — they are four
+              decorative shapes, and announcing them would be worse than
+              silence. But nothing replaced what they say. A four-step flow
+              where one group of users cannot tell it is four steps, or which
+              one they are on, has no way to judge whether Skip is worth it.
+
+              Stated here rather than beside the dots so it is met on the way
+              in, next to the eyebrow and title, instead of after the body. */}
+          <span className="sr-only">
+            Step {i + 1} of {steps.length}
+          </span>
           <span className="ob-eyebrow">{step.eyebrow}</span>
           <button type="button" className="ob-skip" data-testid="onboarding-skip" onClick={dismissFlow}>
             Skip

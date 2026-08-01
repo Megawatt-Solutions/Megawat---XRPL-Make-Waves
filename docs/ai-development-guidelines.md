@@ -2790,6 +2790,47 @@ After: **0 findings** across 20 route/width runs — 1715 text nodes, 52 bounded
 controls, 56 text-only exempt, 314 focusable elements. Canaried at
 0 → 265/28/1 → 0.
 
+### Four steps, and one group of users could not tell there were four
+
+Walked the onboarding end to end for the first time — it is the first thing
+every new visitor sees and only step 1 had ever been looked at. The flow itself
+is well built: four steps, dots advancing 1→2→3→4, Back appearing from step 2,
+a CTA that names the next topic rather than saying "Next" ("How it works" →
+"What's Spreadcast?" → "Nearly done"), and a final step offering both
+"Connect a wallet" and "Explore first".
+
+The gap was progress. `.ob-dots` is `aria-hidden="true"` — correctly, they are
+four decorative shapes and announcing them would be worse than silence — but
+**nothing replaced what they say**. No role, no label, no text equivalent
+anywhere in the sheet. A four-step flow where one group of users cannot tell it
+is four steps, or which one they are on, gives them no way to judge whether
+Skip is worth taking.
+
+Now an `sr-only` "Step N of 4", placed beside the eyebrow and title rather than
+next to the dots, so it is met on the way in instead of after the body.
+Verified against the accessibility tree, and that it tracks the visual
+indicator at every step:
+
+```
+dot 1/4 -> "Step 1 of 4"      dot 3/4 -> "Step 3 of 4"
+dot 2/4 -> "Step 2 of 4"      dot 4/4 -> "Step 4 of 4"
+```
+
+with the sr-only removed as a canary, leaving only "WHAT THIS IS / SKIP".
+
+**Two notes on driving a flow like this.** The walker first stalled at step 2
+because it looked for a button matching "next|continue", and this design
+deliberately never uses those words — matching *"the last control that is not
+Skip or Back"* is what actually works, and is the more honest description of
+"advance" anyway. And counting how many dots carry the active class said
+`1 of 4` on every step, which looks like a stuck indicator; the question worth
+asking is *which* dot is active, not how many are.
+
+**aria-hidden is only half a decision.** It is right whenever a visual is
+decorative, but decorative-looking things often carry the only copy of some
+information. Hiding it correctly and replacing it are two separate steps, and
+the second is easy to skip because the first one already feels like the fix.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
