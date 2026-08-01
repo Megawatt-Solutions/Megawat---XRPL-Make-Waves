@@ -87,13 +87,32 @@ function check() {
         (!cs.clipPath || cs.clipPath === "none") &&
         el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)
       out.push({ kind: "clipped-text", el: label(el), detail: el.scrollWidth + ">" + el.clientWidth });
+    // A box can sit fully in bounds while its text does not — inherited
+    // white-space: nowrap did that to two paragraphs in the expanded archive
+    // day. The two checks above measure the ELEMENT, so neither can see it.
+    // Range rects measure the text.
+    if (!el.children.length && el.textContent.trim() && !inScroller(el) && cs.overflowX === "visible") {
+      const rng = document.createRange();
+      rng.selectNodeContents(el);
+      const rects = [...rng.getClientRects()].filter(x => x.height > 0);
+      if (rects.length) {
+        const past = Math.round(Math.max(...rects.map(x => x.right)) - r.right);
+        if (past > 2) out.push({ kind: "text-spill", el: label(el), detail: past + "px past its box" });
+      }
+    }
   }
   return { overflow: out.filter(x => x.kind === "overflows-viewport"), clipped: out.filter(x => x.kind === "clipped-text"),
+           spill: out.filter(x => x.kind === "text-spill"),
            pageOverflow: document.documentElement.scrollWidth > W + 1 };
 }
 
 // Every group of mutually-exclusive options this app uses.
-const GROUPS = [".v2-tabs .v2-tab", ".seg .seg-btn", ".sc-seg button", ".sc-band-card", ".perf-toggle"];
+//
+// .perf-toggle used to be in this list and does not belong: it is a disclosure,
+// not one of a set of options, and listing it here meant the pass below "opened"
+// it as a side effect and then found nothing left to open. Handled by the
+// disclosure pass now, which is the one that can tell open from closed.
+const GROUPS = [".v2-tabs .v2-tab", ".seg .seg-btn", ".sc-seg button", ".sc-band-card"];
 const results = [];
 results.push({ state: "default", ...check() });
 
@@ -115,12 +134,45 @@ for (const sel of GROUPS) {
   }
 }
 
-const bad = results.filter(r => r.overflow.length || r.clipped.length || r.pageOverflow);
+// Disclosures. Everything above enumerates mutually-exclusive OPTIONS — tabs
+// and segmented controls, which are always showing one of their states. A
+// disclosure defaults to hiding its content entirely, so a defect inside one
+// is invisible to anyone who does not think to click.
+//
+// Worth being exact about what this does and does not buy. The duplicate
+// revenue row inside SiteMonitor was NOT hidden from this file — .perf-toggle
+// was listed in GROUPS above, so the panel was opened and its geometry
+// measured on every run. It survived because it was a CONTENT defect, and
+// nothing here reads content. No sweep in this repo does. That one needed
+// looking at.
+//
+// Take the first still-unopened toggle each time rather than an index: opening
+// one re-renders and can reveal more. The seen-set is keyed on label + text so
+// a toggle whose click silently fails cannot be picked forever.
+const DISCLOSURE = '[aria-expanded="false"], details:not([open]) > summary';
+const seen = new Set();
+const opened = [];
+for (let i = 0; i < 10; i++) {
+  const next = [...document.querySelectorAll(DISCLOSURE)].filter(visible)
+    .filter(e => !seen.has(label(e) + "|" + (e.textContent || "").trim().slice(0, 30)))[0];
+  if (!next) break;
+  const name = (next.textContent || "").trim().replace(/\s+/g, " ").slice(0, 30) || label(next);
+  seen.add(label(next) + "|" + (next.textContent || "").trim().slice(0, 30));
+  next.click();
+  // Longer than the 450ms used for tabs: a disclosure often mounts its content
+  // for the first time, and the archive rows fetch on open.
+  await new Promise((r) => setTimeout(r, 900));
+  opened.push(name);
+  results.push({ state: "open -> " + name, ...check() });
+}
+
+const bad = results.filter(r => r.overflow.length || r.clipped.length || r.spill.length || r.pageOverflow);
 return {
   statesChecked: results.length,
   groupsFound: GROUPS.filter(s => document.querySelectorAll(s).length > 0),
+  disclosuresOpened: opened,
   problems: bad.map(r => ({ state: r.state, pageOverflow: r.pageOverflow,
-    overflow: r.overflow.slice(0, 3), clipped: r.clipped.slice(0, 3) })),
+    overflow: r.overflow.slice(0, 3), clipped: r.clipped.slice(0, 3), spill: r.spill.slice(0, 3) })),
 };
 `;
 
@@ -159,7 +211,7 @@ try {
   const s = (m, p) => b.send(m, p, sessionId);
   await s("Page.enable"); await s("Runtime.enable");
 
-  let states = 0, problems = 0;
+  let states = 0, problems = 0, disclosures = 0;
   for (const w of WIDTHS) {
     await s("Emulation.setDeviceMetricsOverride", { width: w, height: w < 768 ? 844 : 900, deviceScaleFactor: 1, mobile: w < 768 });
     for (const route of ROUTES) {
@@ -175,13 +227,18 @@ try {
         console.log(`  [${w}] ${route}  state: ${p.state}  pageOverflow=${p.pageOverflow}`);
         for (const o of p.overflow) console.log(`        overflow: ${o.el}  ${o.detail}`);
         for (const c of p.clipped) console.log(`        clipped : ${c.el}  ${c.detail}`);
+        for (const t of p.spill || []) console.log(`        spill   : ${t.el}  ${t.detail}`);
       }
+      // Print what was opened even when clean. A disclosure pass that silently
+      // opened nothing looks exactly like one that opened everything and found
+      // no problems, and the difference is the whole point of the pass.
+      disclosures += (v.disclosuresOpened || []).length;
     }
     process.stderr.write(`  width ${w} ✓
 `);
   }
   console.log(`
-states exercised: ${states}   problem states: ${problems}`);
+states exercised: ${states}   disclosures opened: ${disclosures}   problem states: ${problems}`);
   if (!problems) console.log("  clean.");
   if (problems) exitCode = 1;
 } catch (e) { console.error(String(e)); exitCode = 1; }

@@ -3352,6 +3352,48 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The audit that could not see the thing it was built to see
+
+Last pass ended on the idea that collapsed disclosures are where defects hide,
+so I extended state-audit to open them. Writing the pass turned up the real
+finding, and then corrected my story about it twice.
+
+**The disclosure pass opened nothing on the vault page.** Its selector is
+`[aria-expanded="false"]`, and the "Live performance & energy flow" button did
+not have the attribute — it had no `type`, no `aria-expanded`, no
+`aria-controls`. A screen reader was told "button, Live performance & energy
+flow" with no indication it opens anything or that it was already open. Sighted
+users were fine, because the chevron rotates. That is why it lasted.
+
+The app's *other* disclosure — the archive day row — already does this
+correctly, with a comment explaining why `aria-controls` is conditional (the
+panel is lazy, and a dangling reference promises the accessibility tree a
+relationship it cannot follow). The only other disclosure in the app had none
+of it. Eleventh sibling-miss, and again the correct version was sitting in the
+codebase with its reasoning written out.
+
+**Then the count did not move.** After the fix, "disclosures opened" stayed at
+40. If I had shipped on the green tick I would have shipped a wrong claim: it
+turned out `.perf-toggle` was listed in `GROUPS`, the mutually-exclusive-options
+list, so the tab pass had been opening that panel all along and the disclosure
+pass then found it already expanded.
+
+Which means the story I had written into two comments was false. The duplicate
+revenue row inside that panel was **not** hidden from state-audit — the panel
+was opened and its geometry measured on every run for as long as the file has
+existed. It survived because it was a **content** defect, and nothing in this
+repo reads content. No amount of geometry sweeping would ever have found
+"Revenue 2,477" sitting above "Today 2,477.00". That one needed looking at, and
+the honest lesson is narrower than the one I first wrote down: **automation
+finds defects of shape, not of meaning.**
+
+`.perf-toggle` is now out of `GROUPS`, where it never belonged — a disclosure is
+not one of a set of options — and the count reads 44 because the four vault
+panels are finally attributed to the pass that can tell open from closed.
+
+Both canaries still pass, and the spill check was verified firing on content
+mounted *by* a disclosure, not just content present at load.
+
 ### The rule I wrote to encode a fix found a worse instance of it
 
 Two surfaces had never been looked at: the board at phone width, and the vault

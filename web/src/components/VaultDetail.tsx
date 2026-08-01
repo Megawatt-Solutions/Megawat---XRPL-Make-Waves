@@ -261,7 +261,27 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 
       {hasTelemetry && (
         <div className="perf-section">
-          <button className="perf-toggle" onClick={() => setShowPerf((v) => !v)}>
+          {/* The app's other disclosure — the archive day row — already does
+              this, comment and all: aria-expanded always, aria-controls only
+              while the panel exists, because the panel is rendered lazily and a
+              dangling reference promises the accessibility tree a relationship
+              it cannot follow. This one, the only other disclosure in the app,
+              had none of it. A screen reader was told "button, Live performance
+              & energy flow" with no indication it opens anything, or that it
+              was already open.
+
+              Sighted users were unaffected — the chevron rotates — which is
+              exactly why it lasted. The state sweep also reached this panel by
+              other means, so nothing here was hiding behind the missing
+              attribute; it was simply a promise the accessibility tree was
+              never told about. */}
+          <button
+            type="button"
+            className="perf-toggle"
+            aria-expanded={showPerf}
+            aria-controls={showPerf ? `perf-panel-${vault.id}` : undefined}
+            onClick={() => setShowPerf((v) => !v)}
+          >
             <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <BoltIcon size={16} /> Live performance &amp; energy flow
             </span>
@@ -270,7 +290,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
             </span>
           </button>
           {showPerf && (
-            <div className="surface perf-panel">
+            <div className="surface perf-panel" id={`perf-panel-${vault.id}`}>
               <SiteMonitor vault={vault} />
             </div>
           )}
