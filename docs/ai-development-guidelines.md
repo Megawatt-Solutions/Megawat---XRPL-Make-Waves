@@ -2441,6 +2441,45 @@ prediction, and reaching it would mean submitting one in a live daily game on
 the user's account. Its CSS was checked instead — capped height over a scrolling
 body, structurally safe.
 
+### Landscape, continued: the pages were fine, and two checks were not
+
+Having found the landscape modal bug, the obvious follow-up was whether the
+*pages* survive a short viewport. `responsive-audit.mjs` now carries landscape
+heights (658×320, 800×360, 844×390, 896×414) — **40 runs, zero findings.**
+Worth having asked; the answer was no defect.
+
+Two instrument corrections came out of chasing it, both of the same shape as
+earlier ones:
+
+- **"Fixed chrome is 33% of the viewport" was wrong.** The sum counted
+  `.skip-link`, which sits at `top: -64` until focused. Filtering on
+  "docked to an edge" caught an element that is deliberately *off* the edge.
+  Real figure: the 59px bottom bar, 18% of a 320px-tall screen.
+- **"A control is covered by fixed chrome" fired on a false positive.** After
+  scrolling to the bottom, a vault row sat under the sticky top nav — which is
+  what sticky headers do, and is resolved by scrolling up. The defect worth
+  detecting is a control under fixed chrome *at every scroll position*, which
+  is the bottom-bar case. That one reported clean, so the pages have correct
+  bottom padding.
+
+Also checked and unfounded: `.bottom-nav` appearing at 844px wide looked like
+duplicate navigation, but `.nav-links { display: none }` and
+`.bottom-nav { display: flex }` share the same `max-width: 980.98px` boundary.
+They are complementary. Two navs are visible at no width.
+
+**Closing the loop on the overlay fix, for keyboard rather than touch.** With
+`overflow-y: auto` on `.overlay`, focusing an off-screen control now scrolls it
+into view: "Open in Xaman app" lands at top 266 / bottom 312 in a 390px
+viewport, both controls on screen. A clipped overlay could not have done that,
+so the fix serves keyboard users and not just scrolling thumbs.
+
+That test also turned up something to hand over rather than fix: the connect
+modal has **no close button**, and **Escape does not close it** — measured, not
+read. The only way out is tapping the backdrop, which has no affordance, so a
+keyboard user cannot dismiss it at all. It lives in `wallet.tsx` and is already
+item 5 of `docs/wallet-tsx-handoff.md`; that entry now carries these
+measurements and a note that it is a dead end rather than a degradation.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

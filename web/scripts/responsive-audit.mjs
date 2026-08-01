@@ -51,7 +51,11 @@ const ROUTES = arg("routes",
 // Common 2026 viewport widths: Android baseline, the iPhone cluster, tablets
 // both orientations, and the laptop/desktop modes that dominate desktop traffic.
 const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440").split(",").map(Number);
-const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1180,1024:768,1280:800,1440:900 };
+// Portrait by width, plus the LANDSCAPE counterparts. Rotating a phone gives a
+// short viewport, which is a different failure mode from a narrow one — it is
+// how the connect modal was found stranding its primary button off-screen.
+const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1180,1024:768,1280:800,1440:900,
+                  658:320,732:412,800:360,844:390,896:414,932:430 };
 const SETTLE = Number(arg("settle", 700));
 const PORT = Number(arg("port", 9350));
 

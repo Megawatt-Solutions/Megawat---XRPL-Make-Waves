@@ -255,6 +255,39 @@ What it is missing, all of it now available as a two-line hook:
 - `onMouseDown` instead of `onClick` on the scrim. As written, a drag-select
   that starts inside the panel and releases on the backdrop dismisses it.
 
+### Measured 2026-08-01, in a headless browser — not inferred
+
+Driven through the DevTools Protocol against a production build, so these are
+observations rather than readings of the source:
+
+| Check | Result |
+|---|---|
+| Close button present | **none** — `.modal-x` / `[aria-label*=close]` absent |
+| Escape closes it | **no** |
+| Scrim tap closes it | yes — the *only* way out |
+| Focusable controls inside | 2 ("Open in Xaman app", "Use a watch-only address instead") |
+
+So the single dismissal route is tapping the backdrop, which has no visible
+affordance. A keyboard user has no way to close it at all: Escape does nothing
+and there is nothing focusable to activate. That is the WAI-ARIA dialog pattern's
+one hard requirement, and it is worth moving this item up the list — it is a
+dead end, not a degradation.
+
+### One part of this got fixed from outside the file
+
+The same modal was **unreachable in landscape**: at 844×390 its content ran to
+487px inside a `position: fixed` `.overlay` with no `overflow-y`, leaving
+"Open in Xaman app" 59px below the fold with no scroller able to reach it, and
+`scrollIntoView()` inert. On a landscape phone the wallet could not be connected
+at all.
+
+That one needed no markup change — `.overlay` gained `overflow-y: auto` and
+`align-items: safe center` in `globals.css`. Verified after: the button focuses
+into view at top 266 / bottom 312, and the panel's top edge stays reachable at
+`scrollTop: 0`. **Nothing in the list above is fixed by it**; the missing dialog
+semantics, focus trap, Escape handler and scroll lock all still need the
+markup change below.
+
 The fix mirrors `VaultDetail`'s `DepositModal` exactly:
 
 ```diff
