@@ -3352,6 +3352,47 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### A freshness stamp that counted backwards
+
+Swept for the shape the profile sheet had: constants presented as per-item facts.
+Did it by measurement rather than reading — pulled every label/value pair from
+all six vault pages and looked for labels identical across a status group.
+
+The vault pages came back clean. Everything identical is legitimately fixed
+(same operator, same chemistry, same status wording, and the yield-composition
+copy that describes the model rather than a site), and everything site-specific
+varies. Worth stating plainly: the negative result was the answer for that
+surface.
+
+The finding was on a different axis — not a value that never varies, but a value
+that varies *without meaning*. The Yield breakdown card carried
+**"Updated 1s ago"**. Sampled every 3 seconds it reads:
+
+    1, 5, 7, 11, 1, 3, 7, 9, 11, 3
+
+It counts **down** as often as up, because bess.ts computes it as
+`(t % 6) * 2 + 1` — a manufactured number, not an elapsed time. A real "N
+seconds ago" only rises until a refresh resets it to zero. Meanwhile the card it
+labels never changes at all: the four figures are `grossYieldBps(vault)` and its
+fixed split from vaults.ts, and over 30 seconds the body text and every bar
+width were byte-identical.
+
+Two process notes. **My first two samples both read "Updated 1s ago" 12 seconds
+apart, and I nearly wrote that it was frozen.** With a period of six ticks,
+two samples landing on the same value is ordinary luck. Ten samples showed the
+real behaviour, which is worse and more specific than "frozen".
+
+And this is the twelfth sibling-miss: dashboard-v2 already made this exact
+correction, replacing "Updated per block" with "Across the operating sites", and
+its comment explains that a freshness claim beside a Mainnet ribbon reads as a
+provenance claim. Same fix applied here — the label now says what the card
+contains, "Share of gross yield", which is also checkable: 8.5 + 1.6 + 1.4 + 0.7
+= 12.2%, Ljubljana's gross.
+
+Removing it orphaned an import and a prop. `fmtAgo` and the `updatedAgo`
+parameter are gone too; a fix that leaves dead references behind is half a fix,
+and `tsc` will not tell you, because unused imports are not type errors.
+
 ### Reading the two overlays that had never been readable
 
 Both of the overlays unlocked last pass turned out to be well built. The sell

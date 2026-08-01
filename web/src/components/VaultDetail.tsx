@@ -6,7 +6,7 @@ import type { Vault } from "@/lib/types";
 import { useDialog, scrimDismiss } from "./useDialog";
 import {
   CCY_SYMBOL, fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
-  fmtDuration, fmtAgo, fmtDate, fmtAddress,
+  fmtDuration, fmtDate, fmtAddress,
 } from "@/lib/format";
 import { raiseProgress, grossYieldBps, apyBpsIsGross } from "@/lib/vaults";
 import { simulate, nextDistributionSec } from "@/lib/bess";
@@ -213,7 +213,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
             )}
 
             {/* Right-top */}
-            <YieldBreakdownCard vault={vault} updatedAgo={snap.updatedAgoSec} />
+            <YieldBreakdownCard vault={vault} />
 
             {/* Left-bottom & right-bottom */}
             {hasTelemetry ? (
@@ -445,7 +445,7 @@ function FundraisingCard({ progress, deposited, raised, target, currency, disabl
 }
 
 // ─── Yield breakdown ──────────────────────────────────────────
-function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: number }) {
+function YieldBreakdownCard({ vault }: { vault: Vault }) {
   const s = vault.split;
   const items = [
     { label: vault.kind === "showcase" ? "Net yield" : "Depositor APY", bps: s.depositorBps, color: "var(--accent)", desc: "Yield paid out to vault depositors" },
@@ -459,7 +459,24 @@ function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: n
       <div className="card-title">
         Yield breakdown
         <span className="muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
-          <ClockIcon size={12} /> Updated {fmtAgo(updatedAgo)}
+          {/* Not "Updated Ns ago". Nothing in this card updates: the four
+              figures are grossYieldBps(vault) and its fixed split, static
+              constants in vaults.ts. Measured over 30s — the body and the bar
+              widths are byte-identical throughout.
+
+              The number was manufactured. bess.ts computes it as
+              (t % 6) * 2 + 1, so sampled every 3s it reads
+              1, 5, 7, 11, 1, 3, 7, 9, 11, 3 — it counts DOWN as often as up.
+              A real "N seconds ago" only rises until a refresh resets it, so
+              this was not merely decorative, it was self-contradicting.
+
+              dashboard-v2 already made exactly this correction for exactly this
+              reason: its "Updated per block" became "Across the operating
+              sites", with a note that a freshness claim beside a Mainnet ribbon
+              reads as provenance. Same fix here — say what the card contains.
+              The four values are shares of gross yield and sum to it (8.5 + 1.6
+              + 1.4 + 0.7 = 12.2%, Ljubljana's gross). */}
+          Share of gross yield
         </span>
       </div>
       <div className="segbar" style={{ marginTop: 16 }}>
