@@ -2831,6 +2831,49 @@ decorative, but decorative-looking things often carry the only copy of some
 information. Hiding it correctly and replacing it are two separate steps, and
 the second is easy to skip because the first one already feels like the fix.
 
+### Hover-only content: one real, two false, and how to tell
+
+A phone has no hover, so anything reachable only that way is missing for most
+of the audience (WCAG 1.4.13). Swept for two shapes: `title` attributes
+carrying something the visible text does not say, and CSS rules that reveal
+content on `:hover` with no `:focus` counterpart.
+
+**The real one.** The showcase badge on a vault page carried
+`title="A live site we operate, published for transparency. Not open for
+deposits."` — the *reason* the site is not investable, on a `<span>`. Reachable
+by hovering a mouse and by nothing else: no touch, no keyboard, unreliably by
+screen readers. That is the same objection `globals.css` already records
+against `title` **twice**, in its own comments.
+
+It was also redundant. Checking the rendered page before changing anything
+showed Site overview already says it, at more length and better: *"Off-chain
+showcase — one of our operational sites, published so the performance behind
+Megawatt's numbers can be checked"*, plus *"Operated by Megawatt; deposits
+happen in the on-chain vaults."* So the fix was to delete, not to add — a
+tooltip repeating visible copy buys mouse users nothing and suggests to
+everyone else that something is being withheld.
+
+**The two false positives are the instructive part**, because both looked
+exactly like the real one in the report:
+
+- `.globe-pin:hover .globe-tip { opacity: 1 }` has no `:focus` twin — but
+  `.globe-pin.selected .globe-tip` exists forty lines away. Tapping a pin opens
+  its tooltip. A hover rule with no focus rule is not hover-only if a *class*
+  provides the other path, and no selector-pair heuristic will see that.
+- `.sc-hist span:hover { opacity: 1 }` is not a reveal at all. The base state is
+  `opacity: 0.85` — visible. Matching on the declaration alone reads emphasis
+  as disclosure; the question is what the value changes *from*.
+
+So: grep finds candidates, the rendered page decides. Both false positives
+needed reading the surrounding CSS, and the real one needed reading the page to
+learn the fix was removal.
+
+One JSX note. The comment explaining this was first written as `{/* … */}`
+inside a ternary branch, which is a JSX *child expression* — two siblings where
+a branch allows one, and the build fails with "Expected corresponding JSX
+closing tag". A plain `/* … */` block is whitespace and goes anywhere, which is
+why the comment already sitting there used that form.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

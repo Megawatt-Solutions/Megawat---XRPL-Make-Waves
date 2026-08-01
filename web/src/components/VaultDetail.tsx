@@ -105,8 +105,20 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 
                A financial page must not put its most important qualifier last.
                The operator line is still in Site overview; what belongs up here
-               beside the yield is what the yield does NOT entitle you to. */
-            <span className="wallet-pill" style={{ cursor: "default" }} title="A live site we operate, published for transparency. Not open for deposits.">
+               beside the yield is what the yield does NOT entitle you to.
+
+               A `title` used to hang here carrying the reason — "A live site we
+               operate, published for transparency. Not open for deposits." It
+               is gone. A title is reachable by hovering a mouse and by nothing
+               else: no touch, no keyboard (this is a span), and unreliably by
+               screen readers — the same objection globals.css already records
+               against `title` twice. It was also a duplicate: Site overview
+               says it at more length and better ("Off-chain showcase — one of
+               our operational sites, published so the performance behind
+               Megawatt's numbers can be checked"). A tooltip that repeats
+               visible copy buys mouse users nothing and suggests to everyone
+               else that something is being withheld. */
+            <span className="wallet-pill" style={{ cursor: "default" }}>
               <span className="dot" style={{ background: "var(--blue)" }} /> Showcase site · not investable
             </span>
           ) : vault.addresses ? (
