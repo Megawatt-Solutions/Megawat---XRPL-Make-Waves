@@ -54,20 +54,33 @@ export function LeaderboardView() {
           </div>
         </div>
       </div>
+      {/* Which filter is active was carried entirely by a CSS class, so the
+          selection existed only as a background colour: WCAG 1.4.1 for sighted
+          users and 4.1.2 for everyone else, who met four identical-sounding
+          buttons and no indication of state.
+
+          Five other groups in the app were fixed for this earlier; these two
+          were missed because the sweep looked for `.seg-btn` and the marker
+          words "active"/"selected", and these use `.sc-seg` and "on". Worth
+          remembering when auditing by pattern: the pattern is the state-driven
+          className, not the vocabulary someone happened to choose for it.
+
+          role="group" rather than radiogroup/tablist for the same reason as
+          elsewhere — those contracts also promise arrow-key navigation. */}
       <div className="sc-lb-controls">
-        <div className="sc-seg">
-          <button className={scope === "week" ? "on" : ""} onClick={() => setScope("week")}>
+        <div className="sc-seg" role="group" aria-label="Leaderboard period">
+          <button type="button" aria-pressed={scope === "week"} className={scope === "week" ? "on" : ""} onClick={() => setScope("week")}>
             This week
           </button>
-          <button className={scope === "season" ? "on" : ""} onClick={() => setScope("season")}>
+          <button type="button" aria-pressed={scope === "season"} className={scope === "season" ? "on" : ""} onClick={() => setScope("season")}>
             Season
           </button>
         </div>
-        <div className="sc-seg">
-          <button className={!verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(false)}>
+        <div className="sc-seg" role="group" aria-label="Player filter">
+          <button type="button" aria-pressed={!verifiedOnly} className={!verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(false)}>
             Everyone
           </button>
-          <button className={verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(true)}>
+          <button type="button" aria-pressed={verifiedOnly} className={verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(true)}>
             Verified · prize-eligible
           </button>
         </div>

@@ -1260,6 +1260,40 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### The earlier sweep missed two groups because it searched for vocabulary
+
+The "selected state carried by colour alone" pass fixed five groups. The
+leaderboard's two filters — period and player — were not among them, and had
+the same defect: state in a CSS class, no `aria-pressed`, no group name, four
+identical-sounding buttons.
+
+**They were missed because the sweep searched for the wrong thing.** It looked
+for `.seg-btn` and the marker words `"active"` and `"selected"`. These use
+`.sc-seg` and `"on"`. The defect is the *state-driven className*, not the
+vocabulary someone happened to pick for it — so the search that finds all of
+them is for the shape:
+
+```
+className={[^}]*\?\s*"[a-z-]*"\s*:\s*""
+```
+
+Run that way it returns every candidate in one go. It also confirmed the rest
+are already handled: `NetworkPanel`'s site rows carry `aria-pressed`, and the
+two charts and `VaultsOverview` were fixed earlier.
+
+**One candidate it surfaced that correctly needs nothing:** `BessGlobe`'s pins
+are `<span onPointerDown>` — pointer-only, unfocusable. But `NetworkPanel`
+renders *the same selection* as a real `.site-row` button list with
+`aria-pressed` directly beside the globe, so the accessible route exists and
+the pins are a duplicate. Same judgement as the bar strips: when the action is
+available elsewhere, rebuilding the decorative copy is not the proportionate
+fix.
+
+Also audited this pass and clean, so it need not be redone: `/spreadcast/board`
+at seven widths — the ten prize chips wrap 4→3→2→1 rows with no overlap, each
+63×24, and the table's column ladder runs 3 → 5 → 8 with no clipping or
+overflow anywhere.
+
 ### reduced-motion was honoured everywhere except where things actually move
 
 `globals.css` has a thorough `prefers-reduced-motion: reduce` block — every
