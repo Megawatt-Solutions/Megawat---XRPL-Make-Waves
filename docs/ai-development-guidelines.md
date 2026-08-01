@@ -3352,6 +3352,39 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Proving a new check against the bug that motivated it
+
+Last pass ended by admitting `--as-player` reached the states *around* the 41x18
+"cancel" but not the QR sub-state itself, because the sweep loads a route and
+measures — it never clicks. This pass closed that with `--click`.
+
+The part worth keeping is how it was verified. It would have been easy to add
+the flag, watch it print "fired on 2/2 runs", see zero findings, and call it
+done. Zero findings is exactly what a click that lands on nothing produces.
+
+So the canary went through the real defect: restore `padding: 0` on the cancel
+control, rebuild, and run both ways.
+
+    without --click : unique findings: 0
+    with    --click : [tap-target<24] /spreadcast  button "cancel"  41x18 @ 390
+
+Silent, fires, silent again after `git checkout --`. That is the difference
+between "the flag runs" and "the flag catches the thing it exists for", and only
+the second is worth writing down. The invocation is now in the script header
+with that evidence attached, so the next person does not have to rediscover
+which selector reaches the panel.
+
+Two smaller things. The click step reports when it does **not** fire —
+`fired on 0/2 runs` and the routes that missed — because a selector that matches
+nothing is indistinguishable from a clean result otherwise. That immediately
+earned its keep: my first attempt at the "Change pick" state used a selector
+that matched nothing and reported 0/7 rather than passing quietly. With the
+right selector it fired 7/7 across every width and the editing state is clean.
+
+And a small ordering note: I nearly concluded the no-match reporting was broken
+because `tail -7` cut it off. The report prints above the summary. Check where
+output goes before concluding it is missing.
+
 ### The only way out, 41x18
 
 Used response interception on the three Spreadcast states nothing had ever

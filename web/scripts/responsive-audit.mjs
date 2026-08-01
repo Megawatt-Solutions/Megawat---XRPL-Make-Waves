@@ -6,6 +6,18 @@
 //   node scripts/responsive-audit.mjs --widths 375,1280   # narrower sweep
 //   node scripts/responsive-audit.mjs --canary            # prove the checks fire
 //
+// Interaction sub-states — anything behind a button — need --click, because a
+// plain sweep loads a route and measures whatever rendered. The Xaman QR panel
+// is the one this was built for:
+//
+//   MSYS_NO_PATHCONV=1 node scripts/responsive-audit.mjs --as-player \
+//     --routes "/spreadcast" --click ".sc-commit-box button.btn"
+//
+// Proven against the real defect: with the "cancel" control restored to its
+// original padding: 0, the plain sweep reported 0 findings and the same sweep
+// with --click reported [tap-target<24] button "cancel" 41x18. Silent, fires,
+// silent again after the revert.
+//
 // Why this exists: public/__responsive-audit.html holds a much richer set of
 // checks but exposes them as window.runAudit() for a human with a console open,
 // so nothing in it could ever run in a headless pass. Responsiveness was
@@ -128,6 +140,11 @@ const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440").split
 const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1180,1024:768,1280:800,1440:900,
                   658:320,732:412,800:360,844:390,896:414,932:430 };
 const SETTLE = Number(arg("settle", 700));
+// --click "<css>": after load, click the first visible match and measure what
+// appears. --click-wait tunes the settle for it (a payload fetch needs longer
+// than a local re-render).
+const CLICK = arg("click", null);
+const CLICK_WAIT = Number(arg("click-wait", 1200));
 const PORT = Number(arg("port", 9350));
 
 // Each run gets a throwaway profile, so localStorage is always empty and the
@@ -484,12 +501,29 @@ try {
     }
   } else {
     const rows = [];
+    const clickLog = [];
     for (const w of WIDTHS) {
       await s("Emulation.setDeviceMetricsOverride", { width: w, height: HEIGHTS[w] || 900, deviceScaleFactor: 1, mobile: w < 768 });
       for (const route of ROUTES) {
         try {
           await goto(BASE + withFlag(route));
-          rows.push({ route, w, ...(await evaluate(CHECKS)) });
+          // --click reaches sub-states that only exist after an interaction.
+          // Loading a route and measuring it is blind to anything behind a
+          // button: the Xaman QR panel, and the 41x18 "cancel" inside it, could
+          // not be seen by any sweep here until this existed.
+          //
+          // Reported per route, and reported when it does NOT fire. A click
+          // step that silently matches nothing looks exactly like one that
+          // matched and found the page clean.
+          let clicked = null;
+          if (CLICK) {
+            clicked = await evaluate(
+              "const t=[...document.querySelectorAll(" + JSON.stringify(CLICK) + ")].filter(e=>e.getClientRects().length)[0];" +
+              "if(!t) return false; t.click(); await new Promise(r=>setTimeout(r," + CLICK_WAIT + ")); return true;"
+            );
+            clickLog.push({ route, w, clicked });
+          }
+          rows.push({ route, w, clicked, ...(await evaluate(CHECKS)) });
         } catch (e) {
           rows.push({ route, w, error: String(e) });
         }
@@ -497,6 +531,13 @@ try {
       process.stderr.write(`  width ${w} ✓\n`);
     }
 
+    if (CLICK) {
+      const fired = clickLog.filter((c) => c.clicked).length;
+      console.log(`click ${JSON.stringify(CLICK)}: fired on ${fired}/${clickLog.length} runs`);
+      const missed = [...new Set(clickLog.filter((c) => !c.clicked).map((c) => c.route))];
+      if (missed.length) console.log(`  no match on: ${missed.join(", ")}`);
+      console.log("");
+    }
     const errors = rows.filter((r) => r.error);
     const overflowPages = rows.filter((r) => r.horizontalPageOverflow);
     const uniq = new Map();
