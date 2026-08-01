@@ -3236,6 +3236,43 @@ nothing, and that is still worth the pass. Its timeline *looked* wrong until the
 source explained it had already been argued about — which is the same amount of
 information as finding a bug, arriving cheaper.
 
+### 0.3 MW is not how you write 350 kW
+
+Last pass's €/MWh finding suggested a systematic version: which surfaces bypass
+the shared formatters? Most of the hits were nothing — eleven `toFixed(1)}%`
+call sites look like bypasses of `fmtPct`, but `fmtPct` **is**
+`` `${n.toFixed(d)}%` ``, so they are identical and rewriting them would be pure
+churn. The helpers worth checking are the ones with real logic.
+
+`fmtPower` has some: it picks kW or MW by magnitude and drops the decimal on
+whole numbers. `NetworkPanel` did not use it — its rows are already in MW, so it
+wrote `capacityMw.toFixed(1)`. Same six sites, two surfaces:
+
+| | network panel | vault card |
+|---|---|---|
+| Belgrade | 5.0 MW | 5 MW |
+| Leipzig | 3.0 MW | 3 MW |
+| **Ljubljana** | **0.3 MW** | **350 kW** |
+
+The trailing `.0` is cosmetic. Ljubljana is not: **0.3 MW reads as 300 kW**, and
+the site is 350. A forced unit rounded away 14% of a headline capacity on the
+protocol dashboard. `fmtPower(capacityMw * 1000)` restores it and makes the
+whole-number rows agree too — all six now match their cards exactly.
+
+The same component was also printing `status.replace("_", " ")` — the raw enum,
+which is precisely what `BessGlobe` was doing before `statusLabel()` existed.
+`NetworkPanel` was the sibling that never got that fix. Eighth instance this
+session, and the pattern is stable enough to state plainly: **when a helper is
+introduced to fix one call site, the call sites that did not change are the
+thing to go looking at**, because they are invisible in the diff that introduced
+it.
+
+**A note on what not to fix.** The eleven percent call sites are exactly
+equivalent to the helper. Changing them would produce a large diff, no
+behavioural difference, and a reviewer's afternoon. A consistency sweep is only
+worth running where inconsistency can *diverge* — which is the same reason
+`fmtPct` bypasses are noise and `fmtPower` bypasses were a rounding error.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

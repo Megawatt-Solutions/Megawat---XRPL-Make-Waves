@@ -6,6 +6,8 @@ import { useState } from "react";
 import { BessGlobe } from "./BessGlobe";
 import { Flag } from "./Flag";
 import { bessMarkers, CAPACITY } from "@/lib/protocol";
+import { fmtPower, fmtEnergy } from "@/lib/format";
+import { statusLabel } from "./vaultStatus";
 
 // A site that is physically running is a good state, so it reads green like
 // every other live signal in the app. It was blue, which made the two real
@@ -56,8 +58,20 @@ export function NetworkPanel() {
                 </span>
               </span>
               <span className="site-num">
-                {s.capacityMw.toFixed(1)} MW
-                <span className="caps">{s.status.replace("_", " ")}</span>
+                {/* fmtPower, not toFixed(1). This row is in MW, and forcing one
+                    decimal on every site made BESS Ljubljana 01 read "0.3 MW"
+                    where its own card says "350 kW" — the same site, rounded
+                    away by 50kW, about 14% of it, on a dashboard. fmtPower picks
+                    the unit by magnitude, so sub-megawatt sites keep their kW
+                    and whole ones lose the trailing ".0" that no other surface
+                    shows: 5.0 MW and 3.0 MW here against 5 MW and 3 MW on the
+                    cards. */}
+                {fmtPower(s.capacityMw * 1000)}
+                {/* Raw enum. statusLabel() is the same fix BessGlobe got when
+                    it was printing status.replace("_", " ") and producing a
+                    third spelling of a status the app already had a word for.
+                    This component was the sibling that did not get it. */}
+                <span className="caps">{statusLabel(s.status)}</span>
               </span>
             </button>
           ))}
@@ -65,7 +79,7 @@ export function NetworkPanel() {
         <div className="site-total">
           <span>Total installed</span>
           <span className="accent">
-            {CAPACITY.mw.toFixed(1)} MW / {CAPACITY.mwh.toFixed(1)} MWh
+            {fmtPower(CAPACITY.mw * 1000)} / {fmtEnergy(CAPACITY.mwh * 1000)}
           </span>
         </div>
       </div>
