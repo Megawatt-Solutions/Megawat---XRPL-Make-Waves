@@ -2703,6 +2703,45 @@ review:**
 An error state you cannot leave is barely better than no error state, and
 nothing about the markup tells you which one you have built.
 
+### One badge, three renderings, and a letter that means nothing out loud
+
+Finished the failure-state sweep first: `/` and `/dashboard-v2` both fetch
+`/api/spreadcast/round` for the daily-game strip, and both degrade correctly —
+`SpreadcastStrip` does `if (failed) return null`, verified present with the API
+up and absent with it blocked. `/portfolio` and `/marketplace` fetch nothing.
+So the earlier two fixes closed the last gaps.
+
+Then, looking at the leaderboard for the first time, the verified marker:
+
+| Location | Renders |
+|---|---|
+| `LeaderboardView` | `V` |
+| `ArchiveView` | `V` |
+| `PlayView` | `VERIFIED` |
+
+Same class, same meaning, three renderings. PlayView spelling it out is the
+useful detail — it proves nothing forces the abbreviation, so "V" is a density
+choice for table rows rather than a constraint. That is defensible. What was
+not defensible is that neither abbreviated badge carried an accessible name:
+`<span class="sc-tag v">V</span>`, no title, no aria-label, no role, no
+`sr-only` sibling. It announced as the letter "V" beside a player's name, and
+the only thing that expands it is a footnote below the table.
+
+Now `role="img"` + `aria-label="Verified"` — the treatment `Flag.tsx` already
+uses, which tells assistive tech to read the meaning instead of the glyph. The
+visible "V" is unchanged. Verified against the real accessibility tree, with the
+attributes stripped as a canary:
+
+| | role | accessible name |
+|---|---|---|
+| shipped | `image` | **Verified** |
+| aria stripped | `none` | none |
+
+**A single letter is a picture of a word.** It needs the same treatment an icon
+does, and it is easy to miss precisely because it *is* text — a check looking
+for unlabelled icons walks straight past it. Worth scanning for elsewhere: any
+element whose entire content is one character is carrying meaning it cannot say.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

@@ -189,7 +189,14 @@ export function LeaderboardView() {
                     )}
                   </td>
                   <td>
-                    {r.name} {r.verified && <span className="sc-tag v">V</span>}{" "}
+                    {r.name}{" "}
+                    {/* role="img" + aria-label, the same treatment Flag.tsx uses: it tells
+                        assistive tech to read the meaning rather than the glyph. Without
+                        it this announced as a bare letter "V" next to a player name, and
+                        the only thing that expands it is a footnote below the table.
+                        The abbreviation is deliberate — one chip per row, and PlayView
+                        spells out "VERIFIED" where there is room for it. */}
+                    {r.verified && <span className="sc-tag v" role="img" aria-label="Verified">V</span>}{" "}
                     {r.pending && (
                       <span className="sc-tag" style={{ color: "var(--amber)", borderColor: "color-mix(in srgb, var(--amber) 40%, transparent)" }}>
                         prediction in

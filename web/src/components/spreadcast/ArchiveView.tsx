@@ -379,7 +379,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                       {detail.reveal.slice(0, 12).map((p, i) => (
                         <tr key={i}>
                           <td>
-                            {p.user} {p.verified && <span className="sc-tag v">V</span>}
+                            {p.user} {p.verified && <span className="sc-tag v" role="img" aria-label="Verified">V</span>}
                           </td>
                           <td className="num" style={{ color: p.correct ? "var(--accent)" : "var(--muted)" }}>
                             {p.band}
