@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShieldIcon } from "@/components/Icons";
+import { sourceLabelShort } from "./sourceLabel";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -324,7 +325,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
         </td>
         <td className="sc-mono muted sc-bounds" style={{ fontSize: "0.6875rem" }}>{r.boundaries.join(" / ")}</td>
         <td>
-          <span className="sc-tag">{r.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED"}</span>{" "}
+          <span className="sc-tag">{sourceLabelShort(r.source)}</span>{" "}
           <span className="sc-tag">{r.resolution}</span>
         </td>
       </tr>

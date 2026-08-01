@@ -76,6 +76,11 @@ const RULES = [
     re: /fmtMoney\s*\([^)]*\)\s*\}\s*\/\s*MWh/g,
   },
   {
+    id: "raw-source-ternary",
+    why: 'branches on source === "entsoe" inline; every round the API returns is "energy-charts", so the else-branch stamped SIMULATED on real market data — use sourceLabel()/sourceLabelShort()',
+    re: /source\s*===\s*"entsoe"/g,
+  },
+  {
     id: "usdc-in-copy",
     why: "names USDC; the protocol settles in RLUSD, a different asset by a different issuer",
     re: /\bUSDC\b/g,
@@ -156,6 +161,7 @@ if (flag("canary")) {
     "asset-figure-as-USD": 'const v = fmtMoney(remaining, "USD");',
     "raw-megawatt-field": "<span>{site.capacityMw.toFixed(1)} MW</span>",
     "currency-prefixed-rate": "<span>{fmtMoney(snap.pricePerMwh, c)}/MWh</span>",
+    "raw-source-ternary": 'const t = r.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED";',
     "usdc-in-copy": 'const label = "Settled in USDC";',
   };
   let ok = true;

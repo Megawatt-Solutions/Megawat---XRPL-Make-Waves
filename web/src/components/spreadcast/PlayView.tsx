@@ -8,6 +8,7 @@ import { useWallet } from "@/lib/wallet";
 import { fmtAddress } from "@/lib/format";
 import { useRound } from "./RoundContext";
 import { Sheet } from "../Sheet";
+import { sourceLabel } from "./sourceLabel";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -744,7 +745,7 @@ export function PlayView() {
                 >
                   {latest.outcomeLabel}
                 </span>
-                <span className="sc-pill">{latest.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED FEED"}</span>
+                <span className="sc-pill">{sourceLabel(latest.source)}</span>
                 {latest.mine &&
                   (latest.mine.correct ? (
                     <span className="sc-pill ok">

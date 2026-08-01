@@ -3352,6 +3352,45 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Every settled result said SIMULATED, and none of them were
+
+Set out to check the countdown, which turned out to be the best-built thing I
+have measured here. `closesAt` resolves to 2026-08-02 11:45 CEST — exactly the
+cutoff the how page states. Ten wall seconds gave ten counted seconds. The bare
+`13:41:55` is paired with an `.sr-only` "13:41:55 until entries close", and
+crucially that span has **no live-region ancestor**, so a per-second update does
+not turn into a screen reader announcing the clock every second. Nothing to fix.
+
+The entries-closed state — 3h15m a day, never seen — is also good: the band
+cards disappear rather than sitting disabled, the copy becomes "Between rounds ·
+Today's results are being tallied. The next round opens at 15:00", and the same
+clock relabels itself to "until the next round opens".
+
+The defect was two cards below, and it is the largest single credibility
+mistake I have found here. Both source labels were written as
+
+    source === "entsoe" ? "ENTSO-E A44" : "SIMULATED"
+
+a binary over a value space with at least three members. **Every** round the API
+returns carries `source: "energy-charts"` — 11 of 11 in the archive — so every
+settled result in the app was stamped SIMULATED. Energy-Charts is Fraunhofer ISE
+republishing the ENTSO-E day-ahead series at PT15M resolution: real market data.
+
+The contradiction was on screen the whole time. The swings chart is badged REAL
+MARKET DATA and captioned "data: ENTSO-E via Energy-Charts"; the result card
+directly beneath it called the same numbers simulated. And Spreadcast's entire
+pitch is that the outcome comes from the published market and not from the
+house.
+
+Two things worth keeping. **A ternary is a claim that a field is boolean** — the
+else-branch here silently asserted "anything not entsoe is fake", which was
+false for 100% of real values. A map with an explicit fallback says the same
+thing honestly and fails in the safe direction: never claim provenance the data
+does not have. And the fix went into a shared module with both call sites moved
+at once, plus lint rule 8 on the raw ternary, because this is exactly the shape
+that has produced twelve sibling-misses — one call site fixed, its twin left
+behind.
+
 ### Testing a "live" badge against whether anything is live
 
 Took every pulsing dot in the app and sampled the block it labels seven times
