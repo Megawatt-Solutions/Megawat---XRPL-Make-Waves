@@ -3352,6 +3352,44 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Four cards said TVL over money nobody had put in
+
+Went looking for somewhere to apply compiler-enforced exhaustiveness and found a
+real defect on the way, which is the better outcome. The existing
+`Record<VaultStatus, …>` maps are already exhaustive by type; the gap was the
+ternary chains, and one of them had a hole.
+
+VaultCard picked its third metric with two separate ternaries — one for the
+value, one for the label — and `coming_soon` fell into the else-branch of both.
+So every pipeline card rendered
+
+    €3.20M
+    TVL
+
+directly above **"Opens for fundraising next quarter"**. Nothing is locked in a
+site that has not started raising: the figure is `capex`, the target. The card
+contradicted itself, on four of the six tiles on the landing page, under a
+headline financial term.
+
+VaultDetail already handled it, calling the same number "Target raise" for
+`coming_soon`. Thirteenth sibling-miss.
+
+The fix that matters is not the label. **The value and the label were two
+ternaries three lines apart that had to agree**, which is precisely the shape
+that has drifted here over and over: someone extends one branch, the other keeps
+its old answer, and the diff looks complete because both lines are visible and
+both look deliberate. They are now one function returning both.
+
+And a note on the thing I set out to do. I planned a `switch` with a `never`
+default and did not write one, because the choice here is two-dimensional:
+`status` decides raising-versus-running, `kind` decides whether a running site
+quotes revenue or TVL. An exhaustive switch on `status` alone would have been
+exhaustive over the wrong axis — rigorous-looking and still wrong. Compound
+conditions are the honest shape, and they match protocol.ts.
+
+**Exhaustiveness is only a guarantee when the union you switch on is the union
+that actually determines the answer.**
+
 ### The rule I tried to write and then deleted
 
 Three of the last four defects were a ternary asserting a field is boolean when
