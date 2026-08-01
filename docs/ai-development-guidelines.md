@@ -3352,6 +3352,44 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### 140 characters per line, at every desktop width
+
+The sweep stopped at 1440 and 1920 is the most common desktop resolution, so I
+checked 1600, 1920 and 2560. Geometry came back clean at all three — but "no
+overflow" is not "reads well", and the interesting measurement at those widths
+is characters per line, not boxes.
+
+`main` is capped at `max-width: 1120px`, which is why 1440, 1920 and 2560 render
+identically. The container was already doing its job. What it does not do is cap
+the *measure* inside it: the Spreadcast fine print ran **140 characters per
+line**. Comfortable is 45-75 and ~90 is the practical ceiling; past that the eye
+loses its place on the return sweep. A poor thing to do to the one paragraph
+that is legally load-bearing.
+
+Note what this was NOT: a wide-viewport bug. It was identical at 1440. I went
+looking at 2560 and found something that had been wrong at every desktop width
+since the page was written — the unusual viewport was the pretext, not the
+cause.
+
+The fix wrote down a number the codebase had already chosen twice: ArchiveView
+sets `maxWidth: 440` and LeaderboardView `420` inline on their empty-state copy.
+At this font size 68ch is ~442px, so `.sc-notice { max-width: 68ch }`
+generalises the existing decision to all ten call sites instead of inventing a
+value. The two inline caps are narrower and still win — verified by forcing the
+archive fetch to 500 and measuring the error notice at exactly 440px, rather
+than trusting specificity.
+
+Fine print now measures 84 cpl.
+
+`.sc-legal` still reads 102 and is deliberately left alone. It is a single-line
+footer strip of `·`-delimited tokens, not a paragraph — there is no return sweep
+to lose your place on, and capping it would force a two-line wrap for no gain.
+**The measure rule applies to multi-line prose; applying it to everything over
+90 would be following the metric rather than the reason for it.**
+
+1920 joins the default sweep; 2560 deliberately does not, because it is provably
+identical output for double the runtime.
+
 ### Two halves of one tile, keyed on different things
 
 Swept for the failure mode from last pass — a number whose caption is computed

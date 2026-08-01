@@ -133,11 +133,17 @@ for (const r of ROUTES) {
   }
 }
 
-const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440").split(",").map(Number);
+// 1920 added: the sweep stopped at 1440 while 1920 is the single most common
+// desktop resolution, so the widest real viewport had never been measured.
+// 2560 is deliberately NOT here — `main` is capped at max-width 1120px, so
+// 1920 and 2560 render identically and the second run would only cost time.
+// Verified rather than assumed: both reported the same boxes and the same
+// characters-per-line on every prose block.
+const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440,1920").split(",").map(Number);
 // Portrait by width, plus the LANDSCAPE counterparts. Rotating a phone gives a
 // short viewport, which is a different failure mode from a narrow one — it is
 // how the connect modal was found stranding its primary button off-screen.
-const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1180,1024:768,1280:800,1440:900,
+const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1180,1024:768,1280:800,1440:900,1920:1080,
                   658:320,732:412,800:360,844:390,896:414,932:430 };
 const SETTLE = Number(arg("settle", 700));
 // --click "<css>": after load, click the first visible match and measure what

@@ -2650,7 +2650,19 @@ button {
 .sc-field::placeholder { color: var(--muted); }
 
 .sc-err { color: var(--red); font-size: 0.8125rem; }
-.sc-notice { color: var(--text-2); font-size: 0.8125rem; }
+/* 68ch caps the measure. Two call sites had already reached for this by hand —
+   ArchiveView sets maxWidth: 440 and LeaderboardView 420 on their empty-state
+   copy — and at this font size 68ch is ~442px, so the rule generalises the
+   number the codebase had already picked twice rather than inventing one.
+   Those inline values are narrower and still win, so nothing there moves.
+
+   Without it the fine print on the how page ran 140 characters per line inside
+   the 1120px page container. Comfortable measure is 45-75 and ~90 is the
+   practical ceiling; at 140 the eye loses its place on the return sweep, which
+   is a poor thing to do to the one paragraph that is legally load-bearing.
+   Note this is not a wide-viewport bug — main is already capped, so 1440, 1920
+   and 2560 all rendered the same 140. It was wrong at every desktop width. */
+.sc-notice { color: var(--text-2); font-size: 0.8125rem; max-width: 68ch; }
 
 /* ─── User-supplied text ──────────────────────────────────────────
    User-supplied text has no length limit and no guaranteed break
