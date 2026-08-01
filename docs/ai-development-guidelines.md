@@ -3352,6 +3352,42 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Testing a "live" badge against whether anything is live
+
+Took every pulsing dot in the app and sampled the block it labels seven times
+over 24 seconds. A liveness indicator is a claim, and it is one of the few in a
+UI you can check directly: either the content changes or it does not.
+
+Eight sites, four verdicts:
+
+- **Honest.** VaultDetail's Revenue card and SiteMonitor both tick
+  `simulate(vault, t)` every 2200ms. The Revenue card gave 7 distinct values in
+  24 seconds. Left alone.
+- **Dormant.** `VaultCard:46` and ClaimCard's dot only render for
+  `status === "active"`, and no vault has that status. Nothing to judge yet.
+- **Known.** The dashboard ribbon's pulse belongs to the hardcoded
+  "All systems operational" claim already logged for the founders, and
+  wallet.tsx is out of scope.
+- **The defect.** `VaultCard`'s SoC/health line, on the landing page — the most
+  seen surface in the app — pulsed beside `64.0% SoC · 98.9% health`. That
+  component has no `useEffect`, no interval and never calls `simulate()`; it
+  reads static constants off vaults.ts. Seven samples, one distinct value.
+
+Fixed by dropping `pulse` and keeping the solid dot: the readings are real and
+the site is operational, so the dot still says something true — only the claim
+that the numbers are moving is gone. Verified both directions afterwards, which
+is the point: the landing-page dots compute `animationName: none` while the
+Revenue card still animates and still produced 6 distinct values in 20 seconds.
+
+The general shape worth keeping: **the same visual token used for both a true
+and a false claim devalues it where it is true.** Before this, a pulsing dot in
+this app meant nothing in particular. Now it means the number beside it moves,
+and that is checkable — which is why it was worth spending a pass on a two-word
+diff.
+
+Reduced motion still suppresses the remaining pulses, so the honest ones do not
+become an accessibility problem.
+
 ### A freshness stamp that counted backwards
 
 Swept for the shape the profile sheet had: constants presented as per-item facts.

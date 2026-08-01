@@ -90,8 +90,22 @@ export function VaultCard({ vault }: { vault: Vault }) {
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {/* Solid dot, not `pulse`. This card has no useEffect, no interval
+              and never calls simulate() — socPct and healthPct are read
+              straight off the static vaults.ts constants. Measured on the
+              landing page: seven samples over 24s, one distinct value.
+
+              VaultDetail's Revenue card keeps its pulse and has earned it —
+              same window, seven distinct values, because that component ticks
+              simulate(vault, t) every 2200ms. Same animation for both meant the
+              app's most-seen page advertised a telemetry stream over two frozen
+              numbers, and made the badge worthless where it is true.
+
+              The readings still belong here; a solid accent dot says the site
+              is operational, which it is. Only the claim that they are moving
+              is gone. */}
           <span className="live">
-            <span className="dot pulse" style={{ background: "var(--accent)" }} />
+            <span className="dot" style={{ background: "var(--accent)" }} />
             {vault.metrics.socPct.toFixed(1)}% SoC · {vault.metrics.healthPct.toFixed(1)}% health
           </span>
           <Sparkline data={socSeries(vault, 28)} />
