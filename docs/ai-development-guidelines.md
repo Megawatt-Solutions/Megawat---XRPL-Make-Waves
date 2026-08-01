@@ -2576,6 +2576,41 @@ reported "fill 1.00" because it only compared fills), and the Spreadcast band
 cards, the core interaction of the game, already mark selection at **7.42:1**
 with `aria-checked` flipping correctly.
 
+### The header called itself navigation, so there was no banner
+
+Document structure — headings, landmarks, focus order — is how a screen-reader
+user moves around a page, and none of it had been measured. Most of it is
+already right: one `h1` per route, no skipped heading levels, one `main`, every
+`nav` uniquely named, a skip link whose target exists, and no positive
+`tabindex` anywhere. The only control outside every landmark is the skip link
+itself, which is where a skip link belongs.
+
+One thing was wrong, and it was structural rather than cosmetic: the top bar
+was `<nav aria-label="Main">` wrapping the brand, the chain indicator, Connect
+Wallet **and** the links. Two consequences:
+
+- **`banner` measured 0 on all ten routes.** There was no site-header landmark
+  to jump to.
+- The wallet and chain controls lived inside a *navigation* landmark, which is
+  not what they are. A screen-reader user listing navigation landmarks was
+  offered "Main" and found a connect button in it.
+
+Now `<header className="nav">` with a `<nav className="nav-links"
+aria-label="Main">` inside it wrapping only the links. `banner=1` on every
+route at 1280px and 390px; the navigation landmark contains only things that
+navigate.
+
+**The reason this was safe to do is worth naming.** Every rule for this bar is
+class-based — `.nav`, never `nav` — so the element name is free to change. That
+was checked before editing, not after: `grep` for element-based `nav`/`header`
+selectors returned only comment text, and nothing in the app queries by tag.
+Geometry after the swap is identical to what earlier passes recorded: bar 58px
+tall, brand 24×132, links hidden at 390px.
+
+At mobile the raw `nav` element count still reads 2 because `.nav-links` is
+`display: none` rather than absent — which removes it from the accessibility
+tree, so a phone user gets banner + the "Sections" tab bar, correctly.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

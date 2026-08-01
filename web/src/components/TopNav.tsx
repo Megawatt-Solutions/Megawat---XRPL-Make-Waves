@@ -30,17 +30,29 @@ export function TopNav() {
 
   return (
     <>
-      {/* Two, sometimes three, <nav> landmarks are on screen at once (this,
-          the mobile tab bar, and Spreadcast's section bar). Unlabelled they
-          all announce as plain "navigation", so the landmark list a screen
-          reader user navigates by cannot tell them apart. */}
-      <nav className="nav" aria-label="Main">
+      {/* <header>, not <nav>. This bar is the site banner: it carries the
+          brand, the chain indicator and Connect Wallet alongside the links.
+          Marking the whole thing "navigation" put those controls inside a
+          navigation landmark, which is not what they are, and left the app with
+          no banner landmark at all — measured 0 on all ten routes. Landmarks
+          are how a screen-reader user jumps around, and "banner" is the
+          conventional way to reach site-level controls like connecting a
+          wallet.
+
+          Every rule here is class-based (`.nav`, not `nav`), so the element
+          name changes and nothing about the layout does. */}
+      <header className="nav">
         <Link href="/" className="nav-brand">
           <BrandMark height={15} color="var(--accent)" />
           Megawatt
         </Link>
 
-        <div className="nav-links">
+        {/* The navigation landmark now wraps only the things that navigate.
+            Two, sometimes three, <nav> landmarks are on screen at once (this,
+            the mobile tab bar, and Spreadcast's section bar). Unlabelled they
+            all announce as plain "navigation", so the landmark list a screen
+            reader user navigates by cannot tell them apart. */}
+        <nav className="nav-links" aria-label="Main">
           {LINKS.map((l) => (
             // aria-current, not just a class. Which page you are on was drawn
             // and nothing more — the same gap already fixed on the Spreadcast
@@ -56,7 +68,7 @@ export function TopNav() {
               {l.label}
             </Link>
           ))}
-        </div>
+        </nav>
 
         <div className="nav-spacer" />
 
@@ -75,7 +87,7 @@ export function TopNav() {
             </button>
           )}
         </div>
-      </nav>
+      </header>
 
       {/* Mobile bottom tab bar */}
       <nav className="bottom-nav" aria-label="Sections">
