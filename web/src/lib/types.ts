@@ -71,7 +71,21 @@ export interface Vault {
   flag: string; // emoji
   currency: Currency; // revenue / yield denomination
   symbol: string; // receipt-token symbol, e.g. "mwMET01"
-  apyBps: number; // headline depositor APY
+  // AMBIGUOUS — do not trust this comment's former claim of "headline depositor
+  // APY". Measured against annualRevenue / capex, five of six vaults store the
+  // GROSS yield here (apyBps === split.depositor + protocolFee + sinkingFund +
+  // reserve === revenue/capex). bess-belgrade-01 alone stores the depositor
+  // share (apyBps === split.depositorBps, half its 26% gross).
+  //
+  // The visible consequence: VaultDetail's "Project details" row labelled
+  // "Depositor APY" renders this field, so BESS Leipzig 01 shows "Depositor
+  // APY 12.4%" there while its own Yield breakdown card, reading
+  // split.depositorBps, shows 8.8% — same label, same page, two numbers.
+  //
+  // Not resolved here: picking a meaning changes headline yield figures across
+  // the cards, the vault header and the marketplace, which is a founder call.
+  // split.* is the field to trust meanwhile.
+  apyBps: number;
   split: YieldSplit;
   spec: BessSpec;
   metrics: BaselineMetrics;

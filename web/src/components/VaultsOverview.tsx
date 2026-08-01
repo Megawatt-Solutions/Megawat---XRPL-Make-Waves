@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ASSET_CURRENCY, allocation, vaultGroups } from "@/lib/protocol";
+import { ASSET_CURRENCY, allocation, vaultGroups, yieldComposition } from "@/lib/protocol";
 import type { VaultRow } from "@/lib/protocol";
 import { fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
@@ -177,28 +177,42 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
 }
 
 function YieldComposition() {
-  const parts = [
-    { label: "Depositor yield", pct: 74, color: "var(--accent)" },
-    { label: "Protocol fees", pct: 14, color: "var(--amber)" },
-    { label: "Sinking fund", pct: 8, color: "var(--blue)" },
-    { label: "Reserve buffer", pct: 4, color: "var(--gray)" },
-  ];
+  // Was four hardcoded percentages that matched no vault in the data. Every
+  // other figure on this page derives from VAULTS; this one was drawn by hand,
+  // and it understated the sinking fund by a third and the reserve buffer by
+  // about 40%. See yieldComposition() for the Belgrade caveat.
+  const { slices, grossBps, siteCount } = yieldComposition();
   return (
     <div style={{ paddingTop: 8 }}>
       <div className="segbar" style={{ marginBottom: 16 }}>
-        {parts.map((p) => (
-          <span key={p.label} style={{ flexGrow: p.pct, background: p.color }}>{p.pct >= 10 ? `${p.pct}%` : ""}</span>
+        {slices.map((p) => (
+          <span key={p.key} style={{ flexGrow: p.pct, background: p.color }}>
+            {p.pct >= 10 ? `${Math.round(p.pct)}%` : ""}
+          </span>
         ))}
       </div>
       <div className="rows">
-        {parts.map((p) => (
-          <div className="row" key={p.label}>
+        {slices.map((p) => (
+          <div className="row" key={p.key}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
               <span className="dot" style={{ background: p.color }} /> {p.label}
             </span>
-            <span className="num row-val">{fmtPct(p.pct, 0)}</span>
+            {/* Both the share and the yield it represents. A composition chart
+                that only gives percentages never says what they are a
+                percentage OF, so "74% to depositors" was unanchored — 74% of
+                an unstated number. */}
+            <span className="num row-val">
+              {fmtPct(p.pct, 1)}
+              <span className="muted" style={{ fontSize: "0.75rem", marginLeft: 8 }}>
+                {fmtPct(bpsToPct(Math.round(p.bps)), 2)}
+              </span>
+            </span>
           </div>
         ))}
+      </div>
+      <div className="muted" style={{ fontSize: "0.75rem", marginTop: 12 }}>
+        Shares of a {fmtPct(bpsToPct(Math.round(grossBps)), 2)} blended gross yield, weighted by capex across{" "}
+        {plural(siteCount, "site")}.
       </div>
     </div>
   );

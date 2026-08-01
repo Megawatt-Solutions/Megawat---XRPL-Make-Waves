@@ -2291,6 +2291,60 @@ change. Canaried at 0 → 9 → 0 by force-killing focus indicators, because a
 check reporting zero is exactly what the MAINNET search did while being
 broken.
 
+### One page, one label, two numbers — and a first conclusion that was backwards
+
+The dashboard's "Yield Composition" tab was four hardcoded percentages —
+74 / 14 / 8 / 4 — on a page where every other figure derives from `VAULTS`.
+They matched no vault. The real capex-weighted blend understated the sinking
+fund by a third and the reserve buffer by about 40%. It now derives, and each
+row shows both the share and the yield it represents, because a composition
+chart that only gives percentages never says what they are a percentage *of*.
+
+**The part worth writing down is the investigation going the wrong way first.**
+
+Comparing the vault detail page against the dashboard, `bess-belgrade-01`
+looked broken: its `split` summed to 2650 bps where every other vault's summed
+to ~1240-1340, and its depositor share came out at 49% against ~70% elsewhere.
+Five agree, one differs — obviously the one is wrong. I wrote that into a code
+comment as established fact.
+
+It was backwards. Checking against ground truth — `annualRevenue / capex`,
+which neither field can argue with — Belgrade's revenue really is 26.0% of its
+capex. Its split is right; it is a denser site. What is actually inconsistent
+is **`apyBps`**:
+
+| | five vaults | bess-belgrade-01 |
+|---|---|---|
+| `apyBps` equals | `splitSum` == `revenue/capex` (**gross**) | `split.depositorBps` (**depositor share**) |
+
+One field, two meanings — and `types.ts` documented it as "headline depositor
+APY", which is true of exactly one vault.
+
+**The user-visible symptom nobody would find by reading code:** VaultDetail's
+"Project details" row labelled *Depositor APY* renders `apyBps`, while the
+Yield breakdown card beside it renders `split.depositorBps`. So BESS Leipzig 01
+shows **"Depositor APY 12.4%"** and **"Depositor APY 8.8%"** on the same page.
+Belgrade shows 13.0% twice and looks fine, which is why the odd one out looked
+like the healthy one.
+
+Two rules came out of this:
+
+- **A majority is not ground truth.** Five-against-one is a strong prior and it
+  was wrong here. There was an independent check available the whole time —
+  revenue ÷ capex — and it settles in one line what counting votes could not.
+  When fields disagree, find the quantity neither one derives from.
+- **Do not write a conclusion into a comment before testing it.** The wrong
+  version shipped into `protocol.ts` for as long as it took to check, and a
+  confident comment is the most durable kind of wrong: the next reader inherits
+  it as fact. That is exactly how `apyBps` got its misleading comment.
+
+Deliberately NOT fixed: which meaning `apyBps` should take. Every headline
+yield figure in the product — the cards, the vault header, the overview table —
+reads from it, so choosing changes marketing numbers downward (12.4% → 8.8% on
+Leipzig). That is a founder call, flagged at the type definition and here.
+`split.*` is the field to trust meanwhile, and `yieldComposition()` reads only
+that.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

@@ -184,6 +184,59 @@ export interface AllocSegment {
   color: string;
 }
 
+export interface YieldSlice {
+  key: "depositor" | "protocolFee" | "sinkingFund" | "reserve";
+  label: string;
+  bps: number; // capex-weighted average across the vault network
+  pct: number; // share of gross yield, one decimal
+  color: string;
+}
+
+/**
+ * Protocol-wide yield composition, capex-weighted across every vault — where
+ * each euro of gross yield actually goes.
+ *
+ * This was four hardcoded percentages in the dashboard (74 / 14 / 8 / 4) that
+ * matched no vault in the data. Every other number on that page derives from
+ * VAULTS; this one was a picture of a number. Weighted by capex to match
+ * `vaultGroups()`, which blends its APY the same way.
+ *
+ * Derived from `split`, which is the trustworthy field. Checked against ground
+ * truth — annualRevenue / capex — every vault's split sums to its actual gross
+ * yield, Belgrade included (26.0% measured vs 26.5% from its split; it is a
+ * denser site, not a broken row).
+ *
+ * `apyBps` is the field that does NOT hold a single meaning, so this function
+ * deliberately does not touch it. For five of six vaults apyBps === splitSum
+ * === revenue/capex, i.e. the GROSS yield. bess-belgrade-01's apyBps (1300)
+ * instead equals its depositorBps, i.e. the depositor's share. One field, two
+ * meanings, and types.ts calls it "headline depositor APY" — which is true of
+ * exactly one vault. Flagged for the founders rather than guessed at here,
+ * because every headline yield figure in the product reads from it.
+ */
+export function yieldComposition(): { slices: YieldSlice[]; grossBps: number; siteCount: number } {
+  const totalCapex = VAULTS.reduce((s, v) => s + v.capex, 0);
+  const weighted = (pick: (v: Vault) => number) =>
+    totalCapex > 0 ? VAULTS.reduce((s, v) => s + pick(v) * v.capex, 0) / totalCapex : 0;
+
+  const parts = [
+    { key: "depositor", label: "Depositor yield", color: "var(--accent)", bps: weighted((v) => v.split.depositorBps) },
+    { key: "protocolFee", label: "Protocol fees", color: "var(--amber)", bps: weighted((v) => v.split.protocolFeeBps) },
+    { key: "sinkingFund", label: "Sinking fund", color: "var(--blue)", bps: weighted((v) => v.split.sinkingFundBps) },
+    { key: "reserve", label: "Reserve buffer", color: "var(--gray)", bps: weighted((v) => v.split.reserveBps) },
+  ] as const;
+
+  const grossBps = parts.reduce((s, p) => s + p.bps, 0);
+  return {
+    grossBps,
+    siteCount: VAULTS.length,
+    slices: parts.map((p) => ({
+      ...p,
+      pct: grossBps > 0 ? Math.round((p.bps / grossBps) * 1000) / 10 : 0,
+    })),
+  };
+}
+
 /** Segments for the deployed/pipeline allocation bar. */
 export function allocation(): { deployed: AllocSegment[]; pipeline: AllocSegment[]; total: number } {
   const sum = (pred: (v: Vault) => boolean, capexField: "capex" | "raised") =>
