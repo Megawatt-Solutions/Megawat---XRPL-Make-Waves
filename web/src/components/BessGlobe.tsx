@@ -7,6 +7,7 @@
 // its coordinates, zooms in, and holds its tooltip open; dragging the globe
 // releases the focus back to auto-spin.
 import { useEffect, useRef } from "react";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import createGlobe from "cobe";
 import { bessMarkers } from "@/lib/protocol";
 import { fmtPct, bpsToPct } from "@/lib/format";
@@ -57,6 +58,15 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
   const phiRef = useRef(PHI_BASE);
   const thetaRef = useRef(THETA);
   const scaleRef = useRef(1);
+  // Read through a ref rather than a dependency: the rAF effect also creates
+  // and destroys the globe instance, so re-running it on a media-query change
+  // would tear down and rebuild the canvas. The loop picks the new value up on
+  // its next frame instead.
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
   const focusRef = useRef<(typeof MARKERS)[number] | null>(null);
   const draggingRef = useRef<number | null>(null);
   const hoveringRef = useRef(false);
@@ -102,7 +112,12 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         thetaRef.current += (t.theta - thetaRef.current) * EASE;
         scaleRef.current += (FOCUS_SCALE - scaleRef.current) * EASE;
       } else {
-        if (draggingRef.current === null && !hoveringRef.current) phiRef.current += AUTO_SPEED;
+        // The idle spin is the only continuous motion here; the rest of this
+        // loop is easing toward a target the user asked for, or drawing. So
+        // reduced motion stops the spin and leaves the globe usable.
+        if (draggingRef.current === null && !hoveringRef.current && !reducedMotionRef.current) {
+          phiRef.current += AUTO_SPEED;
+        }
         thetaRef.current += (THETA - thetaRef.current) * EASE;
         scaleRef.current += (1 - scaleRef.current) * EASE;
       }

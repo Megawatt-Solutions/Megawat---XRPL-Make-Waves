@@ -1260,6 +1260,47 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### reduced-motion was honoured everywhere except where things actually move
+
+`globals.css` has a thorough `prefers-reduced-motion: reduce` block — every
+animation and transition clamped to 0.01ms, the four looping ones killed
+outright. **No component checked the setting in JavaScript**, and CSS cannot
+reach a `requestAnimationFrame` loop.
+
+The app has exactly two continuous JS animations, and they are its two most
+kinetic elements:
+
+- **`Odometer`** — rolls its digits forever, by design.
+- **`BessGlobe`** — `phiRef.current += AUTO_SPEED` on every frame whenever it is
+  not being dragged or hovered.
+
+So someone who has asked their OS to stop motion got a page where everything
+obeyed except the spinning globe and the endlessly rolling counter.
+
+`usePrefersReducedMotion()` now gates both. The odometer skips its loop
+entirely — the reels keep the transform computed during render, which is already
+correct for `startValue`, and the `.sr-only` text already states it, so the
+number is right and simply does not spin. The globe stops only the **idle spin**;
+the rest of that loop is easing toward a user-requested target or drawing, so it
+stays usable. It reads through a ref rather than a dependency, because that
+effect also creates and destroys the globe instance and re-running it on a media
+query change would rebuild the canvas.
+
+**Deliberately not gated:** the countdowns (`RoundContext`, `DailySpread`) and
+the telemetry simulation (`SiteMonitor`, `VaultDetail`). Those are values
+changing once a second or every 2.2s — data, not animation. A clock that stops
+is a broken clock, and reduced motion is about movement, not about freezing
+information.
+
+**What could not be verified here, and why.** The harness cannot observe motion
+stopping: a hidden tab freezes rAF outright, so the odometer measured
+`translateY(-3em)` unchanged over 2.5s *with motion enabled too*. That is the
+limitation recorded earlier under the rAF entry, and it bites any reduced-motion
+work. What was verified is that nothing regressed — both components render,
+the reel sits at its correct position, the accessible value reads
+`$328,793.42`, the reels stay `aria-hidden`, the globe canvas sizes and all
+seven pins mount, at 390 and 1280 with no clipping or overflow.
+
 ### An instruction addressed to half the audience
 
 `/spreadcast/log` tells you, in its own subtitle: *"Click a day for the full

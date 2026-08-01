@@ -9,6 +9,7 @@
 // frame (no React re-render), and the initial transform is computed in render
 // so SSR and first client paint match.
 import { useEffect, useMemo, useRef } from "react";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface Props {
   startValue: number;
@@ -62,7 +63,16 @@ export function Odometer({ startValue, ratePerSecond = 0.2, prefix = "$", decima
     prefix +
     v.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
+  const reducedMotion = usePrefersReducedMotion();
+
   useEffect(() => {
+    // Rolling digits are continuous decorative motion, and CSS cannot stop a
+    // rAF loop — so this is the one place the reduced-motion setting has to be
+    // read in JS. The reels keep the transform computed during render, which
+    // is already the correct position for startValue, and the .sr-only text
+    // already states that value. So the number is right, it simply does not
+    // spin.
+    if (reducedMotion) return;
     let raf = 0;
     let t0 = 0;
     const loop = (ts: number) => {
@@ -94,7 +104,7 @@ export function Odometer({ startValue, ratePerSecond = 0.2, prefix = "$", decima
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [startValue, ratePerSecond, reelPlaces]);
+  }, [startValue, ratePerSecond, reelPlaces, reducedMotion]);
 
   let reelIdx = 0;
   return (
