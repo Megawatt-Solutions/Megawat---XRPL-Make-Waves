@@ -3352,6 +3352,41 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The only way out, 41x18
+
+Used response interception on the three Spreadcast states nothing had ever
+rendered: a losing settlement, an email-only player, and the Xaman QR sign flow.
+
+The first two are well built. The losing banner is muted rather than punishing
+and adds "you called Calm" beside the outcome chip, so a miss reads as a
+comparison instead of a scolding. The email-only commit box correctly drops the
+Xaman lock button and explains the weekly Merkle anchor instead.
+
+The QR flow had one. Its **"cancel" was 41x18px** — under the 24px floor this
+repo's own responsive-audit enforces, and the only way out of the flow on a
+phone once the QR is up. Its two siblings in the same box are 40 and 44px tall.
+Fixed with `padding: 6px; margin: -6px`, which grows the target to 53x30 and
+cancels itself in layout. Verified rather than reasoned: the text sits at
+top 1006, left 52 with and without the padding, so nothing moved.
+
+It survived because no sweep can reach that state — it needs a signed-in user,
+a commitment, and a Xaman payload in flight. So the reach is the fix, not the
+one control, and responsive-audit gained `--as-player`.
+
+Then the part I nearly got wrong. Having added the seed, I wrote a comment
+saying it was "the rule that would have caught the 41x18 cancel". **Then I
+tested that claim and it was false.** `--as-player` reaches the fingerprint box,
+the lock CTA and the settlement banner, but `cancelPresent` and `qrPresent` are
+both false — the QR sub-state needs a *click*, and this sweep never clicks, it
+loads routes and measures. The comment now says exactly that, including what it
+does not cover.
+
+Worth naming as a habit: the temptation after building a tool is to describe the
+gap it was inspired by as the gap it closes. Those are different claims, and only
+one of them survives being run. A seed that reaches a state adjacent to the bug
+is still worth having — 30 clean runs over previously unmeasured player states —
+but it must not be filed under "this is now covered".
+
 ### The state that only exists after a real round
 
 Wanted the settlement banner and the committed prediction state — both gated on

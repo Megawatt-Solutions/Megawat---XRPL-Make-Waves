@@ -65,6 +65,45 @@ const ROUTES = arg("routes",
 //
 // Watch-only, and the address is the XRPL black-hole account: public, inert,
 // belongs to nobody. It reads balances and signs nothing.
+// --as-player: the states a committed player sees. Every sweep before this one
+// measured Spreadcast as a visitor who has never played, so the fingerprint box,
+// the lock CTA and the settlement banner had never been through the tap-target
+// or geometry rules at all.
+//
+// What it does NOT reach, measured rather than assumed: the Xaman QR sub-state.
+// That needs a click on "Lock on-chain", and this sweep never clicks — it loads
+// a route and measures. Verified: with this seed, commitBox/settleBanner/
+// lockButton are all present and cancelPresent/qrPresent are both false. The
+// 41x18 "cancel" that prompted this seed therefore still lives outside it; it
+// was found by hand and would need a click-driven pass to be caught again.
+// Saying so beats implying coverage this does not have.
+//
+// String.raw is load-bearing: in a plain template literal a backslash is an
+// escape, and an earlier version of this seed emitted "//api/..." — a line
+// comment that threw silently and looked exactly like the state it was meant
+// to replace.
+const PLAYER_SEED = String.raw`(function(){
+  const of = window.fetch;
+  const QR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  window.fetch = async function(u, o){
+    const url = typeof u === "string" ? u : (u && u.url) || "";
+    if (url.indexOf("/api/spreadcast/commit-sign") !== -1) {
+      return new Response(JSON.stringify({ uuid:"probe", qrPng: QR, deeplink:"https://xumm.app/sign/probe", status:"pending" }),
+        { status:200, headers:{"content-type":"application/json"} });
+    }
+    const r = await of.apply(this, arguments);
+    if (url.indexOf("/api/spreadcast/round") === -1) return r;
+    const j = await r.clone().json().catch(function(){ return null; });
+    if (!j || !j.open) return r;
+    j.user = { id:"u1", email:"a@b.c", name:"probe", wallet:"rrrrrrrrrrrrrrrrrrrrrhoLvTp", verified:true };
+    const h = "9f2c1a7b3e5d4f60a8c9b2d1e3f405162738495a6b7c8d9e0f1a2b3c4d5e6f70";
+    j.mine = { userId:"u1", day:j.open.day, band:2, exact:171.5, hash:h, txHash:null, correct:null };
+    if (j.latest) j.latest.mine = { userId:"u1", day:j.latest.day, band:0, exact:120, hash:h,
+      txHash:null, correct:false, streak:0, multiplier:1, points:0, absError:76.76 };
+    return new Response(JSON.stringify(j), { status:200, headers:{"content-type":"application/json"} });
+  };
+})();`;
+
 const CONNECTED_SEED =
   'localStorage.setItem("mw.xrplAddress","rrrrrrrrrrrrrrrrrrrrrhoLvTp");' +
   'localStorage.setItem("mw.xrplVia","watch");';
@@ -414,6 +453,7 @@ try {
   const s = (m, p) => browser.send(m, p, sessionId);
   await s("Page.enable");
   if (flag("as-connected")) await s("Page.addScriptToEvaluateOnNewDocument", { source: CONNECTED_SEED }, sessionId);
+  if (flag("as-player")) await s("Page.addScriptToEvaluateOnNewDocument", { source: PLAYER_SEED }, sessionId);
   await s("Runtime.enable");
 
   const evaluate = async (body) => {

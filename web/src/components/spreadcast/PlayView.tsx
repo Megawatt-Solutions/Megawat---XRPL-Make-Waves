@@ -617,7 +617,17 @@ export function PlayView() {
                             </a>
                             <button
                               onClick={() => setSignFlow(null)}
-                              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 0, fontFamily: "inherit", fontSize: "0.6875rem", textDecoration: "underline" }}
+                              /* Was 41x18 — under the 24px floor this repo's own
+                                 responsive-audit enforces, and the only way out
+                                 of the QR flow on a phone. Its two siblings in
+                                 this same box are 40 and 44px tall.
+                                 Padding grows the target to 53x30; the negative
+                                 margin cancels it in layout, so the grid gap
+                                 above it is unchanged and nothing moves. It
+                                 survived because no audit can reach this state:
+                                 it needs a signed-in player, a commitment and a
+                                 Xaman payload in flight. */
+                              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: "6px", margin: "-6px", fontFamily: "inherit", fontSize: "0.6875rem", textDecoration: "underline" }}
                             >
                               cancel
                             </button>
