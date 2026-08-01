@@ -2247,6 +2247,50 @@ in a screenshot, and measuring it said **6.55:1** — comfortably past 4.5. It
 reads quiet because it is small uppercase grey beside bright content, not
 because it fails. Contrast is one of the things an eye is worst at estimating.
 
+### The marketplace settled in a token the protocol does not use
+
+Seen by looking at the page, not by grepping. The marketplace header read
+**"Settled in USDC"**, and its sell form asked for **"Price / share (USDC)"**.
+Everywhere else the app says otherwise:
+
+| Surface | Statement |
+|---|---|
+| dashboard ribbon | "Tokenization: XRPL MPT · **RLUSD** settlement" |
+| dashboard footer | "XRPL Mainnet · MPT receipt tokens · **RLUSD** settlement" |
+| `WalletModal` | "Vault deposits settle in **RLUSD** — you'll be asked to set the **RLUSD** trustline" |
+| marketplace | "Settled in **USDC**" |
+
+USDC (Circle) and RLUSD (Ripple) are different assets from different issuers.
+This is not a synonym or a stale brand name — it named the wrong token on the
+one page that is entirely about moving value between holders, where a reader
+acting on it would prepare the wrong trustline.
+
+**The root was in the type comments**, and it is the same shape as the currency
+bug two entries up: `types.ts` described amounts as "USDC dollars" and
+annotated `deposited`, `pricePerShare` and even `capex` as USDC. `capex` is a
+vault's build cost in **EUR**, so that one comment was wrong twice over. The
+comments are corrected and now state the rule explicitly — asset-side figures
+are in the vault's `currency` (EUR), deposit-side figures are RLUSD — because
+a wrong comment at the type definition is how a wrong word reaches a user.
+
+**Two things checked and deliberately left alone**, which is the other half of
+a design pass:
+
+- The marketplace's primary CTA "Sell a position" is prominent while nothing
+  can be sold. But it opens a modal that says "Nothing to list yet", explains
+  that no vault is open for deposits, and offers two ways out. Leading a user
+  into a modal to be told "no" is mild, and keeping the affordance discoverable
+  is a defensible product call. Not a defect.
+- The onboarding "Skip" looked washed out; measured **6.55:1**. Fine.
+
+**Focus visibility (WCAG 2.4.7) audited for the first time** — every
+interactive element focused in turn, comparing the full computed signature
+(outline, box-shadow, border, background, colour) before and after. 64
+focusable elements across three routes, **zero** without a visible focus
+change. Canaried at 0 → 9 → 0 by force-killing focus indicators, because a
+check reporting zero is exactly what the MAINNET search did while being
+broken.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

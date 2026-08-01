@@ -74,7 +74,13 @@ export default function MarketplacePage() {
 
       <div className="section-head">
         <h2 className="section-title">Open listings <span className="section-count">{views.length}</span></h2>
-        <span className="muted" style={{ fontSize: "0.8125rem" }}>Settled in USDC</span>
+        {/* Was "Settled in USDC". The dashboard ribbon and footer both state
+            "RLUSD settlement", and WalletModal tells you deposits settle in
+            RLUSD and that you will be asked to set the RLUSD trustline. USDC
+            and RLUSD are different assets by different issuers, so this was not
+            a synonym — it named the wrong token on the one page about moving
+            money between holders. */}
+        <span className="muted" style={{ fontSize: "0.8125rem" }}>Settled in RLUSD</span>
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
@@ -276,7 +282,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
             <input id="sell-shares" className="input" inputMode="decimal" placeholder="0" value={sharesStr} onChange={(e) => setSharesStr(e.target.value)} />
           </div>
           <div className="field" style={{ flex: 1 }}>
-            <label className="field-label" htmlFor="sell-price">Price / share (USDC)</label>
+            <label className="field-label" htmlFor="sell-price">Price / share (RLUSD)</label>
             <input id="sell-price" className="input" inputMode="decimal" placeholder="1.00" value={priceStr} onChange={(e) => setPriceStr(e.target.value)} />
           </div>
         </div>
