@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { allocation, vaultGroups } from "@/lib/protocol";
+import { ASSET_CURRENCY, allocation, vaultGroups } from "@/lib/protocol";
 import type { VaultRow } from "@/lib/protocol";
 import { fmtCompact, fmtPct, fmtNum, bpsToPct, plural } from "@/lib/format";
 import { SunIcon, BatteryIcon, ChevronRightIcon } from "./Icons";
@@ -63,12 +63,12 @@ export function VaultsOverview() {
             <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.8125rem" }}>
               <span className="dot" style={{ background: s.color }} />
               <span className="dim">{s.label}</span>
-              <span className="num" style={{ fontWeight: 600 }}>{fmtCompact(s.value, "USD")}</span>
+              <span className="num" style={{ fontWeight: 600 }}>{fmtCompact(s.value, ASSET_CURRENCY)}</span>
             </span>
           ))}
         </div>
         <div className="muted" style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
-          Total: <span className="num" style={{ color: "var(--text)", fontWeight: 650 }}>{fmtCompact(alloc.total, "USD")}</span>
+          Total: <span className="num" style={{ color: "var(--text)", fontWeight: 650 }}>{fmtCompact(alloc.total, ASSET_CURRENCY)}</span>
           <span className="section-count" style={{ marginLeft: 8 }}>{plural(totalCount, "vault")}</span>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function VaultsOverview() {
                 <span style={{ fontFamily: "var(--mono)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "0.6875rem" }}>
                   {g.group === "deployed" ? "Total Deployed" : "Total Pipeline"} <span className="muted">{plural(g.count, "vault")}</span>
                 </span>
-                <span className="num">{fmtCompact(g.total, "USD")}</span>
+                <span className="num">{fmtCompact(g.total, ASSET_CURRENCY)}</span>
                 <span className="num">
                   {fmtPct(bpsToPct(g.blendedApyBps))}
                   {allShowcase && <span className="muted" style={{ fontSize: "0.6875rem" }}> gross</span>}

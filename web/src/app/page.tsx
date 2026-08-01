@@ -4,6 +4,7 @@ import { StatTile } from "@/components/StatTile";
 import { VaultCard } from "@/components/VaultCard";
 import { VAULTS, dashboardMetrics, vaultsByStatus } from "@/lib/vaults";
 import { fmtCompact, fmtNum, plural } from "@/lib/format";
+import { ASSET_CURRENCY } from "@/lib/protocol";
 import { CoinsIcon, ShieldIcon, LayersIcon, BoltIcon } from "@/components/Icons";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
@@ -47,13 +48,13 @@ export default function DashboardPage() {
             dashboard's own tile, which already framed this correctly. */}
         <StatTile
           label="Total Value Locked"
-          value={fmtCompact(m.tvl, "USD")}
+          value={fmtCompact(m.tvl, ASSET_CURRENCY)}
           sub={`${plural(m.activeCount, "operational site")} · none open for deposit yet`}
           icon={<CoinsIcon size={18} />}
         />
         <StatTile
           label="Replacement Fund"
-          value={fmtCompact(m.replacementFund, "USD")}
+          value={fmtCompact(m.replacementFund, ASSET_CURRENCY)}
           sub="Battery & gear refresh reserve"
           icon={<ShieldIcon size={18} />}
         />

@@ -2038,6 +2038,61 @@ add an investable vault to that group and the blend stops being purely gross,
 the marker disappears on its own, and the per-row markers still carry the
 distinction.
 
+### The same sweep on `currency`: €240K + €2.20M = $2.44M
+
+Ran the field-grep from the entry above on the next label-bearing field. Every
+one of the six vaults is `currency: "EUR"` — the sites are in Slovenia, Serbia,
+Germany, Lithuania and Romania. The per-vault figures honoured that, because
+they pass `v.currency`. The **aggregates built out of those same fields** all
+hardcoded `"USD"`.
+
+The vault table rendered it side by side:
+
+```
+Total Deployed  2 vaults      $2.44M     <- hardcoded "USD"
+  BESS Ljubljana 01            €240K     <- v.currency
+  BESS Metlika 01             €2.20M     <- v.currency
+```
+
+240K + 2.20M = 2.44M. The same two numbers added up, with the other
+continent's symbol on the result. Five places had it:
+
+| Surface | Figure | Derivation |
+|---|---|---|
+| `/` (homepage) | TVL, Replacement Fund | `dashboardMetrics()` — Σ capex / Σ sinkingFundBalance |
+| `dashboard-v2` | TVL tile, replacement-fund sub-line | `PROTOCOL.tvl` = Σ showcase capex |
+| `dashboard-v2` | Cumulative Yield odometer | `Odometer`'s `prefix` defaults to `"$"` |
+| `OverviewChart` | y-axis ticks, tooltip, a11y summary | `tvlSeries()` ← `PROTOCOL.currentlyDeployed` |
+| `VaultsOverview` | legend, "Total:", both group totals | `allocation()` / `vaultGroups()` |
+
+**The part that makes this worth writing down is what was *not* wrong.**
+Deposits are RLUSD, a USD stablecoin, so every deposit / claim / balance figure
+is correctly `"USD"` and had to stay. So did the whole marketplace, where
+`faceValue = shares × 1.00` prices RLUSD-pegged receipt tokens, and the
+portfolio, whose values derive from deposits. A blanket find-and-replace of
+`"USD"` → `ASSET_CURRENCY` would have broken twelve correct call sites in
+`VaultDetail` alone. **The field tells you where to look; it does not tell you
+what the answer is.** Each of the ~30 hits had to be traced to its origin.
+
+The rule that separates them, now encoded in `ASSET_CURRENCY`'s doc comment:
+*asset-side* (capex, raised, annualRevenue, sinkingFundBalance, and anything
+summed from them) is EUR; *deposit-side* (RLUSD) is USD.
+
+Two traps worth remembering:
+
+- **`Odometer`'s currency was a default parameter, not a call site.** Grepping
+  `"USD"` does not find `prefix = "$"`. Anything with a currency default hides
+  from a currency grep — check the components' signatures too.
+- **The verification grep matched React's flight payload.** `$1`, `$5`, `$20`
+  are RSC serialization refs, so `\$[0-9]` "found" five dollar figures on a page
+  that has none. Same false positive as the 404 detector two passes back: strip
+  `<script>` before asserting anything about rendered text.
+
+If the founders actually want these presented in USD, the fix is a conversion
+in the data layer, not a symbol — summing mixed currencies is a maths problem,
+not a formatting one. That is flagged in `ASSET_CURRENCY` rather than guessed
+at.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

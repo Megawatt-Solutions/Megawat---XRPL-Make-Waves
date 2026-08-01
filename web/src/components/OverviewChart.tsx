@@ -6,7 +6,7 @@ import {
 } from "chart.js";
 import type { ChartOptions, TooltipItem } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { tvlSeries, apySeries } from "@/lib/protocol";
+import { ASSET_CURRENCY, tvlSeries, apySeries } from "@/lib/protocol";
 import type { Range } from "@/lib/protocol";
 import { fmtCompact } from "@/lib/format";
 import { useChartTheme, alpha } from "@/lib/chartTheme";
@@ -66,12 +66,12 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
           legend: { display: false },
           tooltip: {
             ...tooltipBase,
-            callbacks: { label: (c: TooltipItem<"line">) => ` ${c.dataset.label}: ${fmtCompact(c.parsed.y ?? 0, "USD")}` },
+            callbacks: { label: (c: TooltipItem<"line">) => ` ${c.dataset.label}: ${fmtCompact(c.parsed.y ?? 0, ASSET_CURRENCY)}` },
           },
         },
         scales: {
           x: { stacked: true, grid: { display: false }, ticks: { color: t.muted, font: tickFont, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }, border: { display: false } },
-          y: { stacked: true, position: "right", grid: { color: t.grid }, ticks: { color: t.muted, font: tickFont, maxTicksLimit: 5, callback: (v) => fmtCompact(Number(v), "USD") }, border: { display: false } },
+          y: { stacked: true, position: "right", grid: { color: t.grid }, ticks: { color: t.muted, font: tickFont, maxTicksLimit: 5, callback: (v) => fmtCompact(Number(v), ASSET_CURRENCY) }, border: { display: false } },
         },
       };
       return { data, options };
@@ -123,7 +123,7 @@ export function OverviewChart({ type, title, control }: { type: "tvl" | "apy"; t
     if (!series?.length) return `${title}: no data for this range.`;
     const first = series[0];
     const last = series[series.length - 1];
-    const fmt = (n: number) => (type === "tvl" ? fmtCompact(n, "USD") : `${n.toFixed(2)}%`);
+    const fmt = (n: number) => (type === "tvl" ? fmtCompact(n, ASSET_CURRENCY) : `${n.toFixed(2)}%`);
     const dir = last > first ? "rising" : last < first ? "falling" : "flat";
     // labelsFor() blanks most entries on purpose so the x-axis shows ~6 ticks,
     // so the LAST label is almost always "". Taking it verbatim produced

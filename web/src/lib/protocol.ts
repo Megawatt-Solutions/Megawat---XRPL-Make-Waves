@@ -2,10 +2,33 @@
 // Dashboard v2 — protocol-level overview mock data.
 // Hero metrics are protocol-wide; the vault table below derives from VAULTS.
 // ─────────────────────────────────────────────────────────────
-import type { Vault } from "./types";
+import type { Currency, Vault } from "./types";
 import { VAULTS } from "./vaults";
 
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
+
+/**
+ * The currency the physical assets are denominated in: every vault's capex,
+ * raised, annualRevenue and sinkingFundBalance. All six sites are European and
+ * every one of them is EUR.
+ *
+ * Derived from the vault data rather than written down, because the thing this
+ * exists to prevent already happened: the aggregates built out of these fields
+ * were formatted with a hardcoded "USD" while the rows they summed used
+ * `v.currency` and rendered "€". The vault table showed rows of €240K and
+ * €2.20M under a group total of $2.44M — the same two numbers added up, with
+ * the other continent's symbol on the result.
+ *
+ * Deposits are NOT this currency. They are RLUSD, a USD stablecoin, so
+ * deposit/claim/balance figures are correctly formatted as USD and must stay
+ * that way. Only asset-side aggregates use this constant.
+ *
+ * If vaults ever span currencies, this constant becomes the wrong shape — but
+ * so does every sum above it, since adding mixed currencies needs conversion
+ * rather than a different symbol. That is a data decision, so it is flagged
+ * here rather than guessed at.
+ */
+export const ASSET_CURRENCY: Currency = VAULTS[0].currency;
 
 /** Value of the two real operational systems (Ljubljana + Metlika capex). */
 export const OPERATIONAL_VALUE = VAULTS.filter((v) => v.kind === "showcase").reduce((s, v) => s + v.capex, 0);

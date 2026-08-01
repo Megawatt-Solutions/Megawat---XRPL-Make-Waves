@@ -6,8 +6,8 @@ import { OverviewChart } from "@/components/OverviewChart";
 import { VaultsOverview } from "@/components/VaultsOverview";
 import { NetworkPanel } from "@/components/NetworkPanel";
 import { Sparkline } from "@/components/Sparkline";
-import { PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
-import { fmtPct, bpsToPct, fmtMoney, fmtCompact, plural } from "@/lib/format";
+import { ASSET_CURRENCY, PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
+import { CCY_SYMBOL, fmtPct, bpsToPct, fmtCompact, plural } from "@/lib/format";
 import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
@@ -114,9 +114,9 @@ export default function DashboardV2Page() {
                 what this tile's OWN sub-line already uses for the replacement
                 fund, and what a glanceable metric beside a sparkline wants.
                 Exact figures live on the vault pages, where they are the point. */}
-            <div className="v2-metric-value num">{fmtCompact(PROTOCOL.tvl, "USD")}</div>
+            <div className="v2-metric-value num">{fmtCompact(PROTOCOL.tvl, ASSET_CURRENCY)}</div>
             <div className="v2-metric-sub">
-              2 operational sites · {fmtCompact(PROTOCOL.reserves, "USD")} replacement fund
+              2 operational sites · {fmtCompact(PROTOCOL.reserves, ASSET_CURRENCY)} replacement fund
             </div>
           </div>
 
@@ -151,7 +151,10 @@ export default function DashboardV2Page() {
               <span className="caps">Cumulative Yield</span>
             </div>
             <div className="v2-metric-value">
-              <Odometer startValue={PROTOCOL.cumulativeYield} ratePerSecond={0.05} />
+              {/* Odometer defaults to a "$" prefix. This figure is revenue earned by
+                  the European sites, so it inherits the asset currency like every
+                  other asset-side number on this page. */}
+              <Odometer startValue={PROTOCOL.cumulativeYield} ratePerSecond={0.05} prefix={CCY_SYMBOL[ASSET_CURRENCY]} />
             </div>
             {/* Not depositor yield: there are no depositors. protocol.ts describes
                 this figure as "Ljubljana ~2 yrs + Metlika ~11 months of revenue"
