@@ -1945,8 +1945,15 @@ button {
   .v2-row > :nth-child(4) { display: none; }
   /* Status is the widest label ("OPERATIONAL" needs ~141px). With column 4
      gone there is room — take it from the name column, which truncates
-     gracefully, instead of clipping a word that cannot. */
-  .v2-row { grid-template-columns: 1.7fr 1.2fr 0.7fr 0 1.5fr !important; }
+     gracefully, instead of clipping a word that cannot.
+
+     FOUR tracks, not five with a 0. display: none removes child 4 from grid
+     placement entirely, so the four remaining children auto-place into tracks
+     1-4 — which put Status in the 0 track and left 1.5fr empty at the end of
+     every row. It read as roughly right only because the cell is nowrap and
+     overflow is visible, so "OPERATIONAL" painted into the empty track beside
+     it. Measured: status cell 0px wide at x=519, dead track 182px. */
+  .v2-row { grid-template-columns: 1.7fr 1.2fr 0.7fr 1.5fr !important; }
   .v2-row > :last-child { white-space: nowrap; }
 }
 /* Same problem one band up: at 1024 the default 1fr gives Status 131px for a
@@ -3178,6 +3185,18 @@ button {
   .sc-table { font-size: 0.8125rem; }
   .sc-table th,
   .sc-table td { padding: 10px 10px; white-space: nowrap; }
+
+  /* nowrap above is for the archive row's own columns — it is what keeps them
+     on one line so the column hiding below works. But an expanded day nests
+     prose in a <td>, and paragraphs INHERIT it: the hourly caption ran 419px
+     and the no-predictions line 536px, both inside a 266px cell and both past
+     the right edge of a 320px viewport.
+
+     Easy to miss two ways. The element box stays in bounds while only the text
+     spills, so a bounding-rect check reports no overflow; and measuring the
+     widest range rect reads one fragment, not the line — the caption is nine
+     text nodes, so it measured 137px. Union of the rects is the honest number. */
+  .sc-arch-detail p { white-space: normal; }
   .sc-table th { font-size: 0.5625rem; letter-spacing: 0.1em; }
 
   .sc-table td.sc-mono { max-width: 120px; }

@@ -373,6 +373,26 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                     320px. Someone who has opened a day is also the person with
                     a reason to cite it. */}
                 <ShareDay day={r.day} spread={r.spread} band={r.outcomeName} />
+                {/* The anchors table 200 lines up got this exact treatment, and
+                    the copy I wrote for it ends "open any day in the table above
+                    to see the record" — pointing at THIS table, which rendered
+                    six column headers over nothing. Only the > 12 case was
+                    handled; the 0 case fell through to a bare <thead>.
+
+                    On screen it was worse than empty: the next thing under the
+                    orphaned "PLAYER" header is the following archive row, so a
+                    reader scanning down sees PLAYER and then "2026-08-01" and
+                    reads a date as a player.
+
+                    No call to action here, unlike the leaderboard's "lock in the
+                    first one on the Play tab" — this day has already settled, so
+                    there is nothing left to commit to it. */}
+                {detail.reveal.length === 0 ? (
+                  <p className="muted" style={{ fontSize: "0.6875rem", margin: 0 }}>
+                    No predictions were committed for this day — the result above is settled from market
+                    prices either way.
+                  </p>
+                ) : (
                 <div style={{ overflowX: "auto" }}>
                   <table className="sc-table sc-t-reveal">
                     <thead>
@@ -410,6 +430,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                     </p>
                   )}
                 </div>
+                )}
               </>
             )}
           </td>

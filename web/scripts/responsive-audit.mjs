@@ -246,6 +246,34 @@ for (const el of all) {
   }
 }
 
+// Text can spill out of a box that is itself perfectly in bounds. Inherited
+// white-space: nowrap did that to two paragraphs in the expanded archive day —
+// one ran 536px inside a 266px cell, off the side of a 320px phone. Every other
+// check in this file measures ELEMENT boxes, so not one of them could see it.
+// Range rects measure the text instead.
+//
+// Union of the rects, not the widest one: a paragraph built from JSX
+// interpolations is many text nodes, and the widest single rect of the hourly
+// caption read 137px against a real line of 419px — which is how this sat
+// unnoticed through every prior pass.
+for (const el of all) {
+  if (el.children.length) continue;
+  if (!(el.textContent || "").trim()) continue;
+  if (inScroller(el)) continue;
+  // Deliberate truncation clips, it does not spill. ellipsis needs overflow
+  // hidden, so anything not visible here opted out of overflowing.
+  if (getComputedStyle(el).overflowX !== "visible") continue;
+  const rng = document.createRange();
+  rng.selectNodeContents(el);
+  const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
+  if (!rects.length) continue;
+  const textRight = Math.max(...rects.map((r) => r.right));
+  const box = el.getBoundingClientRect();
+  if (textRight > box.right + 2)
+    findings.push({ kind: "text-overflows-box", el: label(el),
+      detail: Math.round(textRight - box.right) + "px past its own box" });
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
@@ -271,7 +299,7 @@ const inScroller = (el) => {
   return false;
 };
 const run = () => {
-  let overflow = 0, tiny = 0;
+  let overflow = 0, tiny = 0, spill = 0;
   for (const el of [...document.querySelectorAll("body *")].filter(visible)) {
     const r = el.getBoundingClientRect();
     if (r.width && r.height && r.right > W + 1 && !inScroller(el)) overflow++;
@@ -280,7 +308,15 @@ const run = () => {
     const r = el.getBoundingClientRect();
     if (r.width < 24 || r.height < 24) tiny++;
   }
-  return { overflow, tiny };
+  for (const el of [...document.querySelectorAll("body *")].filter(visible)) {
+    if (el.children.length || !(el.textContent || "").trim()) continue;
+    if (inScroller(el) || getComputedStyle(el).overflowX !== "visible") continue;
+    const rng = document.createRange();
+    rng.selectNodeContents(el);
+    const rects = [...rng.getClientRects()].filter((r) => r.height > 0);
+    if (rects.length && Math.max(...rects.map((r) => r.right)) > el.getBoundingClientRect().right + 2) spill++;
+  }
+  return { overflow, tiny, spill };
 };
 const baseline = run();
 const wide = document.createElement("div");
@@ -289,12 +325,22 @@ document.body.appendChild(wide);
 const small = document.createElement("button");
 small.style.cssText = "width:8px;height:8px";
 document.body.appendChild(small);
+// A narrow box whose text cannot wrap — the exact shape of the archive-day
+// paragraph and the 0-width status cell. Its own box stays well inside the
+// viewport, so the overflow counter above must NOT move for it: that is the
+// whole point of the check, and if this canary ever bumps both counters the
+// new check is measuring nothing the old one did not already catch.
+const spilled = document.createElement("p");
+spilled.style.cssText = "width:20px;white-space:nowrap;overflow:visible";
+spilled.textContent = "text far wider than twenty pixels";
+document.body.appendChild(spilled);
 const defect = run();
-wide.remove(); small.remove();
+wide.remove(); small.remove(); spilled.remove();
 const restored = run();
 return { baseline, defect, restored,
   overflowCheckFires: defect.overflow > baseline.overflow && restored.overflow === baseline.overflow,
-  tapCheckFires: defect.tiny === baseline.tiny + 1 && restored.tiny === baseline.tiny };
+  tapCheckFires: defect.tiny === baseline.tiny + 1 && restored.tiny === baseline.tiny,
+  spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill };
 `;
 
 // ── minimal CDP client ───────────────────────────────────────────────────
@@ -390,7 +436,7 @@ try {
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
-    if (!c.overflowCheckFires || !c.tapCheckFires) {
+    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires) {
       console.error("\nCANARY FAILED — the checks do not detect a defect they are given.");
       exitCode = 1;
     } else {

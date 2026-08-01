@@ -3352,6 +3352,46 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### A box can be in bounds while its text is not
+
+Opened an archive day for the first time. The panel rendered six column headers
+— PLAYER / BAND / COMMIT HASH / SALT / COMMIT TX / PTS — over **zero rows**, and
+because the next thing below an expanded row is the next archive row, the
+orphaned "PLAYER" header captioned a date. Scanning down you read `2026-08-01`
+as a player.
+
+The anchors table 200 lines up in the same file already had an empty state, and
+the comment above it says I wrote it for exactly this reason. Its copy ends
+"open any day in the table above to see the record" — pointing at the table that
+had no empty state. **My own fix advertised the unfixed sibling.** Tenth time
+this pattern has fired.
+
+Fixing it exposed two more, and both were invisible for instrument reasons:
+
+**1. Text spilling out of an in-bounds box.** The new line inherited
+`white-space: nowrap` from the mobile table rule and ran 536px inside a 266px
+cell, off the side of a 320px phone. Every geometry check measured *element*
+boxes, and the element box was fine — only the text spilled. Then measuring the
+widest Range rect read one *fragment*: the neighbouring caption is nine text
+nodes from JSX interpolations, so it measured 137px against a real line of
+419px, and looked clean. **The union of the rects is the honest number.** The
+caption had been broken the whole time.
+
+**2. A grid track of zero.** The new `text-overflows-box` check immediately
+found a `span "Status"` 44px past its box at 768-820px. `display: none` on
+child 4 removes it from grid placement entirely, so the four remaining children
+auto-placed into tracks 1-4 of a five-track template whose fourth track was `0`
+— Status landed in it, and 1.5fr sat empty at the end of every row. It looked
+roughly right only because the cell was nowrap with visible overflow, so
+"OPERATIONAL" painted into the dead track beside it. **A `0` track only works
+if something still occupies it; `display: none` means nothing does.** Four
+children want four tracks.
+
+The canary for the new check asserts something extra: that the *box* overflow
+counter does NOT move for a spilled element. Verified in isolation — box stayed
+0, spill went to 1. If both ever move together the check is redundant with one
+that already exists.
+
 ### The aria-label was more accurate than the headline
 
 Looked at the Spreadcast play view at desktop for the first time — it had only
