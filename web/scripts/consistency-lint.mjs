@@ -36,7 +36,14 @@ function stripComments(src) {
 // Asset-side only. listedFaceValue looked like one and is not: marketplace
 // face value is shares x 1.00 of an RLUSD-pegged receipt token, so USD is right
 // there. A rule that flags correct code gets switched off.
-const ASSET_FIELDS = "capex|raised|remaining|annualRevenue|sinkingFund|tvl|reserves|replacementFund|liveTarget|liveRaised";
+//
+// claimable/claimed/distributed joined the list after "Claimable yield $0.00"
+// on a vault page was found sitting one nav click from "€0.00" for the same
+// field on the portfolio. They are not asset-side in the capex sense, but they
+// carry the same rule: types.ts declares claimable as "claimable yield (vault
+// currency)", so a hardcoded "USD" is wrong on all of them. deposited stays
+// OUT — principal really is RLUSD, and "Your deposit $0.00" is correct.
+const ASSET_FIELDS = "capex|raised|remaining|annualRevenue|sinkingFund|tvl|reserves|replacementFund|liveTarget|liveRaised|claimable|claimed|distributed";
 
 const RULES = [
   {

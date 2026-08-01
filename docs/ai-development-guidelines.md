@@ -3352,6 +3352,50 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Reading the page, not measuring it
+
+Last pass concluded automation finds defects of shape, not meaning, so this one
+just read two pages I had only ever measured.
+
+Marketplace held up. The prominent "Sell a position" CTA against an empty
+market looked like a dead end and is not — disconnected opens the wallet modal,
+connected gets "Nothing to list yet" with a Browse vaults CTA. Its close button
+has an aria-label and a 44px target. The AVG PREMIUM tile shows an em dash
+rather than 0, because an average of nothing is undefined while a count of
+nothing is genuinely zero. That distinction was already right in two places.
+
+Portfolio had one. Three money tiles in a row read `$0`, `EUR 0.00`, `EUR 0.00`.
+With every value at zero the currency symbol IS the entire content, and it
+disagreed with itself.
+
+The interesting part was working out which side was wrong, because my first two
+theories were both wrong:
+
+1. *"The tiles are inconsistent, unify them."* No — `types.ts` declares
+   `deposited` as RLUSD principal and `claimable` as vault currency. The tiles
+   match their types. They are genuinely different currencies.
+2. *"Then the arithmetic is the bug"* — `currentValue = totalDeposited +
+   totalClaimable` really does add dollars to euros. True, but it is inert
+   (`POSITIONS` is `[]`) and fixing it needs a conversion rate or a product
+   decision. Logged for founders, not changed.
+
+The actual in-scope defect was elsewhere and visible today: `claimable` renders
+with `vault.currency` at five call sites — the claim toast, ClaimCard's hero and
+button, both portfolio sites — and was hardcoded `"USD"` at two in VaultDetail.
+So "Claimable yield $0.00" on a vault page sat one nav click from "EUR 0.00" for
+the same field on the portfolio. Worse once a vault goes active: ClaimCard and
+PositionCard render in different branches that are **both** true for an active
+on-chain vault, which is two Claim buttons, one number, two symbols.
+
+Two things worth keeping. **The type declaration was better evidence than the
+call-site majority** — but only because I checked what the field is summed with
+before trusting it; `lifetimeYield = claimable + claimed` corroborates vault
+currency, and `currentValue` is the line that disagrees with everything. And
+when widening the lint rule to cover `claimable|claimed|distributed`, the thing
+that mattered was proving it stays **silent** on `deposited` and `rlusdBalance`
+— those really are RLUSD, and a rule that "fixed" them would introduce the
+error it exists to prevent.
+
 ### The audit that could not see the thing it was built to see
 
 Last pass ended on the idea that collapsed disclosures are where defects hide,

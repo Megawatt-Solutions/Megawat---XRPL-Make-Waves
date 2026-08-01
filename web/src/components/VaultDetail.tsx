@@ -705,7 +705,18 @@ function PositionCard(props: {
         <Row k="Your RLUSD" v={fmtMoney(rlusdBalance, "USD")} />
         <Row k="Your deposit" v={fmtMoney(deposited, "USD")} />
         <Row k="Your share" v={fmtPct(sharePct, 2)} />
-        <Row k="Claimable yield" v={fmtMoney(claimable, "USD")} accent />
+        {/* vault.currency, not "USD". The two rows above are genuinely RLUSD —
+            an RLUSD balance and an RLUSD principal — but claimable is typed
+            "claimable yield (vault currency)", and every other place that draws
+            it agrees: the claim toast, ClaimCard's hero and button, and both
+            portfolio call sites all pass the vault currency. These two lines
+            were the only ones hardcoding a symbol.
+
+            Visible today, one nav click apart: this card read "Claimable yield
+            $0.00" while the portfolio tile for the same field read "€0.00".
+            Worse once a vault goes active, because ClaimCard and this card
+            render together — two Claim buttons, one number, two symbols. */}
+        <Row k="Claimable yield" v={fmtMoney(claimable, vault.currency)} accent />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 18, display: "grid", gap: 10 }}>
         {/* On a pipeline vault this was a second, identical disabled button
@@ -718,7 +729,7 @@ function PositionCard(props: {
         )}
         {showClaim && (
           <button className="btn btn-accent btn-block" onClick={onClaim} disabled={claimable <= 0}>
-            {claimable > 0 ? `Claim ${fmtMoney(claimable, "USD")}` : "Nothing to claim"}
+            {claimable > 0 ? `Claim ${fmtMoney(claimable, vault.currency)}` : "Nothing to claim"}
           </button>
         )}
       </div>
