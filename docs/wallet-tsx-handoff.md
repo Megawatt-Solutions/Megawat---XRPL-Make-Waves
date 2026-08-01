@@ -169,6 +169,30 @@ screen reader user gets no confirmation that a claim or a deposit succeeded.
 
 One attribute set, no visual change.
 
+### Verified 2026-08-01, so this is not a guess
+
+Measured in the running app at 390×844, 360×640 and 1280×800, triggering a real
+toast ("Address copied") from the profile sheet:
+
+- the container reports **`role` absent, `aria-live` absent** at every width;
+- it is **permanently mounted** — present with `0` children and a 0×0 box before
+  any toast fires, and the *same DOM node* is reused when one appears.
+
+That second point is what makes this an attribute-only change. A live region
+announces reliably when it already exists and its contents change; one that is
+inserted with its text already in place is announced inconsistently. This
+container is already the correct shape, so it needs the attributes and nothing
+else — no restructuring, no risk to the animation or layout.
+
+The same session applied that principle to the three places it *could* reach —
+`deposit-blocker`, and Spreadcast's prediction and account status regions — so
+this is the last unmounted-announcement gap in the app.
+
+**Checked and NOT a problem, so nobody re-investigates:** the toast stack does
+not collide with the bottom tab bar. `globals.css` already carries
+`.toasts { bottom: calc(var(--nav-h-safe) + 12px) }` below the nav breakpoint,
+measured at 11px clear of the tab bar at both 390×844 and 360×640.
+
 ---
 
 ## What unblocks

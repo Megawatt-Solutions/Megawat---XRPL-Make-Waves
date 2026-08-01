@@ -1260,6 +1260,37 @@ first two runs. Written through a heredoc, the `` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Reading the warnings, and a hypothesis that was already solved
+
+Acting on the previous entry's "read the warnings": the production build is now
+genuinely clean — no `metadataBase` warning, nothing else — and the browser
+console across every route carries nothing from the app (only a browser
+extension's own logging). That is a result worth recording so the next pass does
+not repeat it.
+
+With that clear, the remaining unexamined surface was **toasts** — the app's
+feedback channel for every money action. Two findings, and the more useful one
+is the negative:
+
+**The collision I predicted did not exist.** `.toasts { bottom: 22px }` with
+`z-index: 2000` over a ~75px tab bar looks certain to overlap on a phone — the
+exact failure `.sc-cta-dock` was given `--nav-h-safe` to avoid. Measured, the
+toast clears the bar by 11px at both 390×844 and 360×640, because
+`globals.css` already carries
+`.toasts { bottom: calc(var(--nav-h-safe) + 12px) }` below the nav breakpoint.
+Reading one declaration and reasoning from it would have produced a confident
+"fix" for a solved problem.
+
+**The toast viewport announces nothing.** `role` and `aria-live` are both absent
+at every width, so "Deposited $10,000.00 RLUSD", "Claimed €1,284.40", "Bought N
+shares" and "Address copied" reach nobody using a screen reader. It lives at
+`wallet.tsx:366` and is out of scope by standing instruction, so the work done
+here was to make the handoff *decisive* rather than to leave it as an assertion:
+measured evidence at three widths, plus the confirmation that the container is
+permanently mounted and reused (present with zero children, same DOM node when a
+toast appears) — which is what makes it an attribute-only change under the
+mounted-region rule this session established.
+
 ### The share cards pointed at localhost
 
 Directly downstream of the previous entry, and the reason it matters: fixing
