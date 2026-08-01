@@ -131,10 +131,25 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 
         {/* Tiles */}
         <div className="detail-tiles" style={{ marginTop: 22 }}>
+          {/* label and sub key on the SAME predicate. They did not: the label
+                moved to apyBpsIsGross() when the kind-based guess was found
+                wrong for Leipzig — on-chain, but its apyBps really is a gross
+                yield — and this sub was left on `kind`. Measured:
+
+                  Ljubljana  GROSS YIELD  12.2%  "On capex / yr"
+                  Leipzig    GROSS YIELD  12.4%  "Per annum"
+
+                Two tiles reading GROSS YIELD, disagreeing about what the
+                number is a yield ON. The sub is the part carrying the
+                denominator, and on capex per year is exactly what makes a
+                figure gross rather than a depositor APY — so the one vault
+                that most needed the qualifier was the one missing it.
+
+                Same fix as the label, applied to the other half of the tile. */}
           <Tile
             label={isGrossHeadline ? "Gross yield" : "APY"}
             value={<span className="accent">{fmtPct(bpsToPct(vault.apyBps))}</span>}
-            sub={isShowcase ? "On capex / yr" : "Per annum"}
+            sub={isGrossHeadline ? "On capex / yr" : "Per annum"}
             icon={<BoltIcon size={17} />}
           />
           {hasTelemetry ? (

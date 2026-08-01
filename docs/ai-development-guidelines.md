@@ -3352,6 +3352,44 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Two halves of one tile, keyed on different things
+
+Swept for the failure mode from last pass — a number whose caption is computed
+separately — by finding JSX elements carrying both a value-ish and a label-ish
+prop where at least one holds a conditional. Five candidates. Four key both
+sides on the *same* predicate and are fine. One did not.
+
+The yield tile keyed its **label** on `isGrossHeadline` (i.e. `apyBpsIsGross()`,
+a property of the data) and its **sub** on `isShowcase` (a property of the
+wrapper). Measured across all six vaults:
+
+    Ljubljana  GROSS YIELD  12.2%  "On capex / yr"
+    Leipzig    GROSS YIELD  12.4%  "Per annum"
+    Vilnius    GROSS YIELD  13.1%  "Per annum"
+    Bucharest  GROSS YIELD  12.8%  "Per annum"
+    Belgrade   APY          13.0%  "Per annum"
+
+Three tiles reading GROSS YIELD while disagreeing with the other two about what
+the number is a yield **on**. The sub carries the denominator, and "on capex per
+year" is exactly what makes a figure gross rather than a depositor APY — so the
+vaults that most needed the qualifier were the ones missing it.
+
+This is the same fix, half-applied. The label had already been moved off `kind`
+onto the data when the kind-based guess was found wrong for Leipzig; the sub was
+left behind. Fourteenth sibling-miss, and the first where the earlier fix's own
+commit message describes the exact vault that still had the bug in the other
+half of the same element.
+
+Worth generalising: **when a fix changes which predicate something is keyed on,
+the unit of work is every expression keyed on the old predicate in that element**
+— not the line that was reported. The label was reported; the sub sat three
+lines below it and looked untouched because it was.
+
+Also, the JSX comment trap for the third time: I put `{/* … */}` between two
+attributes of `<Tile>` and got `TS1005: '...' expected` at a column that points
+at the attribute, not the comment. Comments are child expressions. They go above
+the element or inside its children, never in the attribute list.
+
 ### Four cards said TVL over money nobody had put in
 
 Went looking for somewhere to apply compiler-enforced exhaustiveness and found a
