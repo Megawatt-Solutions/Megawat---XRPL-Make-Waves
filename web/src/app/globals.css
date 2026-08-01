@@ -296,6 +296,11 @@ button {
   font-size: 0.875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  /* Measured 121x21 at 1024 and 132x23 at 1280 — the height fell short of the
+     24px minimum (WCAG 2.5.8) on every page in the app. Already a centred flex
+     container, so a min-height grows the hit area without moving the text, and
+     the nav row is far taller than 24px so nothing around it shifts. */
+  min-height: 24px;
 }
 
 .nav-links {
@@ -992,6 +997,12 @@ button {
   cursor: pointer;
   margin-bottom: 18px;
   transition: color var(--t-ui) var(--ease);
+  /* Measured 90x21 — under the 24px minimum (WCAG 2.5.8). This is the only way
+     back out of a vault page on desktop, so it is a poor one to make people aim
+     at. The extra 3px comes out of the 18px margin below it rather than being
+     added to the page, so nothing below moves. */
+  min-height: 24px;
+  margin-bottom: 15px;
 }
 .back-link:hover {
   color: var(--text);

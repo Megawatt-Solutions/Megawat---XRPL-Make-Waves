@@ -2132,6 +2132,57 @@ Two details worth carrying forward:
   already sized for the latter (globals.css says so in two media queries).
   Monospace turns a layout question into a character count.
 
+### "Responsive" was an argument, not a measurement — until the browser worked
+
+Every responsive claim in these notes up to this point was reasoned from CSS and
+box arithmetic, because the Playwright MCP server hung on every call. The cause
+turned out to be mundane: **no browser was installed**, so it was stalling on a
+Chromium download. Installing it did not fix the hang — the MCP server is
+broken here independently — but it made the direct route viable.
+
+Node 24 ships a global `WebSocket` and Chrome speaks the DevTools Protocol over
+one, so `scripts/responsive-audit.mjs` drives the browser with no dependencies
+and no MCP server: launch headless with `--remote-debugging-port`, attach flat
+to a target, `Emulation.setDeviceMetricsOverride` per width,
+`Runtime.evaluate` with `awaitPromise`. Roughly 120 lines of protocol glue buys
+the whole matrix.
+
+**Result of the first real sweep — 10 routes × 10 widths, 320→1440px:**
+zero horizontal overflow, zero clipped text, zero errors. The reasoning had
+been right. That is worth knowing rather than assuming, and two arguments made
+earlier in this session were confirmed to the pixel:
+
+- `.v2-avail` wraps to exactly 2 lines with the `nowrap` span intact, so
+  "not investable" never strands on its own line.
+- "COMING SOON" measures **95px** — identical to "OPERATIONAL" at 95px. The
+  monospace character-count argument was exact, not approximate.
+
+**The one thing measurement found that reading had not:** `.nav-brand`
+(121×21 at 1024, 132×23 at 1280) and `.back-link` (90×21) both fell under the
+24px minimum target size, WCAG 2.5.8. On *every page in the app*, and only on
+desktop — they are not rendered at mobile widths, which is the opposite of
+where you would look. Both were already centred flex containers, so a
+`min-height: 24px` grows the hit area without moving the text; `.back-link`
+gave the 3px back out of its own `margin-bottom` (18→15), keeping its total
+footprint at 39px exactly as before.
+
+Two notes on the instrument itself:
+
+- **Suppress intentional clipping or the report is all noise.** `.sr-only` is
+  clip-path'd to 1px forever and `.chain-btn-name` is clipped rather than
+  `display: none` on purpose — both report `scrollWidth >> clientWidth` on
+  every page, every width. Same for anything inside `overflow-x: auto`: the
+  vault table is *designed* to scroll sideways below 641px.
+- **The canary must run the same filters as the check.** The first version
+  dropped the scroll-container filter, so it reported a baseline of 46
+  overflows on a clean page. The assertion still passed — it is relative — but
+  a canary that prints 46 findings next to the word "baseline" teaches the next
+  reader something false. With the filter matched it reads 0 → 41 → 0.
+
+Run it with `node scripts/responsive-audit.mjs` against a **production** build
+(the dev server recompiles under a sustained sweep and timings drift), and
+`--canary` first if you have changed the checks.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its
