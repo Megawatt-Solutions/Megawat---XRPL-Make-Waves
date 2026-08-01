@@ -571,7 +571,25 @@ function LatestMetricsCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
         <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
         <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
         <Row k="Activation events" v={fmtNum(snap.activations)} />
-        <Row k="Data source" v={vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"} />
+        {/* Telemetry either way. This row used to read "XRPL Mainnet" whenever
+            kind === "onchain", but look at what the card above it contains:
+            energy charged, energy discharged and activation events. A ledger
+            does not measure MWh or count battery cycles — every value here
+            comes from simulate(vault, t) seeded by vault.metrics, which is the
+            site's own instrumentation, on-chain vault or not.
+
+            `kind` says where the receipt token lives, not where the numbers
+            were measured. That is the same conflation the kind-decides-yield-
+            label rule already exists for: a property of the DATA keyed on a
+            property of the wrapper.
+
+            Dormant today — the card needs isActive || isShowcase and no vault
+            is active — but it would have started asserting the wrong
+            provenance on the day the first vault tokenizes, which is the one
+            day everybody looks. Where settlement happens is stated in the
+            footer and the deposit rows; it does not belong in a measurement
+            source. */}
+        <Row k="Data source" v="On-site telemetry" />
       </div>
     </div>
   );

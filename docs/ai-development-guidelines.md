@@ -3352,6 +3352,45 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### A ledger does not measure megawatt-hours
+
+Audited the rest of the provenance claims the way the SIMULATED one should have
+been audited from the start: against the data behind them.
+
+"real market data" on the swings chart passes cleanly — it lives inside
+`{history.length > 0 && ...}`, so it cannot render over an empty or failed
+fetch. A conditional claim is a checkable one.
+
+The Data source row was the same shape as last pass's defect:
+
+    vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"
+
+Read what the card above it contains: energy charged, energy discharged,
+activation events. **A ledger does not measure MWh or count battery cycles.**
+Every value there comes from `simulate(vault, t)` seeded by `vault.metrics` —
+the site's own instrumentation, on-chain vault or not. `kind` says where the
+receipt token lives, not where a number was measured, which is precisely the
+conflation the existing kind-decides-yield-label rule was written for.
+
+Dormant today: the card needs `isActive || isShowcase` and no vault is active.
+But it would have begun asserting the wrong provenance on the day the first
+vault tokenizes — the one day everybody looks at that page. **A latent defect on
+a launch path is worth fixing at leisure rather than under load.**
+
+Rule 9 covers it, and both new rules canary green.
+
+The other thing this pass cost me was an hour of escaping. Writing a regex
+through a `python - <<'PY'` heredoc, `\s` arrived as `\s` but `
+` and ``
+arrived as a literal newline and a literal **backspace character**, which broke
+the file in a way no text search could then match — the Edit tool kept reporting
+"string not found" because the file contained control bytes I could not see.
+Two rules now: **never write regex escapes through that path — use Edit**, and
+when a file will not match a string you can see in it, `cat -A` before assuming
+you mistyped. The recovery was to rebuild the line by index with
+`BS = chr(92)`, which has no escape ambiguity at all, and assert `chr(8) not in
+out` before writing.
+
 ### Every settled result said SIMULATED, and none of them were
 
 Set out to check the countdown, which turned out to be the best-built thing I

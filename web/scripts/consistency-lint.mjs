@@ -81,6 +81,11 @@ const RULES = [
     re: /source\s*===\s*"entsoe"/g,
   },
   {
+    id: "kind-decides-provenance",
+    why: '`kind` says where the receipt token lives, not where a number was measured — a telemetry card keyed on kind claimed MWh and battery cycles came from the ledger',
+    re: /kind\s*===\s*"onchain"[^\n]*\b(?:Mainnet|telemetry|feed|source|oracle)\b/gi,
+  },
+  {
     id: "usdc-in-copy",
     why: "names USDC; the protocol settles in RLUSD, a different asset by a different issuer",
     re: /\bUSDC\b/g,
@@ -162,6 +167,7 @@ if (flag("canary")) {
     "raw-megawatt-field": "<span>{site.capacityMw.toFixed(1)} MW</span>",
     "currency-prefixed-rate": "<span>{fmtMoney(snap.pricePerMwh, c)}/MWh</span>",
     "raw-source-ternary": 'const t = r.source === "entsoe" ? "ENTSO-E A44" : "SIMULATED";',
+    "kind-decides-provenance": 'v={vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"}',
     "usdc-in-copy": 'const label = "Settled in USDC";',
   };
   let ok = true;
