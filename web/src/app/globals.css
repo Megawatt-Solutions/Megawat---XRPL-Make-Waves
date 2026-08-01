@@ -2294,8 +2294,31 @@ button {
 @media (max-width: 560px) {
   .nav { padding: 0 12px; gap: 10px; }
   .nav-brand { font-size: 0.8125rem; letter-spacing: 0.1em; gap: 8px; }
-  /* Network tag and avatar are decoration; the address is the payload. */
-  .chain-net { display: none; }
+  /* The avatar is decoration — an identicon carrying no information — so it can
+     simply go. The network tag is not. "MAINNET" vs "TESTNET" is the most
+     safety-relevant word in the header of a crypto app, and calling it
+     decoration is what produced the display: none below it.
+
+     Its sibling four lines up in this same button already learned this: the
+     .chain-btn-name rule clips "XRPL" rather than hiding it, with a comment
+     explaining that display: none takes the word out of the accessibility tree
+     and leaves `title` — the weakest naming mechanism there is, and invisible
+     on touch — as the only source. The fix reached one child of .chain-btn and
+     not the one beside it.
+
+     Clipped, not hidden: the horizontal space saving is identical, and the
+     network stays available to assistive tech at every width. */
+  .chain-net {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
   .wallet-avatar { display: none; }
   .wallet-pill { padding: 6px 10px; gap: 7px; }
   .connect-btn { padding: 10px 12px; letter-spacing: 0.06em; }

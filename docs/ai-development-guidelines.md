@@ -2183,6 +2183,70 @@ Run it with `node scripts/responsive-audit.mjs` against a **production** build
 (the dev server recompiles under a sustained sweep and timings drift), and
 `--canary` first if you have changed the checks.
 
+### The sibling four lines away — `display: none` on the network tag
+
+Looking at the app for the first time (screenshots, finally) surfaced this: at
+phone widths the chain indicator renders as a bare XRPL mark, and the two
+children of that one button are treated differently.
+
+```css
+@media (max-width: 560px) {
+  /* Network tag and avatar are decoration; the address is the payload. */
+  .chain-net { display: none; }        /* MAINNET — gone from the a11y tree */
+  ...
+}
+/* elsewhere: .chain-btn-name is CLIPPED, with a comment explaining that
+   display:none takes the word out of the accessibility tree */
+```
+
+An earlier pass fixed `.chain-btn-name` and wrote the reasoning down. The
+sibling in the same button, in the same header block, kept `display: none`.
+That is the fourth instance of a fix landing on one surface and not its
+neighbour — but the smallest scope yet: not another page, not another
+component, the next line.
+
+**The comment is what made it look correct.** "Network tag and avatar are
+decoration" is true of the avatar, an identicon carrying nothing. It is not
+true of the network tag: mainnet-vs-testnet is the most safety-relevant word in
+a crypto app's header. Mislabelling it as decoration is what justified hiding
+it. Clipping saves exactly the same horizontal space and keeps the word at
+every width — verified, the button is still 38×44 at 390px and 140×35 at 1440.
+
+**Two instrument failures on the way, both worth keeping:**
+
+1. **A page-wide search for "MAINNET" in the accessibility tree returned `true`
+   in every state — including with `display: none` forced back on.** The status
+   ribbon at the top of every page reads "XRPL — MAINNET", so the search was
+   always matching a different element. Same family as the 404 detector that
+   matched the RSC flight payload: *a search that cannot fail is not a test.*
+   The fix was to stop searching text and start asking about a node —
+   `DOM.querySelector` → `Accessibility.queryAXTree` on that subtree.
+2. **`ignored: true` on the span is not the answer either.** A bare `<span>` is
+   always ignored as an element (`ignoredReasons: ["uninteresting"]`); what
+   matters is whether the text inside it survives. The reasons do differ —
+   `uninteresting` when clipped, `notRendered` when hidden — but reading the
+   subtree text is the unambiguous test:
+
+   | State | AX subtree of `.chain-btn` |
+   |---|---|
+   | clipped (shipped) @390 | `XRPL, XRPL, MAINNET, MAINNET` |
+   | `display:none` @390 | `XRPL, XRPL` |
+   | desktop control @1440 | `XRPL, XRPL, MAINNET, MAINNET` |
+
+**And the audit had been looking at the wrong thing entirely.** Every sweep run
+gets a throwaway browser profile, so localStorage is empty and the first-run
+onboarding sheet opens over *every route*. The previous pass's "100 runs, all
+clean" was 100 runs of the modal, not the pages. The geometry conclusions
+survive — elements behind a scrim keep their real boxes — but the pages had
+never been audited in their normal state. `responsive-audit.mjs` now appends
+the app's own `?onboarding=0`, with `--with-onboarding` to audit the sheet
+deliberately. Re-run both ways: clean both ways.
+
+Worth noting one non-finding. The onboarding "Skip" control *looks* washed out
+in a screenshot, and measuring it said **6.55:1** — comfortably past 4.5. It
+reads quiet because it is small uppercase grey beside bright content, not
+because it fails. Contrast is one of the things an eye is worst at estimating.
+
 ### A chart of zeros is worse than no chart
 
 Continuing the "look at what actually ships" lens, Portfolio was rendering its

@@ -55,6 +55,19 @@ const HEIGHTS = { 320:658,360:800,375:812,390:844,414:896,430:932,768:1024,820:1
 const SETTLE = Number(arg("settle", 700));
 const PORT = Number(arg("port", 9350));
 
+// Each run gets a throwaway profile, so localStorage is always empty and the
+// first-run onboarding sheet opens over EVERY route. The first version of this
+// script therefore audited the modal on all 100 runs rather than the pages
+// under it — the geometry findings still held, because elements behind a scrim
+// keep their real boxes, but the pages were never actually seen in their normal
+// state. ?onboarding=0 is the app's own supported suppression flag.
+// Pass --with-onboarding to audit the sheet itself instead.
+const suppress = !flag("with-onboarding");
+const withFlag = (route) => {
+  if (!suppress) return route;
+  return route + (route.includes("?") ? "&" : "?") + "onboarding=0";
+};
+
 // ── the audit, stringified into the page ─────────────────────────────────
 const CHECKS = String.raw`
 const W = window.innerWidth;
@@ -243,7 +256,7 @@ try {
 
   if (flag("canary")) {
     await s("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
-    await goto(BASE + "/dashboard-v2");
+    await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
     if (!c.overflowCheckFires || !c.tapCheckFires) {
@@ -258,7 +271,7 @@ try {
       await s("Emulation.setDeviceMetricsOverride", { width: w, height: HEIGHTS[w] || 900, deviceScaleFactor: 1, mobile: w < 768 });
       for (const route of ROUTES) {
         try {
-          await goto(BASE + route);
+          await goto(BASE + withFlag(route));
           rows.push({ route, w, ...(await evaluate(CHECKS)) });
         } catch (e) {
           rows.push({ route, w, error: String(e) });
