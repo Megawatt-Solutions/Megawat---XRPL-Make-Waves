@@ -3352,6 +3352,46 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### A two-character word alone on its own line
+
+Went looking for heading runts at mobile — a wrapped title leaving one short
+word stranded. The detector was wrong twice before it was right, in the same way
+both times.
+
+**Counting Range rect tops as lines fails on flex rows.** "Active vaults 2"
+reported four lines at 390px. It is one row: a 7px dot, a text run and a taller
+count badge, each with its own vertical extent, so three distinct rect tops for
+one visual line. Switching to box-height ÷ line-height failed the same way,
+because a flex row with a taller child is also taller than one line. Only
+restricting to LEAF elements — no element children — measures text rather than
+container geometry. (The shipped `line-too-long` check already does this, which
+is why it was never affected.)
+
+The real finding, once the instrument was honest: **`.vault-name` stranded "01"
+on its own line.** Every vault is "<City> 01", so the string always ends in a
+two-character token — the ideal candidate for stranding. At 320px "BESS
+Ljubljana 01" broke over three lines with "01" alone at 21% of the width; at
+360px, two lines with it at 14%. Six cards, first screen.
+
+`text-wrap: balance` fixed 360 and 390 and did nothing at 320, because the name
+box was only 80px — about ten characters. Balance cannot balance a box that
+narrow. The card top is 246px there and the nowrap status badge takes 95 of it,
+the thumb 46, gaps 25.
+
+Two more corrections getting the badge onto its own row:
+
+- **`flex-wrap: wrap` alone did nothing.** The name group is `flex: 1`, so its
+  basis is 0 and it shrinks to make room instead of pushing anything down. The
+  computed style said `wrap` and the layout was unchanged, which is a confusing
+  pair to look at.
+- **`flex-basis: 100%` on the badge broke the line and also stretched it**, so
+  the pill became a full-width banner around left-aligned text and stopped
+  reading as a chip. The break and the width are separate problems: a zero-height
+  `::after` with `flex-basis: 100%` claims the rest of the first row, and the
+  badge starts a new one at its natural 95px.
+
+All six names are now single-line at 320, 360 and 390.
+
 ### ch is a digit width, not a character
 
 Encoded last pass's finding as a check: characters per line, from Range line

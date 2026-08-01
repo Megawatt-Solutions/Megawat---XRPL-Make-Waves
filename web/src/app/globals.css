@@ -761,6 +761,15 @@ button {
   font-size: 1rem;
   font-weight: 640;
   letter-spacing: -0.01em;
+  /* Every vault is "<City> 01", so the line always ends in a two-character
+     token — exactly the thing that gets stranded. Measured on the landing page:
+     at 320px "BESS Ljubljana 01" wrapped to three lines with "01" alone on the
+     last at 21% of the width, and at 360px to two with it at 14%. Six cards,
+     the first screen of the app.
+     balance rather than pretty: this is a short title of a few words, which is
+     what balance is for; pretty targets orphans in long-form text and does
+     less here. Both degrade to normal wrapping where unsupported. */
+  text-wrap: balance;
 }
 .vault-loc {
   font-size: 0.8125rem;
@@ -3530,6 +3539,30 @@ button {
 /* The badge beside the vault name must yield first — the identity of the
    card matters more than the status chip. */
 .vault-card-top > .badge { flex-shrink: 0; }
+
+/* Below 361px the badge stops sharing the row. Measured at 320: the card top is
+   246px and the badge is a nowrap 95px, so with the 46px thumb and 25px of gaps
+   the vault name was left 80px — about ten characters. "BESS Ljubljana 01" then
+   broke over three lines with "01" stranded alone on the last, and text-wrap:
+   balance could not help because the box was genuinely too narrow to balance.
+   Dropping the badge to its own line returns the name to the full card width.
+   361px, not 360: 360 is a real device width and belongs on the roomier side of
+   the boundary — verified balanced there without wrapping. */
+@media (max-width: 360.98px) {
+  /* flex-wrap alone does nothing here, which cost a build to learn: the
+     name/location group is `flex: 1`, so flex-basis is 0 and it shrinks to make
+     room rather than pushing anything to a second line. The badge has to claim
+     a full row itself. */
+  .vault-card-top { flex-wrap: wrap; }
+  /* A zero-height spacer takes the rest of the first row, so the badge starts a
+     new one at its natural size. Putting flex-basis: 100% on the badge itself
+     also breaks the line, but it stretches the pill across the whole card and
+     it stops reading as a chip — the border becomes a banner around
+     left-aligned text. The break and the width are separate problems and want
+     separate elements. */
+  .vault-card-top::after { content: ""; flex-basis: 100%; height: 0; order: 1; }
+  .vault-card-top > .badge { order: 2; }
+}
 
 /* Hashes have no natural break at all. */
 .sc-commit-box {
