@@ -78,6 +78,7 @@ const asConnected = process.argv.includes("--as-connected");
 
 // name, route, selector to click (null = already open), selector that should appear
 const skipped = new Map();
+const gated = new Map();
 const CASES = [
   { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]" },
   // Never runs anonymously: .sc-commit-why only renders once a signed-in user
@@ -86,9 +87,21 @@ const CASES = [
   // summary at the bottom keeps saying it is unmeasured.
   { name: "spreadcast:fair",   route: "/spreadcast",     open: ".sc-commit-why",   expect: "[role=dialog], .sheet",
     precondition: "needs a committed prediction by a signed-in user", seed: "ROUND" },
-  { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay" },
-  { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay" },
-  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay" },
+  // These three were all FALSE PASSES. Disconnected, ".btn-accent" on either
+  // route is the wallet CTA, so all three printed a green row for the SAME
+  // "Connect XRPL wallet" modal — three lines that looked like three overlays,
+  // identical 350x507 every run. expectText makes a case that opens something
+  // else say so instead of passing.
+  { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay",
+    expectText: "list a position", needsConnected: true },
+  { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay",
+    expectText: "connect xrpl wallet" },
+  // Unreachable in the current data: every vault is coming_soon or a showcase,
+  // so depositDisabled is true everywhere and no accent CTA renders. Kept so the
+  // summary keeps naming it rather than letting it vanish.
+  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay",
+    expectText: "deposit", needsConnected: true,
+    precondition: "needs a vault with status active — all six are coming_soon or showcase" },
   { name: "wallet:sheet",      route: "/",               open: ".wallet-pill",     expect: ".sheet-panel, [role=dialog]", needsConnected: true },
 ];
 
@@ -156,6 +169,7 @@ for (const el of [...(scrim||panel).querySelectorAll("button, a[href], input:not
 }
 return {
   opened: true, panelSel,
+  text: (panel.innerText || "").replace(/\s+/g, " ").trim().slice(0, 120),
   vw, vh,
   panel: { w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top), bottom: Math.round(r.bottom) },
   overflowsRight: r.right > vw + 1,
@@ -206,7 +220,10 @@ try {
   for (const w of WIDTHS) {
     await s("Emulation.setDeviceMetricsOverride", { width: w, height: FORCE_H || HEIGHTS[w] || 800, deviceScaleFactor: 1, mobile: true });
     for (const c of CASES) {
-      if (c.needsConnected && !asConnected) continue;
+      // Counted, not silently dropped. Skipping these without saying so is
+      // how "every case ran at every width" printed under a run that had
+      // quietly left both money-flow overlays out entirely.
+      if (c.needsConnected && !asConnected) { gated.set(c.name, (gated.get(c.name) || 0) + 1); continue; }
       // Per-case seed, installed before navigation and removed after, so it
       // cannot leak into the next case and quietly change its result.
       let seedId = null;
@@ -227,6 +244,15 @@ try {
       try { res = await ev(AUDIT.replace("SELECTOR", JSON.stringify(c.expect))); }
       catch (e) { console.log(`  [${w}] ${c.name}: ERROR ${e.message}`); continue; }
       if (!res.opened) { skipped.set(c.name, (skipped.get(c.name) || 0) + 1); console.log(`  [${w}] ${c.name}: did not open — skipped`); continue; }
+      // Identity check. Measuring "a dialog opened" is not the same as measuring
+      // THIS dialog, and the difference was three cases silently auditing the
+      // wallet modal for as long as they have existed.
+      if (c.expectText && !(res.text || "").toLowerCase().includes(c.expectText)) {
+        skipped.set(c.name, (skipped.get(c.name) || 0) + 1);
+        console.log(`  [${w}] ${c.name}: WRONG OVERLAY — expected ${JSON.stringify(c.expectText)}, got ${JSON.stringify((res.text || "").slice(0, 46))}`);
+        if (seedId) await s("Page.removeScriptToEvaluateOnNewDocument", { identifier: seedId });
+        continue;
+      }
       const flags = [];
       if (res.overflowsRight) flags.push("OVERFLOWS-RIGHT");
       if (res.tallerThanViewport && !res.scrollable && !res.bodyScrolls) flags.push("TALLER-THAN-VIEWPORT-NO-SCROLL");
@@ -243,6 +269,11 @@ try {
   // renders after a signed-in user commits a prediction, so the "Provably fair"
   // sheet has never been measured. Saying so at the end costs two lines and is
   // the difference between a known gap and an invisible one.
+  const gatedNames = [...gated].filter(([, n]) => n === WIDTHS.length).map(([n]) => n);
+  if (gatedNames.length) {
+    console.log("");
+    console.log(`not run without --as-connected: ${gatedNames.join(", ")}`);
+  }
   const never = [...skipped].filter(([, n]) => n === WIDTHS.length).map(([n]) => n);
   if (never.length) {
     console.log("");
@@ -253,7 +284,7 @@ try {
     }
   } else {
     console.log("");
-    console.log("every case ran at every width.");
+    console.log(gatedNames.length ? "every case that ran, ran at every width." : "every case ran at every width.");
   }
 } catch (e) { console.log("fatal: " + e); process.exitCode = 1; }
 finally { chrome.kill(); }

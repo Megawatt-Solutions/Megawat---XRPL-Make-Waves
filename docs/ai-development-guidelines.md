@@ -3352,6 +3352,47 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Three green rows for one modal
+
+Pointed the new click sweep at the money flows and it immediately disagreed with
+overlay-audit: `.btn-accent` matched on /marketplace but not on the vault. Chased
+that, and found the audit had been reporting three overlays it was not measuring.
+
+Disconnected, `.btn-accent` on a vault page and on the marketplace is the wallet
+CTA. So `marketplace:sell`, `vault:deposit` and `wallet:connect` all clicked
+through to the SAME "Connect XRPL wallet" modal. The tell was in the output the
+whole time and I had read past it for several passes: **identical 350x507
+dimensions on all three rows.** Three green lines that looked like coverage of
+three overlays were one overlay measured three times.
+
+Fixes: `expectText` per case, so a case that opens something else reports
+WRONG OVERLAY instead of passing; `needsConnected` on both money flows; and
+`--as-connected` now measures the real sell modal at 350x444 — a different size,
+which is the proof it is a different dialog. `vault:deposit` turns out to be
+unreachable in current data (every vault is coming_soon or showcase, so
+`depositDisabled` is true everywhere) and is now named with that precondition.
+The `needsConnected` skips are counted too, because "every case ran at every
+width" had been printing over a run that quietly left three cases out.
+
+**Then I destroyed the file.** The canary revert was written as
+
+    io.open(path, "w").write(io.open(backup).read())
+
+Python evaluates `io.open(path, "w")` first — which truncates immediately — and
+only then the argument, which threw because /tmp does not exist on this box.
+overlay-audit.mjs went to 0 bytes, and the backup was subsequently written from
+the already-empty file, so it was 0 bytes too. Recovered with
+`git checkout --`; the app source was never touched and the working tree was
+clean, so the loss was this pass's edits to one script, redone with atomic
+edits.
+
+Three things worth keeping from that. **Open-for-write truncates before the
+argument is evaluated** — write to a temp path and `os.replace`, which is what
+the redo does. **A backup taken after the damage is not a backup.** And the
+reason it was survivable at all is that the tree was committed and clean before
+the pass started, which is the habit that turned a destroyed file into a
+`git checkout`.
+
 ### Proving a new check against the bug that motivated it
 
 Last pass ended by admitting `--as-player` reached the states *around* the 41x18
