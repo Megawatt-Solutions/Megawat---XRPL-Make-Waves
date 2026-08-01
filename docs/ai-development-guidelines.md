@@ -3352,6 +3352,45 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### Measuring the sheet nobody had measured
+
+`spreadcast:fair` had never run — its trigger only appears once a signed-in user
+commits, and `commit` is React state. Reached it with the temporary-fixture
+technique: tree confirmed clean, flipped one `useState(false)`, measured,
+`git checkout --` on that one path, `git status` verified empty and the line
+confirmed back at `false`.
+
+The sheet itself is fine. 320, 390, 844 and 740x360 landscape: correct dialog
+semantics, resolving accessible name, no overflow, no tiny or below-fold
+controls, no text spilling its box. Its copy also holds up against the how page
+— same 11:45 cutoff, same ENTSO-E source, weekly Merkle anchor for email-only
+players and a per-round transaction for verified ones.
+
+What the exercise found was in the audit, not the app. **overlay-audit's
+scroller detection walked ancestors only.** `Sheet` puts its scroller in
+`.sheet-body`, a CHILD of the dialog, so every sheet in the app reported
+`scrollable: false`. Measured on the fair sheet: ancestor-only false,
+descendant-aware finds `.sheet-body 715/628`. Nothing had misreported yet only
+because no control had happened to sit in the scrolled-out region — the moment
+one did, the audit would flag a reachable button UNREACHABLE. Fixed, with a
+three-state canary on the new branch (false, true, false).
+
+Then the honest part. The landscape run showed the wallet modal's "Use a
+watch-only address" at bottom=501 in a 360-tall viewport, and I twice concluded
+it was unreachable:
+
+1. First probe searched `panel.querySelectorAll("*")` — descendants only. Found
+   no scroller. Wrong.
+2. Second searched `[panel, ...descendants]`. Still no scroller. Still wrong.
+
+The scroller is `.overlay`, the scrim — an **ancestor**. Scrolling it moves the
+button from bottom=501 to 314. The audit's "ok" was right both times and my
+instrument was wrong both times, in opposite directions: I had just finished
+adding descendant awareness and promptly wrote two probes that looked *only*
+downward. **Fixing a blind spot is a good way to acquire its mirror image.**
+Reachability needs the whole chain — ancestors, self, and descendants — and the
+audit checks all three; my throwaway probes checked one.
+
 ### Copy that asserts a live state is wrong for part of every day
 
 Read the Spreadcast explainer and the onboarding flow for meaning rather than

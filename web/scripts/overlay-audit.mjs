@@ -84,12 +84,26 @@ const visible = (el) => el.getClientRects().length > 0;
 const r = panel.getBoundingClientRect();
 
 // Can everything in the panel be reached? Either the panel fits, or something
-// in its ancestry scrolls.
+// scrolls — in its ancestry OR inside it.
+//
+// Descendants matter and were missed. Sheet puts its scroller in .sheet-body,
+// a CHILD of the dialog, so walking only parentElement returned false for every
+// sheet in the app. Measured on the Provably-fair sheet: ancestor-only false,
+// descendant-aware finds ".sheet-body 715/628" — content that scrolls perfectly
+// well. Nothing has misreported yet only because no control has happened to sit
+// in the scrolled-out region; the moment one does, this flags a reachable
+// button as UNREACHABLE and sends someone chasing a defect that is not there.
 let scrollable = false;
 for (let p = panel; p && p !== document.body; p = p.parentElement) {
   const cs = getComputedStyle(p);
   if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && p.scrollHeight > p.clientHeight + 1) { scrollable = true; break; }
   if (p.scrollHeight > p.clientHeight + 1 && cs.overflowY !== "visible") { scrollable = true; break; }
+}
+if (!scrollable) {
+  for (const d of panel.querySelectorAll("*")) {
+    const cs = getComputedStyle(d);
+    if ((cs.overflowY === "auto" || cs.overflowY === "scroll") && d.scrollHeight > d.clientHeight + 1) { scrollable = true; break; }
+  }
 }
 // Body scrolling is IRRELEVANT once the panel sits inside a position: fixed
 // ancestor — the page moves and the overlay does not. Crediting it is what made
