@@ -2726,7 +2726,6 @@ button {
   border-radius: var(--r-control);
   font-family: var(--mono);
   font-size: 0.6875rem;
-  word-break: break-all;
   background: var(--surface);
   border: 1px dashed var(--border-2);
   padding: 10px 12px;
@@ -3502,8 +3501,6 @@ button {
 /* Hashes have no natural break at all. */
 .sc-commit-box {
   min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-all;
 }
 
 /* Key/value detail rows: the value is usually an unbreakable currency or
@@ -3981,6 +3978,12 @@ button {
   word-break: break-all;
 }
 .pf-value.pending { color: var(--muted); font-style: italic; word-break: normal; }
+
+/* A 64-character hex string has no break opportunities, so it needs one
+   anywhere. This lived on .sc-commit-box and inherited into the buttons and
+   prose beside it — see the note at the call site in PlayView. Same shape as
+   .pf-value above: the rule belongs to the value, not its container. */
+.sc-commit-hash { word-break: break-all; overflow-wrap: anywhere; }
 
 /* ═══ Onboarding overlay ══════════════════════════════════════════
    Bottom sheet <=980px, centred dialog >=981px — the same number that

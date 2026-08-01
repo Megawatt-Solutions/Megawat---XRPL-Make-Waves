@@ -3352,6 +3352,52 @@ Three other things worth keeping:
   `fmtPct`, so there is no rule for them. `fmtPower` bypasses got one, because
   the output actually differs.
 
+### The state that only exists after a real round
+
+Wanted the settlement banner and the committed prediction state — both gated on
+API data, both unreachable by every audit. Started reaching for the
+temporary-fixture technique and then noticed a better tool: the state comes
+over the wire, so intercepting **one** response reaches it with **zero** source
+changes. Augment the real `/api/spreadcast/round` payload, leave every other
+request alone.
+
+That surfaced a real defect immediately. In the committed state, the primary
+CTA rendered as:
+
+    Lock on-chain with Xaman (1 dro
+    p)
+
+`.sc-commit-box` sets `word-break: break-all; overflow-wrap: anywhere` — right
+for the 64-character SHA-256 hash it contains, which has no break opportunities
+— and it **inherits into every button and sentence in the box**. A word split
+mid-syllable, on the app's most important call to action, at 320 and 390.
+
+The correct idiom was already in the codebase 1200 lines away: `.pf-value` puts
+the rule on the *value*, and `.pf-value.pending` resets it for the one variant
+holding a sentence. So the rule moved onto the hash, where it belongs.
+
+Then two lessons about the instrument, not the app:
+
+**A near-miss on the unit.** The banner's DOM text is `196.76€/MWh` with no
+space, and I nearly "fixed" it — but `<small>` carries `margin-left: 8px`, so it
+renders with a wider gap than a real space. Visually correct. Reading
+`innerText` and stopping there would have introduced a change to a thing that
+was right.
+
+**The escape trap, third time.** Wiring the seed into overlay-audit, the case
+kept printing "trigger not present" — identical to the unreachable state it had
+before. The seed was a plain template literal, so `\/` collapsed to `/` and the
+regex emitted `if (!//api/spreadcast/round/.test(url))` — a line comment. The
+script threw, fetch was never patched, and **the failure was indistinguishable
+from the condition I was trying to fix.** `String.raw` fixed it. Worth naming
+the general shape: when a fix's failure mode looks exactly like the bug, a
+green-looking run proves nothing — dump what the code actually emits.
+
+With both in place `spreadcast:fair` runs at every width and the audit finally
+prints "every case ran at every width." The two audit fixes compose: without
+last pass's descendant-scroller fix this newly-live case would have reported
+`scroll=false` with content below the fold — a false alarm on its first run.
+
 ### Measuring the sheet nobody had measured
 
 `spreadcast:fair` had never run — its trigger only appears once a signed-in user

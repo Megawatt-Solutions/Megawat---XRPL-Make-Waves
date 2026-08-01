@@ -575,7 +575,16 @@ export function PlayView() {
                       Why this matters
                     </button>
                   </div>
-                  {commit.hash}
+                  {/* The break-anywhere rule belongs to the hash, not the box.
+                      On the container it inherited into every button and line
+                      of prose inside, and "Lock on-chain with Xaman (1 drop)"
+                      rendered as "(1 dro / p)" at 320 and 390 — a word split
+                      mid-syllable on the app's most important CTA.
+
+                      .pf-value in the fair sheet already does it this way: the
+                      rule sits on the value, and .pf-value.pending resets it
+                      for the one case that holds a sentence. */}
+                  <span className="sc-commit-hash">{commit.hash}</span>
                   {state.user.verified && (
                     <div style={{ marginTop: 8 }}>
                       {commit.signed ? (

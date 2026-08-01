@@ -48,6 +48,32 @@ const HEIGHTS = { 320: 658, 360: 800, 390: 844, 414: 896, 658: 320, 844: 390, 89
 const CONNECTED_SEED =
   'localStorage.setItem("mw.xrplAddress","rrrrrrrrrrrrrrrrrrrrrhoLvTp");' +
   'localStorage.setItem("mw.xrplVia","watch");';
+// Reaching the Provably-fair sheet needs a committed prediction by a signed-in
+// user, and `commit` is React state — no storage seeding touches it. But the
+// state it derives from arrives over the wire, so intercepting ONE response
+// gets there without changing a line of app source. This is a fixture for the
+// audit, not a mock of the product: it augments the real response and leaves
+// every other request alone.
+// String.raw, not a plain template. A backslash in a plain template literal is
+// an escape: `\/` collapses to `/`, so the regex below emitted
+// "if (!//api/spreadcast/round/.test(url))" — a line comment, which threw and
+// left fetch un-patched. The case went on printing "trigger not present" and
+// looked exactly like the unreachable state it had before.
+const ROUND_SEED = String.raw`(function(){
+  const of = window.fetch;
+  window.fetch = async function(u){
+    const r = await of.apply(this, arguments);
+    const url = typeof u === "string" ? u : (u && u.url) || "";
+    if (!/\/api\/spreadcast\/round/.test(url)) return r;
+    const j = await r.clone().json().catch(function(){ return null; });
+    if (!j || !j.open) return r;
+    j.user = { id:"u1", email:"a@b.c", name:"probe", wallet:"rrrrrrrrrrrrrrrrrrrrrhoLvTp", verified:true };
+    j.mine = { userId:"u1", day:j.open.day, band:2, exact:171.5,
+      hash:"9f2c1a7b3e5d4f60a8c9b2d1e3f405162738495a6b7c8d9e0f1a2b3c4d5e6f70", txHash:null, correct:null };
+    return new Response(JSON.stringify(j), {status:200, headers:{"content-type":"application/json"}});
+  };
+})();`;
+
 const asConnected = process.argv.includes("--as-connected");
 
 // name, route, selector to click (null = already open), selector that should appear
@@ -59,7 +85,7 @@ const CASES = [
   // flow, so no amount of storage seeding reaches it. Kept in the list so the
   // summary at the bottom keeps saying it is unmeasured.
   { name: "spreadcast:fair",   route: "/spreadcast",     open: ".sc-commit-why",   expect: "[role=dialog], .sheet",
-    precondition: "needs a committed prediction by a signed-in user" },
+    precondition: "needs a committed prediction by a signed-in user", seed: "ROUND" },
   { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay" },
   { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay" },
   { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay" },
@@ -181,10 +207,17 @@ try {
     await s("Emulation.setDeviceMetricsOverride", { width: w, height: FORCE_H || HEIGHTS[w] || 800, deviceScaleFactor: 1, mobile: true });
     for (const c of CASES) {
       if (c.needsConnected && !asConnected) continue;
+      // Per-case seed, installed before navigation and removed after, so it
+      // cannot leak into the next case and quietly change its result.
+      let seedId = null;
+      if (c.seed === "ROUND") {
+        const res = await s("Page.addScriptToEvaluateOnNewDocument", { source: ROUND_SEED });
+        seedId = res.identifier;
+      }
       const loaded = b.once("Page.loadEventFired");
       const url = BASE + c.route + (c.route.includes("?") ? "" : "?onboarding=0");
       await s("Page.navigate", { url });
-      await loaded; await sleep(800);
+      await loaded; await sleep(c.seed ? 1600 : 800);
       if (c.open) {
         const clicked = await ev(`const t=document.querySelector(${JSON.stringify(c.open)}); if(!t) return false; t.click(); return true;`);
         if (!clicked) { skipped.set(c.name, (skipped.get(c.name) || 0) + 1); console.log(`  [${w}] ${c.name}: trigger not present — skipped`); continue; }
@@ -202,6 +235,7 @@ try {
       console.log(`  [${w}] ${c.name.padEnd(20)} ${String(res.panelSel).padEnd(14)} ${String(res.panel.w).padStart(3)}x${String(res.panel.h).padStart(3)} vh=${res.vh} scroll=${res.scrollable||res.bodyScrolls}  ${flags.length ? "** " + flags.join(" ") : "ok"}`);
       for (const t of res.tinyControls) console.log(`         tiny: "${t.t}" ${t.size}`);
       for (const t of res.controlsBelowFold.slice(0,3)) console.log(`         below fold: "${t.t}" bottom=${t.bottom}`);
+      if (seedId) await s("Page.removeScriptToEvaluateOnNewDocument", { identifier: seedId });
     }
   }
   // A case that skips at EVERY width is not coverage, it is a gap that reads
