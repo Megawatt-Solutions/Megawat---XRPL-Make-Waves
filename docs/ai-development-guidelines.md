@@ -1260,6 +1260,35 @@ first two runs. Written through a heredoc, the `\b` word boundary in
 uses `String.includes`, which has no escapes to mangle, and the whole file was
 scanned for stray control characters.
 
+### Icons are all decorative — which is exactly why nothing must be icon-only
+
+Following the flag finding to the rest of the graphics: `Icons.tsx` sets
+`aria-hidden` inside its `svg()` factory, so **all 24 icons are decorative by
+construction**. That is correct, and it means the flag was the outlier rather
+than the first of many.
+
+It also creates the complementary risk. If every icon is hidden, an **icon-only
+button has nothing left to name it** — and the failure is silent: the control
+renders perfectly and simply announces as "button".
+
+Nothing was checking for that. `auditLabelInName()` is the complement and only
+examines controls that *have* visible text; it cannot see a control with nothing
+to compare. So `auditControlNames()` now covers the other half, and it resolves
+names the way assistive tech does — walking the subtree while **skipping
+aria-hidden branches**, rather than using `textContent`, which would count the
+icon and report a name that is never announced.
+
+**It ran clean:** zero nameless controls across eight routes plus the onboarding
+overlay, which earlier structure sweeps had skipped entirely — and overlays are
+precisely where icon-only close buttons live. Validated with the usual
+three-state canary: silent at baseline, catches a button whose only child is an
+`aria-hidden` svg, quiet again once given an `aria-label`.
+
+So this check exists to keep a clean state clean rather than because it found
+something. That is worth doing when the failure mode is invisible in the
+rendered page and the guard against it — `aria-hidden` on every icon — is
+exactly what makes it invisible.
+
 ### A decorative flag that announced itself before every location
 
 With the automated sweep clean, what is left is what automation cannot judge —

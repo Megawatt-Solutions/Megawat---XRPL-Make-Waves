@@ -436,6 +436,66 @@ function auditLabelInName(d, win) {
   return out;
 }
 
+/**
+ * Interactive controls with NO accessible name at all.
+ *
+ * auditLabelInName() is the complement of this and only looks at controls that
+ * HAVE visible text — it cannot see a control with nothing to compare. The gap
+ * matters here because Icons.tsx sets aria-hidden on every icon it produces
+ * (correctly: they are decorative). That means an icon-only button has nothing
+ * left to name it, and the failure is silent — the control renders perfectly
+ * and simply announces as "button".
+ *
+ * Name resolution deliberately walks the subtree skipping aria-hidden branches,
+ * rather than using textContent, because textContent counts the icon and would
+ * report a name that assistive tech never receives.
+ *
+ * Ran clean the first time across eight routes plus the onboarding overlay, so
+ * this exists to keep it that way rather than because it found something.
+ * Canary it the same way as the others: append a button whose only child is an
+ * aria-hidden svg, confirm it is reported, then give it an aria-label and
+ * confirm it goes quiet.
+ */
+function auditControlNames(d, win) {
+  const nameOf = (el) => {
+    const al = el.getAttribute("aria-label");
+    if (al && al.trim()) return al.trim();
+    const lb = el.getAttribute("aria-labelledby");
+    if (lb) {
+      const t = lb.split(" ").filter(Boolean)
+        .map((id) => { const e = d.getElementById(id); return e ? e.textContent : ""; })
+        .join(" ").trim();
+      if (t) return t;
+    }
+    let txt = "";
+    const walk = (n) => {
+      if (n.nodeType === 3) { txt += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      const ah = n.getAttribute("aria-hidden");
+      if (ah === "true" || ah === "") return;
+      for (const c of n.childNodes) walk(c);
+    };
+    for (const c of el.childNodes) walk(c);
+    if (txt.trim()) return txt.trim();
+    const ti = el.getAttribute("title");
+    if (ti && ti.trim()) return ti.trim();
+    if (el.tagName === "INPUT" && el.id) {
+      const l = d.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      if (l && l.textContent.trim()) return l.textContent.trim();
+    }
+    return null;
+  };
+  const SEL = "button, a[href], input:not([type=hidden]), select, textarea, [role=button]";
+  const out = [];
+  for (const el of d.querySelectorAll(SEL)) {
+    if (el.getClientRects().length === 0) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.visibility === "hidden") continue;
+    if (!nameOf(el)) out.push({ kind: "control-has-no-accessible-name", el: describe(el) });
+  }
+  return out;
+}
+
 async function waitFor(selector, timeout = 5000) {
   const d = stage.contentDocument;
   for (let waited = 0; waited < timeout; waited += 150) {
@@ -907,6 +967,7 @@ window.runAudit = async function (routes, widths) {
     for (const f of auditClipping(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
     for (const f of auditClippingVertical(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
     for (const f of auditLabelInName(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditControlNames(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
   } catch (e) {
     findings.push({ route: "(clipping)", w: 0, kind: "clipping-audit-error", detail: String(e).slice(0, 90) });
   }
