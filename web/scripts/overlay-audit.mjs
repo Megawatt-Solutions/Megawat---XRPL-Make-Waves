@@ -95,7 +95,14 @@ const CASES = [
   { name: "marketplace:sell",  route: "/marketplace",    open: ".btn-accent",      expect: "[role=dialog], .sheet, .overlay",
     expectText: "list a position", needsConnected: true },
   { name: "wallet:connect",    route: "/",               open: ".connect-btn",     expect: "[role=dialog], .overlay",
-    expectText: "connect xrpl wallet" },
+    expectText: "connect xrpl wallet",
+    // The dialog contract below is NOT enforced here. XrplConnectModal lives in
+    // wallet.tsx, which is out of scope to modify, and its gaps are already
+    // measured and written up in docs/wallet-tsx-handoff.md: focus never enters
+    // the dialog and Escape does not close it. Naming it keeps the check
+    // meaningful for everything else instead of leaving the suite permanently
+    // red on something nobody is allowed to fix.
+    dialogContractWaived: "wallet.tsx — see docs/wallet-tsx-handoff.md" },
   // Unreachable in the current data: every vault is coming_soon or a showcase,
   // so depositDisabled is true everywhere and no accent CTA renders. Kept so the
   // summary keeps naming it rather than letting it vanish.
@@ -266,7 +273,7 @@ try {
       await s("Page.navigate", { url });
       await loaded; await sleep(c.seed ? 1600 : 800);
       if (c.open) {
-        const clicked = await ev(`const t=document.querySelector(${JSON.stringify(c.open)}); if(!t) return false; t.click(); return true;`);
+        const clicked = await ev(`const t=document.querySelector(${JSON.stringify(c.open)}); if(!t) return false; t.focus(); t.click(); return true;`);
         if (!clicked) { skipped.set(c.name, (skipped.get(c.name) || 0) + 1); console.log(`  [${w}] ${c.name}: trigger not present — skipped`); continue; }
         await sleep(700);
       }
@@ -291,6 +298,36 @@ try {
       console.log(`  [${w}] ${c.name.padEnd(20)} ${String(res.panelSel).padEnd(14)} ${String(res.panel.w).padStart(3)}x${String(res.panel.h).padStart(3)} vh=${res.vh} scroll=${res.scrollable||res.bodyScrolls}  ${flags.length ? "** " + flags.join(" ") : "ok"}`);
       for (const t of res.tinyControls) console.log(`         tiny: "${t.t}" ${t.size}`);
       for (const t of res.controlsBelowFold.slice(0,3)) console.log(`         below fold: "${t.t}" bottom=${t.bottom}`);
+
+      // The dialog contract: focus goes in, Escape closes, focus comes back to
+      // whatever opened it. A keyboard user who cannot get out of a dialog, or
+      // who lands back at the top of the document after closing one, has lost
+      // their place entirely — and none of it is visible in a screenshot, which
+      // is why every other check here missed it.
+      if (c.open) {
+        const f = await ev(
+          "const t=document.querySelector(" + JSON.stringify(c.open) + ");" +
+          "const d=document.querySelector('[role=dialog], .modal, .ob-sheet, .sheet-panel');" +
+          "if(!t||!d) return null;" +
+          "const inside=d.contains(document.activeElement);" +
+          "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));" +
+          "await new Promise(r=>setTimeout(r,700));" +
+          "const closed=!document.querySelector('[role=dialog], .modal, .ob-sheet, .sheet-panel');" +
+          "return { inside, closed, restored: document.activeElement===t };"
+        );
+        if (f) {
+          const gaps = [];
+          if (!f.inside) gaps.push("focus-not-trapped");
+          if (!f.closed) gaps.push("escape-does-not-close");
+          if (f.closed && !f.restored) gaps.push("focus-not-restored");
+          if (gaps.length && c.dialogContractWaived)
+            console.log(`         dialog contract: ${gaps.join(" ")} — waived (${c.dialogContractWaived})`);
+          else if (gaps.length) {
+            console.log(`  [${w}] ${c.name}: ** DIALOG CONTRACT ${gaps.join(" ")}`);
+            process.exitCode = 1;
+          }
+        }
+      }
       if (seedId) await s("Page.removeScriptToEvaluateOnNewDocument", { identifier: seedId });
     }
   }

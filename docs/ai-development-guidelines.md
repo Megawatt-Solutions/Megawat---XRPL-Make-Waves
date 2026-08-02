@@ -3392,6 +3392,43 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Focus goes in, Escape closes, focus comes back
+
+The metadata line was a dead end, confirmed cheaply: every real route defines
+its own description in a layout or generateMetadata, and only the 404 boundaries
+inherit — and they return 404, so nothing indexes them. Worth the two minutes to
+check rather than the twenty to redesign something that was already right.
+
+So I measured something no check here covers: the **dialog contract**. Focus
+moves into the dialog on open, Escape closes it, and focus returns to whatever
+opened it. A keyboard user who cannot escape a dialog, or who lands back at the
+top of the document after closing one, has lost their place — and none of it
+appears in a screenshot, which is why every existing check missed the whole
+class.
+
+The app passes. `Sheet` and the marketplace modal both trap focus, close on
+Escape, and restore to the trigger — verified on the fair sheet, the wallet
+profile sheet, and the sell modal. The only failure is `XrplConnectModal`, whose
+gaps were already measured and written up in docs/wallet-tsx-handoff.md; that
+file is out of scope, so the case carries an explicit waiver naming the reason
+rather than leaving the suite permanently red on something nobody may fix.
+
+Encoding it caught **my own probe being wrong**, which is the part worth
+keeping. The first run reported `focus-not-restored` on a sheet I had just
+verified by hand as correct. The difference: my manual test focused the trigger
+before clicking, and the audit clicked it programmatically. **A programmatic
+`.click()` does not move focus** — so `document.activeElement` was never the
+trigger, and there was nothing to restore *to*. The check was measuring a state
+no keyboard user is ever in. Fixed by focusing the trigger first, which is also
+what actually happens: a keyboard user arrives at a button focused and then
+presses it.
+
+That is the second time this session that lesson has cost something, and both
+times it looked like an app defect rather than an instrument one.
+
+Worth noting there is no synthetic canary here and none is needed: the check is
+demonstrated on a real dialog that fails it and three that pass.
+
 ### "Result not found · Spreadcast · Spreadcast — Megawatt"
 
 Read every title and description as a set rather than one page at a time, which
