@@ -3,7 +3,7 @@
 // submit. Verified players additionally get the 1-drop commit transaction to
 // sign (simulated locally until Xaman credentials are configured).
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWallet } from "@/lib/wallet";
 import { fmtAddress } from "@/lib/format";
 import { useRound } from "./RoundContext";
@@ -17,6 +17,12 @@ export function PlayView() {
   // section layout now, so they survive navigation between the four routes.
   const { state, err, reload, isOpen } = useRound();
   const [sel, setSel] = useState<number | null>(null);
+  // Roving focus for the band radiogroup. role="radio" is a promise about the
+  // keyboard, and only the roles had been written: measured with trusted key
+  // events, four ArrowRight presses left focus on "Calm" and checked nothing,
+  // while all five radios sat in the tab order. A screen reader announces
+  // "radio group, 1 of 5", the user presses an arrow, and nothing happens.
+  const bandRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [exact, setExact] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -466,14 +472,37 @@ export function PlayView() {
               {/* Radio group, not a list of divs. This is the game's primary
                   interaction and it was a <div onClick> — unreachable by
                   keyboard, invisible to assistive tech, and with no pressed
-                  state to announce. */}
+                  state to announce.
+
+                  The roving tabIndex below is the other half of that role. A
+                  radiogroup means: Tab reaches the current choice, arrows move
+                  between choices, Tab leaves. Only the roles had been written,
+                  so Tab stepped through all five — operable, but not what the
+                  role announces — and the arrows the announcement invites did
+                  nothing at all. */}
               <div className="sc-bands" role="radiogroup" aria-label="Predicted spread band">
-                {bands.map((b) => (
+                {bands.map((b, idx) => (
                   <button
                     type="button"
                     key={b.i}
+                    ref={(el) => {
+                      bandRefs.current[idx] = el;
+                    }}
                     role="radio"
                     aria-checked={sel === b.i}
+                    tabIndex={sel === null ? (idx === 0 ? 0 : -1) : sel === b.i ? 0 : -1}
+                    onKeyDown={(e) => {
+                      const n = bands.length;
+                      let next: number | null = null;
+                      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % n;
+                      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (idx - 1 + n) % n;
+                      else if (e.key === "Home") next = 0;
+                      else if (e.key === "End") next = n - 1;
+                      if (next === null) return;
+                      e.preventDefault();
+                      setSel(bands[next].i);
+                      bandRefs.current[next]?.focus();
+                    }}
                     // Spells the unit out for speech, and carries the frequency hint
                     // that is rendered below the range. That hint is how a sighted
                     // player judges whether a band is a safe pick or a long shot, and
