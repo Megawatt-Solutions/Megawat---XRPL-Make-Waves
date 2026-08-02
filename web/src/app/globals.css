@@ -2914,6 +2914,17 @@ button {
   border-radius: var(--r-control);
   overflow: hidden; display: inline-flex; border: 1px solid var(--border-2); }
 .sc-seg button {
+  /* Same floor as the nav: flex children default to min-width:auto and will
+     not shrink past their content, so at 200% text on a 320 screen the two
+     buttons held 153px each inside a 286px control and the second one's label
+     was cut. The buttons were already wrapping - the control was 109px tall -
+     so the overflow was the floor, not the text.
+     Measured at 320: clipped 20px -> 0. At 390 it also drops the control from
+     109px to 74px, because the labels can size to their content instead of
+     splitting the width evenly and wrapping more than they need to.
+     white-space:normal was measured alongside and changed nothing at any
+     width, so it is not here. */
+  min-width: 0;
   background: transparent;
   border: 0;
   padding: 8px 15px;
