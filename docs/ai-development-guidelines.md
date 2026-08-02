@@ -5902,3 +5902,50 @@ Note the reading is 0.0875 in the full sweep and 0.1027 when the route is
 measured alone. It sits on the 0.1 boundary and which side depends on timing,
 so the mode reports rather than fails. A check that goes red on a coin flip
 gets switched off, which is the note at the top of `consistency-lint.mjs`.
+
+---
+
+## Touch, and the 9px target that should stay 9px (2026-08-03)
+
+Hover does not exist on a phone, so anything revealed only by `:hover` is
+unreachable there. Three rules in the stylesheet reveal content on hover:
+
+| rule | touch path |
+|---|---|
+| `.sc-bar-tip:hover::after` | also `:focus-visible` and an `.is-open` class |
+| `.sc-hist span:hover` | emphasis only, no content; the charts carry `data-tip` and PlayView holds explicit `tip`/`hourTip` state described as "the touch-reachable replacement for hover tooltips" |
+| `.globe-pin:hover .globe-tip` | `.globe-pin.selected .globe-tip`, driven by tapping the dot |
+
+So all three are covered. The globe is the interesting one.
+
+### Why the globe dot is exempt from the 24px minimum
+
+The dot is **9x9px**, well under WCAG 2.5.8, and the tap-target check has never
+flagged it because it cannot see it: `CTRL` in `responsive-audit.mjs` is
+`a[href], button, [role=button], input, select, textarea`, and the dot is a
+`<span>` with a React `onPointerDown`. **Non-semantic click targets are
+invisible to that check** — worth knowing generally, not just here.
+
+The obvious fix is the padding/negative-margin trick this codebase already uses
+elsewhere. **It would make things worse.** Measured centre-to-centre distance
+between rendered pins:
+
+```
+390px viewport   closest pair 2px    five closest: 2, 8, 8, 10, 14
+1280px viewport  closest pair 2px    five closest: 2, 11, 11, 13, 18
+```
+
+Ljubljana and Metlika are about 50km apart, so they land nearly on top of each
+other. Growing each target to 24px would overlap most of them and a tap would
+select an unpredictable site. A small precise target beats a large ambiguous
+one.
+
+It is also not the only way in. `NetworkPanel` renders a full-width
+`<button class="site-row" aria-pressed>` per site, and it sets the same
+`selected` state that drives the globe. That is the large target, the keyboard
+path and the screen-reader path all at once; the dot is a shortcut for a mouse
+on a dense map.
+
+**So: left at 9px deliberately.** Recorded because the next pass to notice it
+will reach for the same padding fix, and the spacing measurement is the reason
+not to.
