@@ -753,13 +753,21 @@ function PositionCard(props: {
     <div className="card">
       <div className="card-title">Your position</div>
       <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "16px 0 6px" }}>
+        {/* centerLabel was sharePct.toFixed(0). One value, three presentations,
+            all three on screen together in this card: the donut centre rounded
+            to whole percent, the legend item 40px to its right printed
+            toFixed(2), and the "Your share" row below already used
+            fmtPct(sharePct, 2). Rounding also destroyed the number it was
+            displaying — a depositor holding 0.4% of the vault read "0%" in the
+            largest text on their own position card, beside a legend saying
+            "0.40%". */}
         <Donut
           size={112}
           segments={[
             { value: Math.max(sharePct, 0.001), color: "var(--accent)" },
             { value: othersPct, color: "rgba(255,255,255,0.08)" },
           ]}
-          centerLabel={`${sharePct.toFixed(0)}%`}
+          centerLabel={fmtPct(sharePct, 2)}
           centerSub="Your share"
         />
         <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>

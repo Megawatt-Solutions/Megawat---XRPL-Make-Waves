@@ -159,6 +159,74 @@ function precisionSplits(fileList, read) {
   return out;
 }
 
+// Same unit, two precisions.
+//
+// precisionSplits above keys on the value EXPRESSION, which is right for money
+// fields but could not have caught the energy-flow defect: that diagram printed
+// -233.79, 74.4, 138.6, 47.56 and 167.5 in one figure, five readings of the
+// same unit at three different significant-figure counts, and no two of them
+// came from the same expression. What they shared was "kW".
+//
+// So this keys on the trailing unit token instead. A first attempt flagged any
+// .toFixed at a render site and returned 22 hits, nearly all of them a domain
+// convention applied consistently (prices at 2dp, SoC at 1dp, share at 0dp) —
+// a lint that cries wolf 22 times is one nobody reads. Splitting by unit keeps
+// only the cases where the SAME unit disagrees with itself.
+const UNIT_FIXED = /([A-Za-z_$][\w.$]*)\s*(?:\.toFixed\s*\(\s*(\d)\s*\)|\s*\*\s*(?:10|100|1000)\s*\)\s*\/\s*(10|100|1000))\s*\}?\s*(?:<\/?tspan[^>]*>|\{" "\})?\s*(€\/MWh|kWh|MWh|kWp|kW|MW|%)(?![A-Za-z])/g;
+
+// Units whose readings are one quantity class, so a precision split between
+// ANY two of them is a real split — the energy-flow diagram printed five kW
+// readings at three significant-figure counts and no two shared an expression.
+//
+// "%" and "€/MWh" are deliberately absent. "%" is a suffix on unrelated
+// quantities (state of charge, round-trip efficiency, portfolio share, funding
+// progress) that legitimately want different precision, and keying on it alone
+// reported 12 sites of which one was a defect. Both are still checked by name
+// below, which is what actually found that one: sharePct at 0dp and 2dp.
+const UNIFORM_UNITS = new Set(["kW", "MW", "kWh", "MWh", "kWp"]);
+
+// Same unit, two precisions. Grouped two ways, because the two catch different
+// halves and each one alone missed a real defect:
+//   by name+unit  - sharePct printed toFixed(0) in a donut centre and
+//                   toFixed(2) in the legend touching it. Precise, no noise.
+//   by unit alone - the flow diagram's kW readings, which share no name.
+// The existing precisionSplits() keys on the expression too, but only inside
+// fmtMoney/fmtNum calls, so every .toFixed site was invisible to it.
+function unitPrecisionSplits(fileList, read) {
+  const groups = new Map();
+  const add = (key, rec) => { if (!groups.has(key)) groups.set(key, []); groups.get(key).push(rec); };
+  for (const f of fileList) {
+    const src = stripComments(read(f));
+    UNIT_FIXED.lastIndex = 0;
+    let m;
+    while ((m = UNIT_FIXED.exec(src))) {
+      const dp = m[2] !== undefined ? Number(m[2]) : Math.log10(Number(m[3]));
+      const unit = m[4];
+      // Trailing segment only: snap.socPct and vault.metrics.socPct are the
+      // same quantity reached by two paths, and should not read as two.
+      const name = m[1].split(".").filter(Boolean).pop();
+      const rec = {
+        file: relative(".", f).replace(/\\/g, "/"),
+        line: src.slice(0, m.index).split("\n").length,
+        dp, text: m[0].replace(/\s+/g, " ").trim().slice(0, 88),
+      };
+      add(`${name} (${unit})`, rec);
+      if (UNIFORM_UNITS.has(unit)) add(unit, rec);
+    }
+  }
+  const out = [];
+  for (const [label, uses] of groups) {
+    const kinds = [...new Set(uses.map((u) => u.dp))].sort();
+    if (kinds.length < 2) continue;
+    // A name group is a strict subset of its unit group; report the unit group
+    // only when it says something the name groups did not.
+    out.push({ label, kinds, uses });
+  }
+  return out.filter((g, _i, all) =>
+    !UNIFORM_UNITS.has(g.label) ||
+    !all.some((o) => o !== g && o.label.endsWith(`(${g.label})`) && o.uses.length === g.uses.length));
+}
+
 const files = walk(ROOT);
 const findings = [];
 for (const f of files) {
@@ -184,6 +252,16 @@ for (const split of precisionSplits(files, (f) => readFileSync(f, "utf8"))) {
       file: relative(".", u.file).replace(/\\/g, "/"),
       line: u.line, id: "precision-split",
       why: `${split.value} is formatted to ${split.kinds.join(" and ")} decimals across ${split.uses.length} call sites — one value, two presentations`,
+      snippet: u.text,
+    });
+  }
+}
+
+for (const split of unitPrecisionSplits(files, (f) => readFileSync(f, "utf8"))) {
+  for (const u of split.uses) {
+    findings.push({
+      file: u.file, line: u.line, id: "unit-precision-split",
+      why: `${split.label} is printed to ${split.kinds.join(" and ")} decimals across ${split.uses.length} render sites — one quantity, several presentations, so readings that sit side by side disagree on how precise they are`,
       snippet: u.text,
     });
   }
@@ -222,11 +300,36 @@ if (flag("canary")) {
     `  (mismatched pair: ${splitFires ? "fires" : "MISSED"}; matched pair: ${splitSilent ? "silent" : "FALSE POSITIVE"})`);
   if (!splitFires || !splitSilent) ok = false;
 
+  // unit-precision-split is cross-file too, and it groups two ways, so one
+  // sample cannot exercise it. Case (c) is the one that matters most: an
+  // earlier version keyed on the unit alone, reported 12 percent sites of which
+  // exactly one was a defect, and a lint that cries wolf 12 times is one nobody
+  // reads. It has to stay silent on quantities that merely share a suffix.
+  const unitCases = [
+    ["kW across expressions", true,
+      { "a.tsx": "<text>{Math.round(live.housePowerKw * 100) / 100} <tspan>kW</tspan></text>\n<text>{Math.round(ch.solarKw * 10) / 10} kW</text>" }],
+    ["one value, donut vs legend", true,
+      { "a.tsx": "centerLabel={`${sharePct.toFixed(0)}%`}\n<div>{sharePct.toFixed(2)}%</div>" }],
+    ["same value via two paths", true,
+      { "a.tsx": "<div>{snap.socPct.toFixed(1)}%</div>", "b.tsx": "<div>{vault.metrics.socPct.toFixed(2)}%</div>" }],
+    ["one formatter, one precision", false,
+      { "a.tsx": "centerLabel={fmtPct(sharePct, 2)}\n<div>{sharePct.toFixed(2)}%</div>" }],
+    ["different quantities sharing %", false,
+      { "a.tsx": "<div>{snap.socPct.toFixed(1)}%</div>\n<div>{row.utilizationPct.toFixed(0)}%</div>" }],
+  ];
+  let unitOk = true;
+  for (const [name, expect, src] of unitCases) {
+    const fired = unitPrecisionSplits(Object.keys(src), (f) => src[f]).length > 0;
+    if (fired !== expect) unitOk = false;
+    console.log(`  ${fired === expect ? (expect ? "fires" : "quiet") : "WRONG"}  unit-precision-split  (${name})`);
+  }
+  if (!unitOk) ok = false;
+
   console.log(ok ? "\ncanary ok: every rule fires on a violation." : "\nCANARY FAILED — a rule cannot detect its own defect.");
   process.exit(ok ? 0 : 1);
 }
 
-console.log(`files scanned: ${files.length}   rules: ${RULES.length + 1}   violations: ${findings.length}\n`);
+console.log(`files scanned: ${files.length}   rules: ${RULES.length + 2}   violations: ${findings.length}\n`);
 for (const f of findings) {
   console.log(`  ${f.file}:${f.line}  [${f.id}]`);
   console.log(`      ${f.snippet}`);

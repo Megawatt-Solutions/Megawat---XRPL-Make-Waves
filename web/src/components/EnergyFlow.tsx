@@ -23,10 +23,25 @@ const SLOTS: Record<FlowNodeKey, Slot> = {
   house:   { x: HOUSE.x, y: HOUSE.y, path: "", labelDy: 0 },
 };
 
-function fmtFlow(kw: number | null): string {
-  if (kw === null) return "- -";
+// One formatter for every reading in the diagram, house included.
+//
+// It used to be `Math.round(p * 100) / 100`, which does not choose a precision
+// — it just exposes whichever `round(x, 1)` or `round(x, 2)` the telemetry line
+// happened to use. Measured on one screen: -233.79, 74.4, 138.6, 47.56, 167.5,
+// 18.73. Neighbouring numbers in the same figure at 3, 4 and 5 significant
+// figures, and 1415.85 kW claiming ten-gram precision on a megawatt flow.
+//
+// Three significant figures throughout, promoting to MW past 1000 kW and down
+// to W below 1 kW. Unit promotion by magnitude is already this app's habit
+// ("1,485 kWh TODAY" beside "39.8 MWh THIS MONTH"), and it keeps a 3.2 MW site
+// legible as 1.44 MW rather than an ungrouped 1436.7.
+function fmtFlow(kw: number | null): { value: string; unit: string } {
+  if (kw === null) return { value: "- -", unit: "" };
   const p = Math.abs(kw);
-  return p >= 1 ? `${Math.round(p * 100) / 100} kW` : `${Math.round(p * 1000)} W`;
+  const [n, unit] = p >= 1000 ? [p / 1000, "MW"] : p >= 1 ? [p, "kW"] : [p * 1000, "W"];
+  // 3 sig figs: 1.44 / 20.9 / 234 — never more digits than the reading earns.
+  const dp = n >= 100 ? 0 : n >= 10 ? 1 : 2;
+  return { value: n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }), unit };
 }
 
 type Dir = "in" | "out" | "idle" | "off";
@@ -69,6 +84,7 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
   const dir = dirOf(ch.powerKw);
   const color = DIR_COLOR[dir];
   const live = dir === "in" || dir === "out";
+  const f = fmtFlow(ch.powerKw);
   return (
     <g>
       <circle cx={slot.x} cy={slot.y} r={42} fill="#0f1413" stroke="rgba(255,255,255,0.12)" strokeWidth={1.5} />
@@ -94,7 +110,10 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
       </text>
       {/* value badge */}
       <text x={slot.x} y={slot.y - slot.labelDy + 6} textAnchor="middle" fontSize="18" fill={live ? "#f1f4f2" : "rgba(255,255,255,0.35)"} fontWeight={680}>
-        {fmtFlow(ch.powerKw)}
+        {f.value}
+        {f.unit && (
+          <tspan fontSize="12" fill={live ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.3)"}> {f.unit}</tspan>
+        )}
       </text>
       {ch.soc != null && (
         <text x={slot.x} y={slot.y + 26} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.7)" fontWeight={600}>{Math.round(ch.soc)}%</text>
@@ -156,8 +175,22 @@ export function EnergyFlow({ live }: { live: SiteLive }) {
         <g transform={`translate(${HOUSE.x - 17}, ${HOUSE.y - 30})`} style={{ color: "rgba(255,255,255,0.85)" }}>
           <path d="M3 16 L17 4 L31 16 M7 13 V30 H27 V13" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
         </g>
-        <text x={HOUSE.x} y={HOUSE.y + 34} textAnchor="middle" fontSize="22" fontWeight={700} fill="#f1f4f2">
-          {Math.round(live.housePowerKw * 100) / 100} <tspan fontSize="13" fill="rgba(255,255,255,0.55)">kW</tspan>
+        {/* The house was the one reading that printed its raw sign, and only
+            when it happened to be negative: "-233.79 kW" on one site, an
+            unsigned "1415.85 kW" on another. So the minus was never a
+            convention, just a leak — every node badge strips the sign and lets
+            direction come from colour and dash motion.
+            The house now formats like the rest. Direction moves into a word
+            rather than the ring colour, which was carrying it alone here: the
+            dash animation that helps on the connectors stops under
+            prefers-reduced-motion, and a red-vs-green ring is not something to
+            leave as the sole signal. */}
+        <text x={HOUSE.x} y={HOUSE.y + 28} textAnchor="middle" fontSize="22" fontWeight={700} fill="#f1f4f2">
+          {fmtFlow(live.housePowerKw).value}{" "}
+          <tspan fontSize="13" fill="rgba(255,255,255,0.55)">{fmtFlow(live.housePowerKw).unit}</tspan>
+        </text>
+        <text x={HOUSE.x} y={HOUSE.y + 48} textAnchor="middle" fontSize="11" fontWeight={600} letterSpacing="0.06em" fill={houseConsuming ? "var(--red)" : "var(--accent)"}>
+          {houseConsuming ? "DRAWING" : "EXPORTING"}
         </text>
       </g>
 
