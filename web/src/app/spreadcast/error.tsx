@@ -18,6 +18,27 @@ export default function SpreadcastError({
     console.error("[spreadcast]", error);
   }, [error]);
 
+  // The sibling boundary in app/error.tsx explains why a failed page must not
+  // keep the title of the route that failed: a tab reading "Spreadcast ·
+  // Megawatt" while showing a failure is how someone loses the broken tab
+  // among the working ones. That reasoning applies here and this file never
+  // did it at all.
+  // Re-asserted rather than assigned, for the reason measured on the sibling:
+  // Next writes the <title> element directly after the boundary mounts, so a
+  // plain assignment runs and is then silently undone.
+  useEffect(() => {
+    const WANT = "Spreadcast is having a moment · Megawatt";
+    const apply = () => {
+      if (document.title !== WANT) document.title = WANT;
+    };
+    apply();
+    const el = document.querySelector("title");
+    if (!el) return;
+    const mo = new MutationObserver(apply);
+    mo.observe(el, { childList: true, characterData: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+
   // layout.tsx already provides <main className="page sc">, so render only the
   // panel here — otherwise the section would nest two <main> elements.
   return (

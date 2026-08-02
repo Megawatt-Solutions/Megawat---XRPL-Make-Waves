@@ -33,7 +33,27 @@ export default function VaultsError({
   // BESS Vaults" while showing a failure is how someone loses the broken tab
   // among the working ones.
   useEffect(() => {
-    document.title = "Something went wrong - Megawatt";
+    // Re-asserted, not just set. A plain assignment here DID run - verified by
+    // hooking the document.title setter from before hydration, which logged
+    // exactly one write of this string - and the tab still read "Megawatt ·
+    // BESS Vaults". Next applies the route's metadata after the boundary
+    // mounts, and it writes the <title> element's text directly rather than
+    // through document.title, so the setter hook saw our write and never saw
+    // the one that undid it.
+    // An observer is deterministic where a timeout is a guess about how long
+    // hydration takes. The equality guard stops it re-triggering on its own
+    // write, and it disconnects on unmount so a recovered page gets its real
+    // title back.
+    const WANT = "Something went wrong · Megawatt";
+    const apply = () => {
+      if (document.title !== WANT) document.title = WANT;
+    };
+    apply();
+    const el = document.querySelector("title");
+    if (!el) return;
+    const mo = new MutationObserver(apply);
+    mo.observe(el, { childList: true, characterData: true, subtree: true });
+    return () => mo.disconnect();
   }, []);
 
   return (
