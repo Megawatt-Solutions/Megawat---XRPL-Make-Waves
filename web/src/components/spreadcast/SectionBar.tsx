@@ -54,6 +54,18 @@ export function SectionBar() {
               answer is actually wanted. */}
           <span className="sc-bar-clock">
             <span className={`sc-bar-dot${urgent ? " urgent" : ""}`} />
+            {/* The comment above is right that "07:13:29" on its own names
+                nothing — and the fix it describes only reached assistive tech.
+                A sighted user got the bare digits, and the digits carry TWO
+                opposite meanings: time until entries close while a round is
+                open, and time until the next round opens while it is not. The
+                sr-only string beside this already distinguishes them; the
+                screen did not, so the accessible version was strictly more
+                informative than the visual one.
+                aria-hidden, like the digits, because the sr-only sibling
+                already says all of this in a fuller sentence — without it the
+                word would be read twice. */}
+            <span className="sc-bar-clock-label" aria-hidden="true">{isOpen ? "closes" : "opens"}</span>
             <span className="num" aria-hidden="true">{countdown}</span>
             <span className="sr-only">
               {/* Between rounds the countdown is an em dash, which reads out as

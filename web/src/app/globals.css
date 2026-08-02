@@ -2735,6 +2735,21 @@ button {
   color: var(--text-2);
   white-space: nowrap;
 }
+/* Names the countdown for the people who can see it. Measured slack in .sc-bar:
+   84px free at 390 against a 70px label, so it fits from 360 up; at 320 the
+   bar has ~39px once padding and gap are taken out, which is why this starts
+   at 360 rather than everywhere. Below that the bare digits remain — the same
+   as before, so no width loses anything it had. */
+.sc-bar-clock-label {
+  display: none;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+@media (min-width: 360px) {
+  .sc-bar-clock-label { display: inline; }
+}
 .sc-bar-dot {
   width: 6px;
   height: 6px;
