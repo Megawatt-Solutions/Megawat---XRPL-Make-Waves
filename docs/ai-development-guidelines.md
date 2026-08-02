@@ -3392,6 +3392,37 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Tab is the clause you cannot fake
+
+The dialog contract had a fourth clause the last pass did not test: that Tab
+stays inside an open dialog instead of walking into the page behind it.
+
+It cannot be tested with dispatched events. **The browser moves focus itself in
+response to trusted input**, so a synthetic `KeyboardEvent("keydown", {key:
+"Tab"})` changes nothing at all — it does not fail, it simply has no effect, and
+a check built on it would report every dialog as containing focus perfectly.
+Same shape as the scroll-lock lesson: `window.scrollTo` reported "background
+scrolls" on a correctly locked page. Both times the honest instrument was the
+CDP Input domain, so cdp.mjs gained `--tab N` beside `--wheel`.
+
+The app passes. Six trusted Tab presses stay inside every dialog in scope — the
+wallet profile sheet cycles its four controls, the marketplace sell modal its
+three. `XrplConnectModal` escapes on 6 of 6, landing on the vault cards behind
+it; that is wallet.tsx, out of scope, already written up, and now measured
+precisely rather than described.
+
+One thing that looked wrong and was not: the Provably-fair sheet reported
+"Close" four presses running. That is correct — it has exactly **one** focusable
+control, so a working trap has nowhere else to go, and the panel carries
+`tabindex="-1"` for initial focus. Counting repeats as a defect would have
+flagged the smallest correct dialog in the app. **A focus trap with one control
+looks identical to a focus trap that is stuck**, and the way to tell them apart
+is to count the focusables rather than the stops.
+
+The contract now reports all four clauses together, so the waived case reads
+`focus-not-trapped tab-escapes(6/6) escape-does-not-close` — one line that says
+exactly what a keyboard user would hit, and exactly which file it lives in.
+
 ### Focus goes in, Escape closes, focus comes back
 
 The metadata line was a dead end, confirmed cheaply: every real route defines

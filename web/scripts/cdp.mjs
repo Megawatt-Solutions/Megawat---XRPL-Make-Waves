@@ -183,6 +183,30 @@ try {
   // programmatic and overflow:hidden never blocks it, so an in-page probe
   // reports "background scrolls" on a page that is correctly locked. A wheel
   // dispatched through the Input domain is real input and settles it.
+  // --tab N: press Tab N times as REAL input and report where focus lands each
+  // time. Synthetic KeyboardEvents do not move focus at all — the browser moves
+  // focus itself in response to trusted input, so a dispatched event proves
+  // nothing about tab order or about whether a dialog contains it. Same reason
+  // --wheel exists for scroll locks.
+  const tabs = arg("tab");
+  if (tabs) {
+    const describe =
+      "(() => { const a = document.activeElement; if (!a) return 'null';" +
+      " const d = document.querySelector('[role=dialog], .modal, .ob-sheet, .sheet-panel');" +
+      " const inside = d ? d.contains(a) : null;" +
+      " const cls = typeof a.className === 'string' && a.className ? '.' + a.className.trim().split(/\s+/)[0] : '';" +
+      " const txt = (a.innerText || a.getAttribute('aria-label') || '').trim().slice(0, 22);" +
+      " return (inside === null ? '' : inside ? 'IN  ' : 'OUT ') + a.tagName + cls + (txt ? ' \"' + txt + '\"' : ''); })()";
+    const stops = [];
+    for (let i = 0; i < Number(tabs); i++) {
+      await s("Input.dispatchKeyEvent", { type: "rawKeyDown", windowsVirtualKeyCode: 9, code: "Tab", key: "Tab" });
+      await s("Input.dispatchKeyEvent", { type: "keyUp", windowsVirtualKeyCode: 9, code: "Tab", key: "Tab" });
+      await sleep(90);
+      stops.push((await s("Runtime.evaluate", { expression: describe, returnByValue: true })).result.value);
+    }
+    out = { ...(out ?? {}), tabStops: stops };
+  }
+
   const wheel = arg("wheel");
   if (wheel) {
     const readY = async () =>

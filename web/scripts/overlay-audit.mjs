@@ -305,6 +305,22 @@ try {
       // their place entirely — and none of it is visible in a screenshot, which
       // is why every other check here missed it.
       if (c.open) {
+        // Tab containment first, because the Escape below closes the dialog.
+        // Trusted key events, not dispatched ones: the browser moves focus in
+        // response to real input, so a synthetic KeyboardEvent proves nothing
+        // about tab order. Six presses is enough to leave any dialog here — the
+        // largest has four focusable controls.
+        let escaped = 0;
+        for (let i = 0; i < 6; i++) {
+          await s("Input.dispatchKeyEvent", { type: "rawKeyDown", windowsVirtualKeyCode: 9, code: "Tab", key: "Tab" });
+          await s("Input.dispatchKeyEvent", { type: "keyUp", windowsVirtualKeyCode: 9, code: "Tab", key: "Tab" });
+          const inside = await ev(
+            "const d=document.querySelector('[role=dialog], .modal, .ob-sheet, .sheet-panel');" +
+            "return d ? d.contains(document.activeElement) : true;"
+          );
+          if (!inside) escaped++;
+        }
+
         const f = await ev(
           "const t=document.querySelector(" + JSON.stringify(c.open) + ");" +
           "const d=document.querySelector('[role=dialog], .modal, .ob-sheet, .sheet-panel');" +
@@ -318,6 +334,7 @@ try {
         if (f) {
           const gaps = [];
           if (!f.inside) gaps.push("focus-not-trapped");
+          if (escaped) gaps.push(`tab-escapes(${escaped}/6)`);
           if (!f.closed) gaps.push("escape-does-not-close");
           if (f.closed && !f.restored) gaps.push("focus-not-restored");
           if (gaps.length && c.dialogContractWaived)
