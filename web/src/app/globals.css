@@ -4565,6 +4565,11 @@ h1,
 .globe-tip-name,
 .site-name,
 .v2-vault-name,
+/* The listing row's seller line: fmtAddress always returns a fixed-length
+   rXXXXX...XXXX, so with the age appended every row is the same length and
+   every row strands "ago" on its own at 768. Only visible with listings on
+   the page, which needs a fixture — see docs. */
+.mk-c-id .muted,
 .legend-left > span:not(.dot) {
   text-wrap: balance;
 }

@@ -5710,3 +5710,62 @@ The lesson is not about Spreadcast. It is that a single aggregate number was
 being read as a coverage metric for months of passes, and it silently encoded
 "how much of the app happened to be live when the suite ran". One integer
 could not say that. Seven could.
+
+---
+
+## The states your data cannot reach (2026-08-02)
+
+Three screens in this app have a populated state that **no audit has ever
+rendered**, because the fixtures that would populate them are empty:
+
+| screen | gate | reachable by |
+|---|---|---|
+| `vault:deposit` modal | no vault has `status: "active"` | — |
+| "Your position" card | `POSITIONS` is `[]` | — |
+| marketplace listings | `LISTINGS` is `[]` | temporary source fixture |
+
+The overlay audit has been reporting `vault:deposit — needs a vault with status
+active` for many passes. It reads as a limitation of the harness. It is a
+**coverage hole in the shape of a sentence**, and behind the last one was a
+real defect in the marketplace's headline row:
+
+```
+AVG PREMIUM   -4.6%   Over face value
+```
+
+`sub` was `views.length === 0 ? "No listings yet" : "Over face value"` — fixed
+text for any non-empty book, so a market trading at a discount asserted the
+opposite of the number directly above it. Unreachable with today's data: the
+only state that ever rendered was the em dash, which is correct, so nothing
+looked wrong. It is sign-aware now.
+
+A discount is not an edge case here. This page's own subtitle sells "pick up
+yield at a discount".
+
+### How to reach them, and how to get back
+
+`LISTINGS` and `POSITIONS` are module constants compiled into the bundle, so
+response interception cannot touch them — the technique that works for
+`/api/spreadcast/round` does not apply. They need a **temporary source
+fixture**: edit the constant, build, measure, then
+
+```
+git checkout -- web/src/lib/marketplace.ts    # the fixture file ONLY
+```
+
+Check `git status` first and revert by explicit path. Earlier in this session a
+blanket `git checkout --` during a fixture revert destroyed a real uncommitted
+fix in a neighbouring file. The fixture file must be the only thing that
+changed in it.
+
+### What the populated marketplace showed
+
+At normal text, one finding, and it was data-independent: `fmtAddress` always
+returns a fixed-length `rXXXXX...XXXX`, so with the age appended *every* row
+strands "ago" alone at 768. Fixed.
+
+At 200% text it reports **20 findings** — a backlog nobody has ever seen,
+because the page cannot be populated. Not fixed here: a fix that can only be
+verified behind a fixture, on a page that renders empty in every audit run, is
+a fix nobody can keep honest. It is recorded so the next person to put real
+listings in front of this page knows to run `audit:zoom` on it first.

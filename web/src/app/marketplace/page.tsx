@@ -59,7 +59,18 @@ export default function MarketplacePage() {
             as a measurement — "listings are trading at face value" — when in
             fact there are no listings to average. An em dash says "no data",
             which is the true statement. "Open positions: 0" and "$0" above are
-            genuine counts and totals, so they stay as they are. */}
+            genuine counts and totals, so they stay as they are.
+
+            The sub is sign-aware for the same reason the value is. "Over face
+            value" was printed for any non-empty book, so a market trading at a
+            discount read "AVG PREMIUM / -4.6% / Over face value" — the
+            subtitle asserting the opposite of the number directly above it, in
+            the headline row of this page. Unreachable with today's data, which
+            is why it survived: LISTINGS is empty, so the only state ever
+            rendered was the em dash. Found by building the populated page
+            behind a temporary fixture. A discount is the interesting case
+            here, not an edge one — this page sells "pick up yield at a
+            discount" in its own subtitle. */}
         <StatTile
           label="Avg premium"
           value={
@@ -67,7 +78,15 @@ export default function MarketplacePage() {
               ? <span className="muted">&mdash;</span>
               : <span className={m.avgPremiumBps >= 0 ? "" : "accent"}>{premiumStr(m.avgPremiumBps)}</span>
           }
-          sub={views.length === 0 ? "No listings yet" : "Over face value"}
+          sub={
+            views.length === 0
+              ? "No listings yet"
+              : m.avgPremiumBps > 0
+                ? "Over face value"
+                : m.avgPremiumBps < 0
+                  ? "Under face value"
+                  : "At face value"
+          }
           icon={<TrendingUpIcon size={18} />}
         />
       </div>
