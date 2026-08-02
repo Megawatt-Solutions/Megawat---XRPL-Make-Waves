@@ -211,7 +211,17 @@
   /* â”€â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
      One number for mobile bottom-nav clearance. Anything that must
      sit clear of the tab bar references this, not a magic constant. */
-  --nav-h-safe: calc(74px + env(safe-area-inset-bottom));
+  /* Tracks the bar instead of asserting a number at it. The bar is not a fixed
+     height: its label scales with the root font, so it measures 74.9px at
+     100% text and 92.8px at 200%, while this constant stayed at 74 and every
+     consumer (.page padding-bottom, .toasts, the Spreadcast dock) inherited
+     the stale value. Measured consequence at 200%, with the CURRENT truncating
+     tab labels and no other change: the toast sat 7px INSIDE the tab bar.
+     Linear, because the only part that scales is one line of label text.
+     Fitted on two points and checked against five — 100/125/150/175/200% at
+     320 and 390 — predicting the real height within 0.3px every time. The old
+     74px was already 0.9px short at normal size. */
+  --nav-h-safe: calc(57px + 1.125rem + env(safe-area-inset-bottom));
 
   --hairline: rgba(255, 255, 255, 0.07);
   --tick: rgba(255, 255, 255, 0.3);
