@@ -212,3 +212,31 @@ escape-does-not-close`.
 **Final state:** `npm run audit` clean across all five checks. `audit:deep`
 clean: motion, tab order, connected mode, landscape. `audit:canary` green on all
 ten lint rules and every cross file check. Working tree clean, everything pushed.
+
+---
+
+## Addendum: copy, after the report was written
+
+Three further commits, all display only.
+
+The long hyphen removal was done mechanically first (98 blind swaps to a
+spaced hyphen), which cleared the character but left one mark doing four
+different jobs. Reading the sentences afterwards gave each the right one: a
+colon where it introduces, a comma for an aside, a semicolon where two clauses
+join, a full stop where they were separate sentences. Caps labels use the
+middot the ribbon already used beside them.
+
+Then the part the sweep had missed. It verified eight routes by reading
+rendered body text, which skipped the two places this app's words travel
+furthest: `<title>` and `<meta description>`, and the shareable
+`/spreadcast/result/[day]` page, which no audit had ever loaded with a real
+settled day. Both carried the same defect the sweep existed to fix. Title
+separators are now consistently the middot, including one string that had
+contained both marks at once.
+
+Two things checked there and found correct: the settled timestamp reads 13:00
+UTC, which is the 15:00 Ljubljana settlement `time.ts` specifies, and "Monday,
+3 August 2026" is genuinely a Monday.
+
+**Final:** 37 commits, `npm run audit` clean across all five checks, working
+tree clean, everything pushed to `ui-ux-rehaul`.
