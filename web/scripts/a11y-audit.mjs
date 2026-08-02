@@ -281,6 +281,55 @@ const heads = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role=heading]")]
   .map(el => ({ level: Number(el.getAttribute("aria-level")) || Number(el.tagName[1]) || 2,
                 text: (el.textContent || "").trim() }));
 const h1s = heads.filter(h => h.level === 1).length;
+// A control a keyboard user can reach that is still invisible once focused.
+// Tabbing to it strands you: the focus ring is nowhere on screen and the next
+// key press does something you cannot see.
+//
+// Two wrong versions preceded this one, both worth recording.
+//
+// "No client rects" reported five false positives per page: this app renders
+// BOTH navs always and hides one per breakpoint with display: none, and the
+// browser removes a display:none subtree from the tab order entirely. Verified
+// with trusted keys — 18 Tab presses at 1440 reached zero .bottom-nav-item, and
+// 18 at 390 reached zero desktop .nav-link.
+//
+// Exempting display:none then made the check unable to fire AT ALL, which the
+// canary caught: a 0x0 clipped element still HAS a client rect, so rect-count
+// is zero only under display:none — the very case being skipped. A check that
+// cannot fail is indistinguishable from a clean app.
+//
+// So: measure AFTER focusing. That is also what separates a defect from the
+// skip link, which is meant to be invisible until focused and visible the
+// instant it is.
+for (const el of document.querySelectorAll(FOCUSABLE)) {
+  let none = false;
+  for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+    if (getComputedStyle(p).display === "none") { none = true; break; }
+  }
+  if (none) continue;
+  const prev = document.activeElement;
+  // Suppress the transition before focusing. The skip link animates from
+  // translateY(-160%) to 0 over 0.15s, so measuring straight after focus() reads
+  // the PRE-focus position and reports a correctly-built skip link as stranded
+  // off-screen on every page — which is exactly what the first version of this
+  // check did. Waiting instead would cost 200ms x 376 focusables x 24 runs;
+  // turning the transition off makes the focus style land immediately.
+  const savedTransition = el.style.transition;
+  el.style.transition = "none";
+  el.focus();
+  const r = el.getBoundingClientRect();
+  const cs = getComputedStyle(el);
+  const invisible =
+    r.width < 2 || r.height < 2 ||
+    cs.visibility === "hidden" || parseFloat(cs.opacity) === 0 ||
+    r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight;
+  el.style.transition = savedTransition;
+  if (prev instanceof HTMLElement) prev.focus(); else el.blur();
+  if (invisible)
+    findings.push({ kind: "focusable-but-invisible", el: label(el),
+      detail: "still off-screen or zero-area when focused", text: "" });
+}
+
 if (h1s === 0) findings.push({ kind: "no-h1", el: "document", detail: "", text: "" });
 if (h1s > 1) findings.push({ kind: "multiple-h1", el: "document", detail: String(h1s), text: "" });
 let prev = 0;

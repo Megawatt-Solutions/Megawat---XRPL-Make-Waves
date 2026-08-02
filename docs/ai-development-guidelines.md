@@ -3392,6 +3392,47 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Three wrong checks before one that worked
+
+Walked the real tab order on the main pages with trusted keys. **The app is
+sound.** Skip link first, then brand, nav in visual order, connect, promo, then
+the vault cards — visual order throughout, no traps, and the cycle wraps
+cleanly. Nothing to fix.
+
+Getting to that answer took three broken checks, and each failed differently
+enough to be worth recording.
+
+**1. "No client rects" — five false positives per page.** This app renders both
+navs at every width and hides one with `display: none`. Elements inside a
+display:none subtree are removed from the tab order by the browser, so they are
+not reachable and not a defect. Proven rather than argued: 18 trusted Tab
+presses at 1440 reached zero `.bottom-nav-item`, and 18 at 390 reached zero
+desktop `.nav-link`.
+
+**2. Exempting display:none made the check unable to fire at all.** The canary
+caught it: a 0x0 clipped element still HAS a client rect, so rect-count is zero
+*only* under display:none — precisely the case now skipped. The check reported a
+clean app because it was structurally incapable of reporting anything else.
+**A check that cannot fail is indistinguishable from a passing one**, which is
+the entire argument for canarying.
+
+**3. Measuring after `focus()` flagged the skip link on every page.** It reads
+`top: -64` focused and unfocused, so it looked like a keyboard user's very first
+Tab landed on something 64px above the viewport — a real WCAG 2.4.7 failure if
+true. It is not: `.skip-link:focus` sets `translateY(0)` and there is a 0.15s
+transition, so measuring at t=0 reads the *pre*-focus position. After 400ms it
+sits at `top: 8`. I was one commit away from "fixing" correct CSS.
+
+The version that works suppresses the transition before focusing — the focus
+style then lands immediately, without paying 200ms x 376 focusables x 24 runs.
+Canaried both ways: fires on a control parked off-screen with no `:focus` rule,
+silent on the skip link.
+
+The pattern across all three: **every wrong version failed toward "clean"**.
+False positives are loud and get fixed; a check that silently cannot fire, or
+that measures the wrong instant, reads as good news. That is why the canary has
+to force a defect rather than trust a zero.
+
 ### Tab is the clause you cannot fake
 
 The dialog contract had a fourth clause the last pass did not test: that Tab
