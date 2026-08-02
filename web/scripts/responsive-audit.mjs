@@ -769,6 +769,13 @@ function sweepStaleProfiles(prefix) {
   } catch { /* never let housekeeping break a run */ }
 }
 sweepStaleProfiles("resp-audit-");
+// Chrome makes its own temp directories next to ours — scoped_dir<pid>_<rand>,
+// one per launch, ~16MB each — and it does not remove them when killed rather
+// than quit, which is how every run here ends. The sweep above only covered the
+// directories THIS script creates, so the leak carried on unseen: 494 of them,
+// 7.8GB, filled the disk to 0 bytes free a second time and took down an
+// unrelated command mid-run. Same 10-minute cutoff, same "in use is fine".
+sweepStaleProfiles("scoped_dir");
 const PROFILE = mkdtempSync(join(tmpdir(), "resp-audit-"));
 const chrome = spawn(findChrome(), [
   "--headless=new", `--remote-debugging-port=${PORT}`,

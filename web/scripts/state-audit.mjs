@@ -250,6 +250,11 @@ function sweepStaleProfiles(prefix) {
   } catch { /* never let housekeeping break a run */ }
 }
 sweepStaleProfiles("state-");
+// Chrome creates its own scoped_dir<pid>_<rand> beside ours, one per launch,
+// and leaves it behind when killed rather than quit. The sweep above only
+// covered this script's own directories, so 494 of Chrome's accumulated to
+// 7.8GB and filled the disk. Same cutoff, same tolerance for "in use".
+sweepStaleProfiles("scoped_dir");
 const PROFILE = mkdtempSync(join(tmpdir(), "state-"));
 const chrome = spawn(findChrome(), ["--headless=new", `--remote-debugging-port=${PORT}`,
   `--user-data-dir=${PROFILE}`, "--no-first-run",
