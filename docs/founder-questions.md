@@ -71,3 +71,23 @@ If you want it softened without touching the connector, the presentation is
 entirely in `src/components/WalletModal.tsx` (`accredited` is derived at line 18
 from `profile.kycLevel`), so a "pending verification" treatment is a small,
 self-contained change there — say the word and I will make it.
+
+## The audit suite is ready for CI, but wiring it is your call
+
+`npm run audit` runs all five audits, `audit:canary` proves each check can still
+fail, and `audit:deep` covers the connected, landscape, tab-order and
+reduced-motion modes. All three exit non-zero on failure, verified against a
+dead server.
+
+There is no CI in this repo — no `.github/workflows`, no `vercel.json`. Adding a
+workflow that runs on every push affects your merge process and your Actions
+budget, so I have not created one. If you want it, it is roughly:
+
+    - run: npm ci
+    - run: npm run build
+    - run: npx next start -p 3100 &
+    - run: npx wait-on http://localhost:3100
+    - run: npm run audit:all
+
+The audits need a running server on port 3100 and a Chrome binary; they find one
+via `CHROME_PATH` or the usual install locations.

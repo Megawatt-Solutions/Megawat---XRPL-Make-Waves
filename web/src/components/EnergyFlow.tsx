@@ -73,7 +73,19 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
     <g>
       <circle cx={slot.x} cy={slot.y} r={42} fill="#0f1413" stroke="rgba(255,255,255,0.12)" strokeWidth={1.5} />
       <circle cx={slot.x} cy={slot.y} r={42} fill="none" stroke={live ? color : "transparent"} strokeWidth={1.5} opacity={0.5} />
-      <g transform={`translate(${slot.x - 20}, ${slot.y - 20})`} style={{ color: live ? color : "rgba(255,255,255,0.45)" }}>
+      {/* The glyph lifts when a state-of-charge sits under it. Both were centred
+          on the node: the icon translated to slot.y - 20 (40px tall, so centred)
+          and the SoC text at slot.y + 4 with textAnchor="middle". Measured on
+          the battery node, the only one carrying soc — label box 21x11 at
+          (993,1818), icon group 18x13 at (993,1818). The same box. "64%" was
+          printed straight over the battery glyph.
+
+          -28 and +26 both stay inside the r=42 ring: the icon spans -28..+12 and
+          the text sits ~6px below it. */}
+      <g
+        transform={`translate(${slot.x - 20}, ${slot.y - (ch.soc != null ? 28 : 20)})`}
+        style={{ color: live ? color : "rgba(255,255,255,0.45)" }}
+      >
         <Glyph k={k} />
       </g>
       {/* label */}
@@ -85,7 +97,7 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
         {fmtFlow(ch.powerKw)}
       </text>
       {ch.soc != null && (
-        <text x={slot.x} y={slot.y + 4} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.7)" fontWeight={600}>{Math.round(ch.soc)}%</text>
+        <text x={slot.x} y={slot.y + 26} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.7)" fontWeight={600}>{Math.round(ch.soc)}%</text>
       )}
     </g>
   );

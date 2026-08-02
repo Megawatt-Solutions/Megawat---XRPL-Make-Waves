@@ -3392,6 +3392,36 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### "64%" was printed on top of the battery
+
+No CI exists in this repo, and creating a workflow that runs on every push
+affects a team's merge process and Actions budget — so that is written up in
+founder-questions with the exact YAML rather than built. Then back to the app.
+
+`EnergyFlow` sits behind the Live performance disclosure and I had read its card
+text without ever looking at the diagram. The battery node printed its
+state-of-charge **directly over its own glyph**. Both were centred on the node
+by construction: the icon translated to `slot.y - 20` and 40px tall, so centred,
+and the SoC text at `slot.y + 4` with `textAnchor="middle"`. Measured, the label
+box was 21x11 at (993,1818) and the icon group 18x13 at (993,1818) — the same
+box.
+
+Only the battery node carries `soc`, so it was the only one affected, which is
+why nothing else in the diagram looked wrong.
+
+Fixed by lifting the glyph to `slot.y - 28` and dropping the text to
+`slot.y + 26`, both still inside the r=42 ring: icon spans -28..+12, text sits
+about 6px below it. Verified by measurement rather than by eye — the label now
+sits at y=1836 against an icon ending at 1824, and `overlappingSiblings` fell
+from 3 to 2, the remaining two being the node's own rings, which it is supposed
+to sit inside.
+
+Worth noting how it stayed hidden: it is inside a disclosure, inside an SVG, and
+every geometry check in the suite works on DOM boxes. **Two elements drawn on
+top of each other in SVG overflow nothing, clip nothing and overlap no viewport
+edge** — there is no box for a sweep to catch. It took opening the panel and
+looking at it.
+
 ### The suite had no front door, and two of it could not fail
 
 Went looking for audit modes nothing runs. The answer was larger than expected:
