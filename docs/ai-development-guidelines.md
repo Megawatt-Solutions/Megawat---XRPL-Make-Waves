@@ -5489,3 +5489,47 @@ month factor and reported 328 MWh against its own stated year of 1,822: x12 =
 3,936, more than twice the year it sat next to. Battery throughput has no
 season, so its month is a plain twelfth. Found by running the *other* site, not
 by reading the diff.
+
+---
+
+## A skipped audit case is a finding, not a gap (2026-08-02)
+
+`overlay-audit.mjs` ends with a list of cases that never ran, and
+`vault:deposit` had been on it for every pass: *"needs a vault with status
+active — all six are coming_soon or showcase"*. Easy to read as a limitation of
+the harness. It was a pointer.
+
+Following it up: `POSITIONS` is `[]`, and every vault open to deposits has
+`raised: 0`. So the connected "Your position" card had exactly **one** reachable
+state — and that state was:
+
+- a full grey donut ring labelled **100.00%** beside a legend reading
+  "Others · $0.00", because `othersPct = 100 - sharePct` answers a confident
+  100 when the denominator is zero;
+- three rows that were trivially zero, `$0.00 / 0.00% / €0.00`;
+- "Your share" printed twice, once as a row and once as the donut's own centre
+  label 100px away;
+- no actions at all;
+- 364×792px at 1440 — the tallest element on the page — holding 277px of
+  content, none of it true.
+
+Two lessons worth keeping:
+
+**A zero denominator produces confident output.** `Math.max(0, 100 - sharePct)`
+never fails, never returns null, and is wrong for exactly one input. The card
+had no state for "there is no distribution" because the arithmetic never
+admitted one existed. The fix is a named condition (`noDistribution`) checked
+before drawing, not a tweak to the formula.
+
+**`height: 100%` is a promise about content.** `.detail-side .card` fills the
+sidebar so its actions align with the end of the main column — good, when there
+are actions. With an empty state and no buttons the same rule produced ~500px
+of void with four lines hugging the top, plus an empty footer `div` whose
+`margin-top: auto` dutifully pushed itself to the bottom of the void. Anything
+that stretches to a sibling needs an answer for the case where it has little to
+say: here, the empty state takes the slack and centres.
+
+**Honest limit recorded rather than papered over:** the donut branch still
+cannot be reached with today's data, so it was not measured end to end. Its
+label fit *was* measured, by substituting values into the DOM — `100.00%` is
+78.8px inside a 112px donut, no clipping, at 1440 and 390.

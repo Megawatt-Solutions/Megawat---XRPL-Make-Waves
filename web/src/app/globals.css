@@ -1463,6 +1463,16 @@ button {
   display: flex;
   flex-direction: column;
 }
+/* height:100% exists so this card's actions sit at the bottom of the sidebar,
+   level with the end of the main column. When the card has no actions and only
+   an empty state, that same rule turns into ~500px of void with four lines
+   hugging the top — measured at 1440: a 792px card holding 277px of content.
+   Letting the empty state take the slack centres it instead, so the height
+   reads as deliberate rather than as a layout that failed to load. */
+.detail-side .card > .empty-state {
+  flex: 1;
+  align-content: center;
+}
 .brand-panel {
   background: linear-gradient(150deg, var(--accent), var(--accent-2));
   border-radius: var(--radius);

@@ -730,6 +730,13 @@ function PositionCard(props: {
   const { vault, claimable, deposited, sharePct, raised, rlusdBalance, showClaim, depositDisabled, connected, onDeposit, onClaim } = props;
   const others = Math.max(0, raised - deposited);
   const othersPct = Math.max(0, 100 - sharePct);
+  // Nothing has been deposited by anyone, so there is no distribution to draw.
+  // othersPct is `100 - sharePct`, which returns a confident 100 when the
+  // denominator is zero, and the card rendered a full grey ring labelled
+  // "100.00%" against a legend reading "Others · $0.00" — a party holding all
+  // of nothing. Today that is not an edge case but the ONLY state this card
+  // has: POSITIONS is empty and every vault open to deposits has raised: 0.
+  const noDistribution = raised <= 0;
 
   if (!connected) {
     return (
@@ -752,6 +759,16 @@ function PositionCard(props: {
   return (
     <div className="card">
       <div className="card-title">Your position</div>
+      {noDistribution ? (
+        <div className="empty-state">
+          <WalletIcon size={26} />
+          <p className="empty-state-body" style={{ marginTop: 2 }}>
+            {depositDisabled
+              ? `No deposits yet — this vault opens when the ${fmtCompact(vault.capex, vault.currency)} raise goes live. Your wallet is connected and ready.`
+              : `No deposits yet. The first ${fmtCompact(vault.capex, vault.currency)} of this raise is still open.`}
+          </p>
+        </div>
+      ) : (
       <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "16px 0 6px" }}>
         {/* centerLabel was sharePct.toFixed(0). One value, three presentations,
             all three on screen together in this card: the donut centre rounded
@@ -775,11 +792,17 @@ function PositionCard(props: {
           <LegendItem color="rgba(255,255,255,0.18)" name="Others" value={fmtMoney(others, "USD")} pct={othersPct} />
         </div>
       </div>
+      )}
       <div className="divider" />
       <div className="rows">
         <Row k="Your RLUSD" v={fmtMoney(rlusdBalance, "USD")} />
-        <Row k="Your deposit" v={fmtMoney(deposited, "USD")} />
-        <Row k="Your share" v={fmtPct(sharePct, 2)} />
+        {/* Every row below is trivially zero until someone deposits, and three
+            rows of "$0.00 / 0.00% / €0.00" read as a broken feed rather than an
+            empty one. "Your RLUSD" stays in both states — it is the one figure
+            that is true and useful before a deposit exists.
+            "Your share" is also the donut's own centre label, so it appeared
+            twice, 100px apart, whenever the donut was drawn. */}
+        {!noDistribution && <Row k="Your deposit" v={fmtMoney(deposited, "USD")} />}
         {/* vault.currency, not "USD". The two rows above are genuinely RLUSD —
             an RLUSD balance and an RLUSD principal — but claimable is typed
             "claimable yield (vault currency)", and every other place that draws
@@ -791,8 +814,14 @@ function PositionCard(props: {
             $0.00" while the portfolio tile for the same field read "€0.00".
             Worse once a vault goes active, because ClaimCard and this card
             render together — two Claim buttons, one number, two symbols. */}
-        <Row k="Claimable yield" v={fmtMoney(claimable, vault.currency)} accent />
+        {!noDistribution && <Row k="Claimable yield" v={fmtMoney(claimable, vault.currency)} accent />}
       </div>
+      {/* Rendered only when it will hold something. On a coming_soon vault both
+          conditions below are false, so this was an empty grid contributing
+          18px of padding and an auto top margin that pushed itself to the
+          bottom of a 792px card — reserving a footer for actions that never
+          arrive. */}
+      {(!depositDisabled || showClaim) && (
       <div style={{ marginTop: "auto", paddingTop: 18, display: "grid", gap: 10 }}>
         {/* On a pipeline vault this was a second, identical disabled button
             saying the same thing as the one in the Fundraising card. Two dead
@@ -808,6 +837,7 @@ function PositionCard(props: {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }
