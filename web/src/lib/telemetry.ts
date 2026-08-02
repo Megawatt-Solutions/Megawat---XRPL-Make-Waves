@@ -223,6 +223,16 @@ export function getSeries(vault: Vault, range: SeriesRange): SeriesPoint[] {
   const r = rng(vault.seed * 31 + range.length);
   const hasSolar = vault.spec.hasSolar;
   const kw = vault.spec.powerKw;
+  // Solar is sized by the ARRAY, not the inverter. snapshot() above already
+  // does this — `const solarKwp = vault.spec.solarKwp ?? kw` — and this
+  // generator did not, so the two disagreed about how big a solar plant is.
+  //
+  // Visible on Ljubljana, a 350 kW site with a 250 kWp array: the chart scaled
+  // solar by powerKw, peaking at 350 * 0.92 * 1.15 ≈ 370 kW — half again the
+  // array's nameplate, on the same page that prints "LFP + 250 kWp solar" three
+  // cards above. At 250 the peak lands near 264 kW, about 106% of nameplate,
+  // which is what a real array does on a bright edge-of-cloud day.
+  const solarKw = vault.spec.solarKwp ?? kw;
   const out: SeriesPoint[] = [];
   let soc = hasSolar ? 40 : 55;
 
@@ -230,7 +240,7 @@ export function getSeries(vault: Vault, range: SeriesRange): SeriesPoint[] {
     const frac = i / (n - 1);
     const noise = (r() - 0.5) * 2;
 
-    const solar = hasSolar ? round(Math.max(0, solarBell(frac) * kw * 0.92 * (0.85 + r() * 0.3)), 1) : 0;
+    const solar = hasSolar ? round(Math.max(0, solarBell(frac) * solarKw * 0.92 * (0.85 + r() * 0.3)), 1) : 0;
     const baseCons = (hasSolar ? kw * 0.13 : kw * 0.01) * (0.7 + 0.6 * Math.abs(Math.sin(frac * Math.PI * 2)));
     const consumption = round(baseCons + Math.max(0, noise) * kw * 0.02, 2);
 

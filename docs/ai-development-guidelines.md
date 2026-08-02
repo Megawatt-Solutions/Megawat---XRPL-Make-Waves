@@ -3392,6 +3392,40 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### A 250 kWp array producing 370 kW
+
+Canvas is the one surface where no DOM check reaches — including the SVG
+overlap checks added last pass. Two things are worth doing there: verify the
+text alternative, which IS checkable, and look at the drawing, which is not.
+
+The alternatives are good. Both charts carry `role="img"` with labels that
+include the actual trend — *"Total Value Locked, ALL range. Jan to Nov. rising
+from €0 to €2.38M"* — and the globe canvas is correctly `aria-hidden="true"`,
+because its six pins carry the site names as real DOM text.
+
+Then I looked at SiteChart, which I had never seen rendered, and the numbers did
+not match the site. Ljubljana is **350 kW / 550 kWh with a 250 kWp array**, and
+the chart's solar curve peaked near 370 kW.
+
+`getSeries()` scaled solar by `vault.spec.powerKw` — the inverter rating —
+while `getTelemetry()`, 100 lines above it in the same file, correctly uses
+`const solarKwp = vault.spec.solarKwp ?? kw`. **Two generators in one file
+disagreeing about what sizes a solar plant**, and the wrong one feeds the chart:
+350 × 0.92 × 1.15 ≈ 370 kW, half again the array's nameplate, on a page that
+prints "LFP + 250 kWp solar" three cards above.
+
+At 250 the peak lands near 264 kW — about 106% of nameplate, which is what a
+real array does on a bright edge-of-cloud day. The axis shrank from +400/−600 to
++300/−500.
+
+Two corrections I made along the way, both from measuring instead of assuming.
+The Live Energy Flow looked wrong too — a 350 kW site showing a −233 kW house
+draw — but it is right: it already uses `solarKwp`, and Metlika at 3.2 MW shows
+1437 kW against Ljubljana's 138, so it scales correctly. And the chart's own
+y-axis reaching −600 kW on a 350 kW site was the symptom that led here, not a
+separate defect: consumption is derived from the same `kw`, and it is the solar
+term that was oversized.
+
 ### Encoding the class the box checks cannot see
 
 Last pass found a battery's state-of-charge printed on top of its own glyph, and
