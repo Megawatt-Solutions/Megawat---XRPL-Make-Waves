@@ -5804,3 +5804,40 @@ the populated sell sheet is 791px in a 658px viewport, so "List position" and
 "Cancel" sit below the fold. The sheet scrolls and the audit passes it, but a
 primary action that needs a scroll on the narrowest phone is worth a look when
 listings become real.
+
+---
+
+## Looks wrong, is right — a list to stop re-investigating (2026-08-02)
+
+Every one of these cost real time in this session, and every one is correct.
+They share a shape: the surface reading contradicts something, and the
+contradiction dissolves once you check how the value is produced. Recorded so
+the next pass does not pay for them again.
+
+| What you see | Why it is right |
+|---|---|
+| `CUMULATIVE YIELD €328,793.42` followed by `0 1 2 3 4 5 6 7 8 9 0 0 1…` in `innerText` | The Odometer's digit reels. Their parent is `aria-hidden="true"` and a sibling `.sr-only` carries the real figure. `innerText` ignores aria-hidden; the accessibility tree is correct. |
+| Leaderboard row `POINTS 0 · PLAYED 1 · HIT RATE 0%` beside `STREAK —` | The dashes are for `null`; the 0% is a settled, incorrect call. Confirmed against the API (`correct: 0`) and the open round showing "0 PREDICTIONS IN", so the entry is not pending. |
+| Round dated `2026-08-04` while the latest result is `2026-08-03` and today is `2026-08-02` | Day-ahead market. `time.ts` models SDAC: open 15:00 on D-2, close 11:45 on D-1, settle 15:00 on D-1. The archive advancing to 08-03 during the session confirms it. |
+| `"Sell a position"` enabled with nothing to sell | Not a dead control. Disconnected it opens the wallet modal; connected it opens "Nothing to list yet" with an explanation and a route out. |
+| Band cards appear to have no pressed state | They use `role="radio"` + `aria-checked`, not `aria-pressed`. Probing for the toggle-button attribute finds nothing and proves nothing. |
+| `"Pick one of the five bands above"` when the bands measure 2px *below* the button at 768 | Box adjacency, not a layout inversion. The bands are visually above at every width. |
+| `"0 PREDICTIONS IN"` above your own locked prediction | Only reachable by fixturing `mine` without the count. `submit()` calls `reload()`, so a real submission refreshes both. |
+
+The general lesson is the one that keeps recurring: **a surface reading is a
+hypothesis, not a finding.** Four of the seven above were "confirmed" by a first
+probe that asked the wrong question — the wrong ARIA attribute, the wrong
+element, the wrong wait, or a fixture that set half a state. The audits are
+worth more than eyeballing precisely because they measure the same thing the
+same way every time.
+
+### Also verified this pass, and worth not re-deriving
+
+- The leaderboard's column ladder is deliberate and well ordered: 3 columns at
+  320 (`# / PLAYER / POINTS`), `+STREAK` at 430, `+HIT RATE` at 560, `+PLAYED`
+  at 700, all 8 at 768. Streak first is right — it is the mechanic the page's
+  own subtitle leads with. Wallet and tiebreak error last.
+- `/spreadcast/how`'s clock section matches `time.ts` exactly, constant for
+  constant. Prose and implementation agree.
+- Season prize tiers sum to the stated pool: 125+90+70+50+40+30+30+25+20+20 =
+  $500.
