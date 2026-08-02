@@ -81,7 +81,12 @@ const skipped = new Map();
 const gated = new Map();
 let measured = 0;
 const CASES = [
-  { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]" },
+  // steps: 4 because this sheet has four, and only the first was ever
+  // measured. Step 4 is the one that matters most — it carries the most
+  // content and three buttons including the primary "Connect a wallet" —
+  // and it was the step nobody had looked at. Advancing clicks the LAST
+  // button, which is the forward action on every step of this sheet.
+  { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]", steps: 4 },
   // Never runs anonymously: .sc-commit-why only renders once a signed-in user
   // has committed a prediction, and `commit` is React state set by the commit
   // flow, so no amount of storage seeding reaches it. Kept in the list so the
@@ -323,6 +328,33 @@ try {
       console.log(`  [${w}] ${c.name.padEnd(20)} ${String(res.panelSel).padEnd(14)} ${String(res.panel.w).padStart(3)}x${String(res.panel.h).padStart(3)} vh=${res.vh} scroll=${res.scrollable||res.bodyScrolls}  ${flags.length ? "** " + flags.join(" ") : "ok"}`);
       for (const t of res.tinyControls) console.log(`         tiny: "${t.t}" ${t.size}`);
       for (const t of res.controlsBelowFold.slice(0,3)) console.log(`         below fold: "${t.t}" bottom=${t.bottom}`);
+
+      // Multi-step overlays: measure every step, not just the one it opens on.
+      // A wizard's last step is usually its tallest and always its most
+      // decisive, and measuring only the first says nothing about it.
+      for (let step = 2; c.steps && step <= c.steps; step++) {
+        const advanced = await ev(
+          "const d=document.querySelector(" + JSON.stringify(c.expect) + ");" +
+          "if(!d) return false; const b=[...d.querySelectorAll('button')];" +
+          "if(!b.length) return false; b[b.length-1].click(); return true;"
+        );
+        if (!advanced) break;
+        await sleep(650);
+        let r2;
+        try { r2 = await ev(AUDIT.replace("SELECTOR", JSON.stringify(c.expect))); }
+        catch { break; }
+        if (!r2.opened) break;
+        measured++;
+        const f2 = [];
+        if (r2.overflowsRight) f2.push("OVERFLOWS-RIGHT");
+        if (r2.tallerThanViewport && !r2.scrollable && !r2.bodyScrolls) f2.push("TALLER-THAN-VIEWPORT-NO-SCROLL");
+        if (r2.controlsBelowFold.length && !r2.scrollable && !r2.bodyScrolls) f2.push(`UNREACHABLE(${r2.controlsBelowFold.length})`);
+        if (r2.tinyControls.length) f2.push(`TINY(${r2.tinyControls.length})`);
+        if (f2.length) process.exitCode = 1;
+        console.log(`  [${w}] ${(c.name + " step " + step).padEnd(20)} ${String(r2.panelSel).padEnd(14)} ${String(r2.panel.w).padStart(3)}x${String(r2.panel.h).padStart(3)} vh=${r2.vh} scroll=${r2.scrollable||r2.bodyScrolls}  ${f2.length ? "** " + f2.join(" ") : "ok"}`);
+        for (const t of r2.tinyControls) console.log(`         tiny: "${t.t}" ${t.size}`);
+        for (const t of r2.controlsBelowFold.slice(0,3)) console.log(`         below fold: "${t.t}" bottom=${t.bottom}`);
+      }
 
       // The dialog contract: focus goes in, Escape closes, focus comes back to
       // whatever opened it. A keyboard user who cannot get out of a dialog, or
