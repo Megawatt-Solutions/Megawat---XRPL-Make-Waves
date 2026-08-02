@@ -77,8 +77,13 @@ const RULES = [
   },
   {
     id: "raw-source-ternary",
-    why: 'branches on source === "entsoe" inline; every round the API returns is "energy-charts", so the else-branch stamped SIMULATED on real market data — use sourceLabel()/sourceLabelShort()',
-    re: /source\s*===\s*"entsoe"/g,
+    why: 'renders `source` without sourceLabel()/sourceLabelShort() — either branching on === "entsoe" (whose else-branch stamped SIMULATED on real market data) or printing the raw field, which put "energy-charts" on the shareable result page while two other surfaces showed two other spellings',
+    // Two shapes, and the second was added after the first missed a call site.
+    // The original rule matched only the ternary — the mistake I had just made —
+    // so the RAW render on the result page went straight through it and was
+    // found by reading the page, not by the lint written to prevent exactly
+    // this. A rule encodes the defect you saw, not the one you did not.
+    re: /source\s*===\s*"entsoe"|\{\s*[A-Za-z_$][\w.$]*\.source\s*\}/g,
   },
   {
     id: "kind-decides-provenance",

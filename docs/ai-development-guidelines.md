@@ -3392,6 +3392,39 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The lint rule caught the mistake I made, not the one I missed
+
+Read the shareable result page — `/spreadcast/result/<day>` with a real day
+rather than the 404 variant. It is the only route in the app designed to be
+arrived at with no context, so it is the page strangers see.
+
+Most of it is carefully built. The weekday is computed rather than asserted
+(2026-08-02 genuinely is a Sunday), the date is pinned to UTC with a comment
+explaining that a delivery date must not shift by timezone, the `<h1>` is
+screen-reader-only because the visible figure is the headline, and the
+provenance block exists precisely because the page gets cited as evidence.
+
+But the Source row rendered `{round.source}` raw: **"energy-charts"**. Two
+passes ago I moved the other two call sites to `sourceLabel()` after finding
+SIMULATED stamped on real market data. This was the third, and it meant one
+field had three presentations across three surfaces — "energy-charts" here,
+"ENERGY-CHARTS" in the log, "ENTSO-E via Energy-Charts" in the play view — with
+the inconsistent one on the page most likely to be seen by someone who has never
+used the app.
+
+**The lint rule I added with that fix did not catch it.** The rule matched
+`source === "entsoe"` — the ternary, which was the shape of the mistake I had
+just made. A raw `{x.source}` render is a different shape and went straight
+through. It was found by reading the page.
+
+That is the general lesson and it is uncomfortable: **a rule written from a
+fix encodes the defect you saw, not the defect class.** When the fix was
+"route every render through a helper", the rule should have been "no raw render
+of this field" — the invariant — rather than "not this particular wrong
+expression". The rule now matches both shapes, verified firing on the ternary
+and the raw render while staying silent on `sourceLabel(round.source)` and on
+`source: round.source` in the loader, which is data plumbing and not a render.
+
 ### The audit scripts filled the disk
 
 Every audit here starts Chrome with a throwaway profile via `mkdtempSync` and

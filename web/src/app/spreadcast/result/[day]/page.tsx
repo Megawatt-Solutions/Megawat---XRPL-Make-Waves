@@ -13,6 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { archiveDay } from "@/lib/spreadcast/store";
 import { BAND_NAMES, bandLabel } from "@/lib/spreadcast/bands";
+import { sourceLabel } from "@/components/spreadcast/sourceLabel";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -135,7 +136,17 @@ export default async function ResultPage({ params }: { params: Promise<{ day: st
           {round.source && (
             <div>
               <dt>Source</dt>
-              <dd>{round.source}</dd>
+              {/* Third call site, and the one that gets shared. The other two
+                  moved to sourceLabel() when "SIMULATED" was found stamped on
+                  real market data; this one renders the raw field, so the page
+                  strangers arrive at read "energy-charts" while the log said
+                  "ENERGY-CHARTS" and the play view "ENTSO-E via Energy-Charts"
+                  — one value, three presentations.
+
+                  The lint rule added with that fix did not catch this: it
+                  matches the TERNARY shape, which is the mistake I had just
+                  made, not the raw render, which is the one I had missed. */}
+              <dd>{sourceLabel(round.source)}</dd>
             </div>
           )}
           {round.resolution && (
