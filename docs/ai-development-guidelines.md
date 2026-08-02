@@ -5533,3 +5533,69 @@ say: here, the empty state takes the slack and centres.
 cannot be reached with today's data, so it was not measured end to end. Its
 label fit *was* measured, by substituting values into the DOM — `100.00%` is
 78.8px inside a 112px donut, no clipping, at 1440 and 390.
+
+---
+
+## Text-only zoom: a whole dimension the suite could not see (2026-08-02)
+
+`npm run audit:zoom` — `responsive-audit.mjs --text-zoom 200`.
+
+Every sweep in this suite changed the **viewport**. That is page zoom: the
+breakpoints fire, the layout reflows, and the app handles it well. It is not
+what WCAG 1.4.4 describes. A browser minimum-font-size setting — or Firefox's
+"zoom text only" — doubles the *text* while the viewport, and therefore every
+media query, stays exactly where it was.
+
+That case had never been exercised. The first run of it put the header **500px
+past a 1280 viewport**, taking the whole page into horizontal scroll, because
+flex children default to `min-width: auto` and refuse to shrink below their
+content. Fixed for the header (see the `.nav > *` block in `globals.css`).
+
+### The honest state of the rest
+
+`audit:zoom` currently reports **25 pages with horizontal overflow and 150
+findings**:
+
+| kind | count |
+|---|---|
+| `clipped-text` | 78 |
+| `overflows-viewport` | 37 |
+| `stranded-last-line` | 24 |
+| `text-overflows-box` | 10 |
+| `text-under-overlay` | 1 |
+
+This is a **backlog, not a gate**. `audit:zoom` is deliberately NOT part of
+`npm run audit`, `audit:deep` or `audit:all`, because wiring a 150-finding
+check into the chain that gates every commit trains people to ignore the
+chain. It is a separate entrypoint, run deliberately, and worked down.
+
+The summary line names the mode — `root font scaled to 200% (text-only zoom,
+viewport unchanged)` — because "pages with horizontal overflow: 0" means two
+very different things at 100% and at 200% text, and a log that does not say
+which one it measured invites the stronger reading.
+
+### Method notes from fixing the header
+
+Three things that changed the answer, recorded because each one produced a
+confident wrong result first:
+
+- **A runtime `!important` override is not a baseline.** The first before/after
+  used one, and disagreed with reality: forcing `min-width: auto` is not the
+  same as restoring whatever the cascade actually had. Every baseline number in
+  the `.nav` comment is a real rebuild with the rule deleted.
+- **A fix that helps at one width can hurt at another.** Unscoped, the rule
+  improved 1024–1920 by 350–400px each and made 390 go `0 → 63` and 700 go
+  `0 → 30`. Letting every flex child shrink lets one give up width that a
+  sibling with a floor then claims. Scoping to 981px — the app's existing
+  desktop breakpoint, and exactly where the baseline overflow starts, since 960
+  measures 0 and 1000 measures 592 — made it a strict improvement everywhere.
+- **Measure each half.** The block originally also carried
+  `.chain-btn { min-width: 0; overflow: hidden }`. Measured on its own it
+  changed nothing at any width, so it is not in the shipped rule. Hiding
+  `.chain-btn-name` reached only 432px of the 500 — the cost was never the
+  label, it was that nothing could shrink at all.
+
+And one thing deliberately left: the residual overflow is `.wallet-pill`.
+Closing it means truncating an address already middle-truncated to
+`rrrrrr...LvTp`. An address the user cannot read is worse than a header that
+scrolls in a configuration this rare.

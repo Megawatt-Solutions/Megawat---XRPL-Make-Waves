@@ -140,6 +140,10 @@ for (const r of ROUTES) {
 // Verified rather than assumed: both reported the same boxes and the same
 // characters-per-line on every prose block.
 const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440,1920").split(",").map(Number);
+// --text-zoom 200. Root font percentage, applied after navigation. See the
+// block that uses it in the sweep for why this is a different check from
+// simply narrowing the viewport.
+const TEXT_ZOOM = Number(arg("text-zoom", 0)) || 0;
 // Portrait by width, plus the LANDSCAPE counterparts. Rotating a phone gives a
 // short viewport, which is a different failure mode from a narrow one — it is
 // how the connect modal was found stranding its primary button off-screen.
@@ -826,6 +830,26 @@ try {
           // Reported per route, and reported when it does NOT fire. A click
           // step that silently matches nothing looks exactly like one that
           // matched and found the page clean.
+          // --text-zoom N: scale the ROOT FONT, not the viewport.
+          //
+          // Every other sweep here changes the viewport, which is page zoom —
+          // the breakpoints fire and the layout reflows correctly. Text-only
+          // zoom (a browser minimum-font-size, Firefox's "zoom text only") is
+          // the case WCAG 1.4.4 actually describes, and it had never been
+          // exercised: the text doubles while the media queries stay put.
+          //
+          // It found the header 500px past a 1280 viewport, because flex
+          // children default to min-width:auto and would not shrink.
+          //
+          // Set after navigation, since a reload would drop it, and awaited —
+          // reflow at 200% is not instant and reading scrollWidth too early
+          // reports the pre-zoom layout as clean.
+          if (TEXT_ZOOM) {
+            await evaluate(
+              "document.documentElement.style.fontSize=" + JSON.stringify(TEXT_ZOOM + "%") + ";" +
+              "await new Promise(r=>setTimeout(r,450)); return true;"
+            );
+          }
           let clicked = null;
           if (CLICK) {
             clicked = await evaluate(
@@ -861,6 +885,10 @@ try {
     }
 
     console.log(`\nruns: ${rows.length}   errors: ${errors.length}`);
+    // Named in the summary, because "pages with horizontal overflow: 0" means
+    // two very different things at 100% and at 200% text, and a log that does
+    // not say which one it measured invites the stronger reading.
+    if (TEXT_ZOOM) console.log(`root font scaled to ${TEXT_ZOOM}% (text-only zoom, viewport unchanged)`);
     console.log(`pages with horizontal overflow: ${overflowPages.length}`);
     console.log(`unique findings: ${uniq.size}\n`);
     for (const e of errors) console.log(`  ERROR ${e.route} @${e.w}: ${e.error}`);
