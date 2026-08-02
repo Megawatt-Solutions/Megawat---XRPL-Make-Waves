@@ -3347,6 +3347,22 @@ button {
   text-overflow: clip;
   white-space: normal;
 }
+/* Same argument, different content. A day ("2026-08-02") or a week ("2026-W31")
+   is ten-ish characters and is the row's IDENTITY — the thing you read to know
+   which round you are looking at. It only shares .sc-mono with the roots and
+   hashes because it is set in the mono face.
+   At 200% text the table's own layout squeezed this column to 171px against
+   207px of content and `overflow: hidden` ate the end of the date. The cell was
+   clipping inside a .sc-panel that is already `overflow-x: auto` and already
+   scrolling — the room existed, the cell just would not take it. Letting it
+   size to its content hands the overflow to the scroller that was built for it.
+   Still nowrap: the rule four blocks up says nothing that identifies a row may
+   wrap, and a date broken across two lines is not a date. */
+.sc-table td.sc-daycell {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
 
 /* An expanded day nests a table inside a <td>; without this its min-content
    propagates up and re-widens the outer table, undoing the column hiding. */
@@ -3371,6 +3387,12 @@ button {
   .sc-table th { font-size: 0.5625rem; letter-spacing: 0.1em; }
 
   .sc-table td.sc-mono { max-width: 120px; }
+  /* ...but not the identity cell. This block tightens .sc-mono to 120px on
+     phones, which is right for a merkle root and wrong for the date that says
+     which round the row is. It also outranks the .sc-daycell carve-out, so the
+     cell went on clipping at 320 and 390 after that carve-out was added — the
+     desktop fix landed and the phone one silently did not. */
+  .sc-table td.sc-daycell { max-width: none; }
 
   /* Results — keep day / swing / band. Drop boundaries + source, and the
      range inside the band chip, which is the widest thing in the row. */

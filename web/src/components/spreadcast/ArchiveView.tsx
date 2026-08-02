@@ -194,7 +194,11 @@ export function ArchiveView() {
           <tbody>
             {anchors.map((a) => (
               <tr key={a.week}>
-                <td className="sc-mono">{a.week}</td>
+                {/* sc-daycell here too. It did not show up in the audit, but it
+                    is the same shape as the day cell below: a short row
+                    identity sharing a class with {a.root} beside it, which is a
+                    real 64-char merkle root and does want the 22ch cut. */}
+                <td className="sc-mono sc-daycell">{a.week}</td>
                 <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{a.root}</td>
                 <td className="num">{a.leaves}</td>
                 <td className="sc-mono muted" style={{ fontSize: "0.6875rem" }}>{a.txHash}</td>
@@ -294,7 +298,10 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
           announced rather than only drawn. stopPropagation because the row
           handler would otherwise toggle a second time and cancel it out. */}
       <tr className="sc-arch-row" onClick={onToggle}>
-        <td className="sc-mono">
+        {/* sc-daycell: an ISO date is 10 characters and is this row's identity,
+            not one of the 34-64 char opaque tokens .sc-mono's 22ch truncation
+            was written for. Same carve-out as sc-bounds four rows down. */}
+        <td className="sc-mono sc-daycell">
           {/* aria-controls only while the target exists. The detail row is
               rendered lazily — its content is fetched on first open — so when
               collapsed this pointed at an id that is not in the document.
