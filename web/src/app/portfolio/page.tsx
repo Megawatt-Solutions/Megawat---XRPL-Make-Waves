@@ -61,7 +61,17 @@ export default function PortfolioPage() {
 
       <div className="tile-grid">
         <StatTile label="Total deposited" value={fmtCompact(m.totalDeposited, "USD")} sub={plural(m.positionsCount, "position")} icon={<CoinsIcon size={18} />} />
-        <StatTile label="Claimable yield" value={<span className="accent">{fmtMoney(totalClaimable, "EUR")}</span>} sub="Ready to claim" icon={<BoltIcon size={18} />} />
+        {/* The €0.00 is an honest zero and stays (see the Avg APY note below).
+            "Ready to claim" is not a zero — it is an assertion about state, and
+            nothing is ready. In the same row of four, Avg APY already admits
+            emptiness with "No deposits yet" while this tile promised a claim
+            was waiting. */}
+        <StatTile
+          label="Claimable yield"
+          value={<span className="accent">{fmtMoney(totalClaimable, "EUR")}</span>}
+          sub={totalClaimable > 0 ? "Ready to claim" : "Nothing to claim yet"}
+          icon={<BoltIcon size={18} />}
+        />
         <StatTile label="Total claimed" value={fmtMoney(m.totalClaimed, "EUR")} sub="Lifetime" icon={<ShieldIcon size={18} />} />
         {/* A deposit-weighted average with no deposits is undefined, not 0.0%.
             Same distinction as the marketplace's avg premium: the tiles either
@@ -107,9 +117,18 @@ export default function PortfolioPage() {
       {/* Positions */}
       <div className="section-head">
         <h2 className="section-title">Your positions <span className="section-count">{POSITIONS.length}</span></h2>
-        <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
-          Claim all
-        </button>
+        {/* Hidden when there are no positions, disabled when there are some but
+            nothing has accrued. The distinction is deliberate: with positions
+            on screen a disabled control tells you the action exists and will
+            light up, which is worth the pixels. With an empty list it acts on
+            nothing, and the empty state below already carries the two real
+            actions — so it was a dead control beside a heading reading
+            "Your positions 0". */}
+        {POSITIONS.length > 0 && (
+          <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
+            Claim all
+          </button>
+        )}
       </div>
 
       <div className="card" style={{ padding: "8px 20px" }}>
