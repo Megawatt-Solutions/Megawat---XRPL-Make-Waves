@@ -77,7 +77,22 @@ export default function DashboardPage() {
           <span className="dot pulse" style={{ background: "var(--accent)" }} />
           Active vaults <span className="section-count">{active.length}</span>
         </h2>
-        <span className="muted" style={{ fontSize: "0.8125rem" }}>Earning & operational</span>
+        {/* Derived, not asserted. Every card in this group already ends with
+            "Showcase site · not investable", and the section above them said
+            "Earning & operational" — true, and the half of the truth a visitor
+            arriving on "Invest in real battery energy storage systems" is least
+            likely to supply for themselves. Today all six sites here are
+            showcase, so the section framing and the card footers disagreed in
+            tone on the app's front door.
+            Keyed on the contents rather than hardcoded: the moment one real
+            active vault joins the group this goes back to the plain wording,
+            which is the point — a genuinely investable vault must not inherit
+            a caveat that belongs to its neighbours. */}
+        <span className="muted" style={{ fontSize: "0.8125rem" }}>
+          {active.every((v) => v.kind === "showcase")
+            ? "Earning & operational · showcase, not open to deposits"
+            : "Earning & operational"}
+        </span>
       </div>
       <div className="vault-grid">
         {active.map((v) => (

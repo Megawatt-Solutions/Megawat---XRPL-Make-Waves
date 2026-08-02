@@ -5684,3 +5684,29 @@ whole block rather than the one line: it already exempts *any* element with a
 the case where an **ancestor** carries the sr-only styling, which a computed
 style on the element itself cannot see. Nothing to fix. Recorded because
 "I checked and it was already correct" is a result worth keeping.
+
+---
+
+### Postscript: the state count, confirmed (2026-08-02, later the same day)
+
+The per-route breakdown added to `state-audit.mjs` earned itself on its first
+real occurrence. The total went back up, 120 → 140, with no code change that
+could touch it — and the breakdown named the cause immediately:
+
+```
+by route: /spreadcast/log 44   /dashboard-v2 36   /spreadcast 24
+          /spreadcast/board 20   /vault/bess-ljubljana-01 8   / 4   /marketplace 4
+```
+
+Every route byte-identical to the 120 run except **`/spreadcast`, which went
+4 → 24**. That is the daily game: when a round is open it offers a band picker
+and a set of interactive states; when it is closed it offers almost nothing.
+
+So the earlier hypothesis is confirmed, and sharpened — the count tracks
+**time of day**, not just the date. Runs this morning measured 4 there;
+this one measured 24.
+
+The lesson is not about Spreadcast. It is that a single aggregate number was
+being read as a coverage metric for months of passes, and it silently encoded
+"how much of the app happened to be live when the suite ran". One integer
+could not say that. Seven could.
