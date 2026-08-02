@@ -4070,6 +4070,24 @@ button {
 .sc-field.invalid:focus-visible {
   outline-color: var(--red);
 }
+
+/* Drawn inward, because these sit inside a container that clips.
+   outline-offset: 2px puts the ring 2px OUTSIDE the element, and every one of
+   these controls fills a rounded parent with overflow: hidden, so the parent
+   cuts the ring off. Measured by focusing each control and comparing the ring's
+   box against every clipping ancestor: .sc-bands cut 3px of the 4px it needs on
+   the five band cards, .seg 2px on ten range buttons, .sc-seg 2px on four
+   filters, and .panel 3px on the six site rows. Most of the ring, on the
+   game's primary control and on the dashboard's.
+   -3px puts a 2px ring fully inside the element with a pixel to spare. These
+   controls fill their parent edge to edge, so an inward ring is also the
+   natural reading: it outlines the button, not the gap around it. */
+.seg > *:focus-visible,
+.sc-seg > *:focus-visible,
+.sc-bands > *:focus-visible,
+.site-row:focus-visible {
+  outline-offset: -3px;
+}
 /* Touch has no hover, so pressing needs to acknowledge itself. */
 .btn:active:not(:disabled),
 .connect-btn:active,
