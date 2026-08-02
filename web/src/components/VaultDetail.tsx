@@ -511,10 +511,15 @@ function YieldBreakdownCard({ vault }: { vault: Vault }) {
           Share of gross yield
         </span>
       </div>
+      {/* The `bps / total > 0.12` guard is gone: it asked whether a segment was
+          a big enough SHARE, which is not the same question as whether the
+          label fits, and the three .segbar call sites answered it three
+          different ways (> 0.12, >= 12, >= 10). A container query in
+          globals.css now asks the segment its actual width. */}
       <div className="segbar" style={{ marginTop: 16 }}>
         {items.map((it) => (
           <span key={it.label} style={{ width: `${(it.bps / total) * 100}%`, background: it.color }}>
-            {it.bps / total > 0.12 ? fmtPct(bpsToPct(it.bps)) : ""}
+            <span className="seg-label">{fmtPct(bpsToPct(it.bps))}</span>
           </span>
         ))}
       </div>
@@ -649,7 +654,7 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
       <div className="card-title">Use of funds</div>
       <div className="segbar" style={{ marginTop: 16 }}>
         {items.map((it) => (
-          <span key={it.label} style={{ width: `${it.pct}%`, background: it.color }}>{it.pct >= 12 ? `${it.pct}%` : ""}</span>
+          <span key={it.label} style={{ width: `${it.pct}%`, background: it.color }}><span className="seg-label">{it.pct}%</span></span>
         ))}
       </div>
       <div style={{ marginTop: 8 }}>

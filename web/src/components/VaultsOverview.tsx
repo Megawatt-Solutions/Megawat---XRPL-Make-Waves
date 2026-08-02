@@ -188,7 +188,7 @@ function YieldComposition() {
       <div className="segbar" style={{ marginBottom: 16 }}>
         {slices.map((p) => (
           <span key={p.key} style={{ flexGrow: p.pct, background: p.color }}>
-            {p.pct >= 10 ? `${Math.round(p.pct)}%` : ""}
+            <span className="seg-label">{Math.round(p.pct)}%</span>
           </span>
         ))}
       </div>

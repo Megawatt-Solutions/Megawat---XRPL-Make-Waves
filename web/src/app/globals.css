@@ -673,6 +673,10 @@ button {
   font-size: 0.75rem;
   font-weight: 650;
   color: var(--accent-ink);
+  /* Each segment is its own query container so the label can ask whether it
+     fits. Measured: adding this changed no segment width and no bar height at
+     100/150/200% — the widths stayed [164,57,70,44,208,60,40,27] throughout. */
+  container-type: inline-size;
   /* A label must never be able to change the bar's height. Both call sites
      decide whether to print one from the segment's SHARE OF THE TOTAL
      (`bps / total > 0.12`), but whether it FITS depends on absolute pixels —
@@ -683,12 +687,24 @@ button {
   overflow: hidden;
 }
 
-/* Below this the widest non-dominant segment cannot hold four characters at
-   any sensible size, so the bar drops its inline labels and works as what it
-   still is — a proportion. Nothing is lost: both call sites render a legend
-   directly beneath listing every segment's label AND its value. */
-@media (max-width: 480px) {
-  .segbar > span { font-size: 0; }
+/* The comment above got the diagnosis exactly right — a percentage was
+   deciding a question only pixels can answer — and then answered it with
+   another proxy: viewport width. Text-only zoom leaves the viewport alone, so
+   at 200% the bar clipped "4.5%", "3.5%" and "12%" mid-glyph at 1280, 1440 and
+   1920, and a clipped percentage is not an awkward label, it is a DIFFERENT
+   NUMBER: "12%" rendered as "12".
+   A container query asks the segment itself. 3.6em, so the threshold scales
+   with the label instead of being restated in pixels. Measured at 100/150/200%:
+   zero clipped labels at every scale, segment widths and bar height identical
+   throughout, and the labels drop one at a time as they stop fitting — 150%
+   still shows "5.5%", 200% does not.
+   This replaces the 480px rule rather than joining it: one mechanism for one
+   job, and the query covers narrow viewports too, since a narrow viewport is
+   just another way to get a narrow segment.
+   Nothing is lost when a label goes: all three call sites render a legend
+   directly beneath listing every segment's name AND its value in full. */
+@container (max-width: 3.6em) {
+  .segbar > span > .seg-label { display: none; }
 }
 
 /* â”€â”€â”€ Detail rows / lists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

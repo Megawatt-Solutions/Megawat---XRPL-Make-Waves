@@ -273,6 +273,16 @@ try {
   await s("Page.enable"); await s("Runtime.enable");
 
   let states = 0, problems = 0, disclosures = 0;
+  // Per route, because the total on its own is a number that moves for
+  // reasons nobody can attribute. It dropped 140 -> 120 between two runs of
+  // IDENTICAL code — not flaky (three consecutive runs agreed) and not a
+  // regression, but there was no way to tell that from one integer. The
+  // breakdown says immediately where it went: 100 of the 120 come from
+  // /spreadcast/log, /spreadcast/board and /dashboard-v2, and the first two
+  // enumerate day-keyed rows, so the total tracks how much CONTENT exists on
+  // the day it ran. That is worth knowing before reading a change as a
+  // regression.
+  const perRoute = new Map();
   for (const w of WIDTHS) {
     await s("Emulation.setDeviceMetricsOverride", { width: w, height: w < 768 ? 844 : 900, deviceScaleFactor: 1, mobile: w < 768 });
     for (const route of ROUTES) {
@@ -287,6 +297,7 @@ try {
         exitCode = 1;
       }
       states += v.statesChecked;
+      perRoute.set(route, (perRoute.get(route) || 0) + v.statesChecked);
       for (const p of v.problems) {
         problems++;
         console.log(`  [${w}] ${route}  state: ${p.state}  pageOverflow=${p.pageOverflow}`);
@@ -304,6 +315,10 @@ try {
   }
   console.log(`
 states exercised: ${states}   disclosures opened: ${disclosures}   problem states: ${problems}`);
+  console.log("  by route: " + [...perRoute.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([r, n]) => `${r} ${n}`)
+    .join("   "));
   // Measuring nothing is a failed run, not a clean one. With the server down
   // every navigation errors, every route is skipped, and this printed
   // "states exercised: 0 ... clean." and exited 0 — so `npm run audit` would
