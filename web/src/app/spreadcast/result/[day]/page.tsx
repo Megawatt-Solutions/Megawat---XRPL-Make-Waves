@@ -78,14 +78,14 @@ export async function generateMetadata({
   const title = `${round.spread.toFixed(2)} €/MWh · ${band}`;
   const description = `Slovenia's day-ahead spread on ${prettyDay(day)} came in at ${round.spread.toFixed(
     2
-  )} €/MWh - ${band.toLowerCase()}. Call tomorrow's on Spreadcast, free.`;
+  )} €/MWh: ${band.toLowerCase()}. Call tomorrow's on Spreadcast, free.`;
 
   return {
     title,
     description,
     // No `images` key: the sibling opengraph-image.tsx for this route supplies
     // a card built from this day's own numbers.
-    openGraph: { type: "article", siteName: "Megawatt", title: `${title} - Spreadcast`, description },
+    openGraph: { type: "article", siteName: "Megawatt", title: `${title} · Spreadcast`, description },
   };
 }
 
@@ -122,7 +122,7 @@ export default async function ResultPage({ params }: { params: Promise<{ day: st
         </div>
 
         <p className="sc-result-lede">
-          That is the gap between the highest and lowest hourly electricity price in Slovenia that day - the
+          That is the gap between the highest and lowest hourly electricity price in Slovenia that day, and the
           same number the batteries behind Megawatt earn on.
         </p>
 

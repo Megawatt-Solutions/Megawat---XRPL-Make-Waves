@@ -10,10 +10,10 @@ import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
   // title.template applies to CHILD segments, not the segment that defines it,
-  // so the root page does not inherit "%s — Megawatt" and needs the full
+  // so the root page does not inherit "%s · Megawatt" and needs the full
   // string. Without this it rendered as a bare "Vaults".
-  title: "Vaults - Megawatt",
-  description: "Six battery storage vaults across five countries - capacity, yield and current status.",
+  title: "Vaults · Megawatt",
+  description: "Six battery storage vaults across five countries: capacity, yield and current status.",
 };
 
 export default function DashboardPage() {
