@@ -3392,6 +3392,43 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The comment predicted my mistake and I made it anyway
+
+Looked at the Odometer, the third reduced-motion consumer. **It is correct**, and
+so is the globe: with motion allowed, 2 of 8 digit strips move and the globe pins
+travel; under `reduce`, 0 of 8 and the pins are frozen at identical coordinates.
+
+Reaching that took three wrong measurements, and the third is the one worth
+keeping.
+
+**Wrong element, twice.** I sampled `.odo-reel` and got `transform: none` in both
+states — the reel is the mask; `.odo-strip` inside it is what translates. Then I
+sampled only the FIRST strip, which is the leading digit of a six-figure number
+and legitimately never turns at €0.05/sec.
+
+**And `usePrefersReducedMotion.ts` says exactly that, in a comment recording a
+verification done on 2026-08-01:** *"The odometer check needed all eight reels —
+sampling only the first showed 'no movement' in both states, because the leading
+digit of a six-figure number legitimately never turns."* I opened that file
+third, after making the mistake it describes. Reading the code you are about to
+measure is cheaper than measuring it twice.
+
+**Wrong window.** The sr-only text looked frozen over 6 seconds. It is meant to
+be: it is rewritten only when the whole unit changes, which at 0.05/sec is every
+20 seconds — a deliberate trade the file documents, against rewriting text 60
+times a second in a node that is not a live region.
+
+So the mode now exists as `a11y-audit --motion`, and it encodes all three
+gotchas so the next person measures the strips, all of them, in both states.
+Reported both ways in one line each, and it fails if either loop is wrong —
+including if a loop stops moving entirely, which is the regression a "does it
+respect the preference" check would otherwise pass.
+
+Also: fourth time the `python - <<'PY'` heredoc has eaten a backslash escape,
+this time turning `
+` in a console.error into a real newline and breaking the
+file. I had already written down "use Edit for escapes" and did not.
+
 ### The freeze that was not needed, and the grep that was wrong
 
 Two negative results, both worth the time they took to establish.

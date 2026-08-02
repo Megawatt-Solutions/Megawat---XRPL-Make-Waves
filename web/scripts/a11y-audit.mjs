@@ -547,6 +547,50 @@ try {
         if (bad || cycled < 0) exitCode = 1;
       }
     }
+  } else if (flag("motion")) {
+    // JS-driven motion versus prefers-reduced-motion. CSS is checked by the
+    // media query itself; this covers the two rAF loops no media query can stop
+    // — BessGlobe's auto-rotation and the Odometer's digit roll.
+    //
+    // Both elements need care to measure, and both have already cost a wrong
+    // conclusion. The globe: sample the PINS, not the canvas, because the canvas
+    // never moves — its contents are redrawn. The odometer: sample .odo-strip,
+    // not .odo-reel — the reel is the mask and stays put, the strip is what
+    // translates — and sample ALL of them, because the leading digit of a
+    // six-figure number legitimately never turns, so reading only the first
+    // shows "no movement" in both states.
+    await s("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
+    const PROBE = `
+      await new Promise(r => setTimeout(r, 1500));
+      const snap = () => ({
+        pins: [...document.querySelectorAll(".globe-pin")].map(p => {
+          const r = p.getBoundingClientRect(); return Math.round(r.left) + "," + Math.round(r.top); }).join("|"),
+        strips: [...document.querySelectorAll(".odo-strip")].map(x => x.style.transform || ""),
+      });
+      const a = snap();
+      await new Promise(r => setTimeout(r, 2500));
+      const b = snap();
+      return { pinsMoved: a.pins !== b.pins && a.pins.length > 0,
+               stripsMoved: a.strips.filter((v, i) => v !== b.strips[i]).length,
+               stripCount: a.strips.length };
+    `;
+    let motionBad = false;
+    for (const reduce of [false, true]) {
+      await s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: reduce ? "reduce" : "no-preference" }] });
+      await goto(BASE + withFlag("/dashboard-v2"));
+      const r = await ev(PROBE);
+      const want = reduce ? "still" : "moving";
+      const got = { pins: r.pinsMoved, strips: r.stripsMoved };
+      const ok = reduce ? (!r.pinsMoved && r.stripsMoved === 0) : (r.pinsMoved && r.stripsMoved > 0);
+      if (!ok) { motionBad = true; exitCode = 1; }
+      console.log(`  reduce=${String(reduce).padEnd(5)} expect ${want.padEnd(7)} ` +
+        `pins=${r.pinsMoved ? "moved" : "still"} strips=${r.stripsMoved}/${r.stripCount} ` +
+        (ok ? " ok" : " ** WRONG"));
+    }
+    console.error("");
+    console.error(motionBad
+      ? "MOTION FAILED — a rAF loop ignores the preference, or stopped moving entirely."
+      : "motion ok: both JS loops run with motion allowed and stop under reduce.");
   } else if (flag("canary")) {
     await s("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
     await goto(BASE + withFlag("/dashboard-v2"));
