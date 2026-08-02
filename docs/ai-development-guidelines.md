@@ -3392,6 +3392,41 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The 180px square nobody had rendered
+
+Last pass found a defect in an artifact with no DOM, so this pass enumerated the
+rest of them. Serving from the app: `icon.svg` and two `opengraph-image` routes.
+Not serving: `apple-icon`, `robots.txt`, `sitemap.xml`, any web manifest.
+
+The root share card is good — the wordmark, the brand line, "NO TOKEN · NO
+EMISSIONS · JUST ENERGY REVENUE" — and reads correctly at the size it is
+actually seen.
+
+The gap worth closing was **`apple-icon`**. Without it, adding Megawatt to an
+iOS home screen gives a cropped screenshot of whichever page was open: the one
+place a product is judged purely on a 180px square, and it was showing a
+thumbnail of a table.
+
+The reason it was missing is worth recording, because it looks covered.
+`icon.svg` exists and works — so the app *has* an icon, and a glance at the
+directory says the job is done. But **Safari does not accept SVG for a touch
+icon**, which is exactly why Next only permits jpg/jpeg/png at that filename.
+An SVG icon and a touch icon look like the same task and are not.
+
+Generated through ImageResponse rather than committed as a binary, for the same
+reason the OG card is: the mark and the background come from brand tokens, so
+they cannot drift from the palette the way a hand-exported PNG does the first
+time a colour changes. No rounded corners and no padding ring — iOS applies its
+own mask and inset, and adding either would put a second radius inside Apple's
+and shrink the mark.
+
+Verified by fetching it: 200, image/png, 180x180, and Next emits
+`<link rel="apple-touch-icon" sizes="180x180">`. Rendered it and looked — the
+lightning mark in brand green on carbon.
+
+Still absent and still correct to leave: `robots.txt` and `sitemap.xml` need a
+canonical domain, which is a deployment decision rather than a design one.
+
 ### A dead link previewed as a settled result
 
 Restating the last three rules as invariants was mostly a quiet exercise, and
