@@ -4457,3 +4457,50 @@ button {
     animation: none !important;
   }
 }
+/* ─── Stranded last lines ──────────────────────────────────────────
+   .vault-name got `text-wrap: balance` a while back, with a comment measuring
+   exactly this defect: "BESS Ljubljana 01" breaking so that "01" sits alone on
+   the last line. The fix reached that one selector and none of its siblings,
+   and the audit still reports the same shape in thirteen places — the globe
+   tooltip, the vault page's own H1, two empty-state titles and the capex legend
+   labels. Same defect, same cure, applied where it was missed.
+
+   Measured examples before this, all at 200%-independent normal text:
+     h1 "BESS Belgrade 01"          "01" alone at 23% over 3 lines  @ 320, 430
+     .globe-tip-name "BESS Metlika 01"  "01" alone at 16% over 2 lines  @ 820
+     .empty-state-title             "here" alone at 22% over 2 lines @ 390-430
+     legend "Battery system & PCS"  "PCS" alone at 24% over 2 lines @ 390-1920
+
+   balance rather than pretty, for the reason the .vault-name comment gives:
+   these are short titles of a few words, which is what balance is for; pretty
+   targets orphans in long-form prose and does less here. Both degrade to
+   normal wrapping where unsupported.
+
+   :not(.dot) on the legend because .legend-left's first child is a colour
+   swatch span, not text. */
+h1,
+.page-title,
+.empty-state-title,
+.sc-next-step-title,
+.globe-tip-name,
+.site-name,
+.v2-vault-name,
+.legend-left > span:not(.dot) {
+  text-wrap: balance;
+}
+
+/* Three of the thirteen are staying, and it is worth writing down why rather
+   than leaving them to be re-investigated next pass. All three are the case
+   .vault-card-top already names: the box is genuinely too narrow to balance.
+
+   The vault page H1 strands "01" at 320 — but ONLY under 200% text, where
+   1.5rem is 48px inside a 238px column, about five characters to a line.
+   Measured at normal text it is a single 195px line with 43px to spare, so
+   there is nothing wrong with the wrapping; there are three words and the
+   longest nearly fills a line on its own, so no balancing algorithm has a
+   better break available. The only lever left is shrinking the heading, which
+   is fighting the user's own font setting to tidy a ragged edge.
+
+   The third is .v2-vault-name at 768 — and only for "BESS Bucharest 01", the
+   longest of the six. The other five balance correctly at that width, which is
+   the tell: the rule works, that one string is just longer than the column. */

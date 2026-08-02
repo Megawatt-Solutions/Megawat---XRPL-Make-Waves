@@ -139,7 +139,14 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
           {v.spec.hasSolar ? <SunIcon size={15} /> : <BatteryIcon size={15} />}
         </span>
         <span style={{ minWidth: 0 }}>
-          <span style={{ fontWeight: 600, fontSize: "0.875rem", display: "block" }}>{v.name}</span>
+          {/* v2-vault-name so this can be styled at all. It is the THIRD element
+              on this page carrying a vault name — .site-name in the site list
+              and .globe-tip-name in the map tooltip are the others — and it was
+              the only one with no class, so the text-wrap: balance that fixed
+              the other two could not reach it. It stranded "01" alone at 13% of
+              its width while its two siblings, styled identically to the eye,
+              wrapped correctly. */}
+          <span className="v2-vault-name" style={{ fontWeight: 600, fontSize: "0.875rem", display: "block" }}>{v.name}</span>
           <span className="muted" style={{ fontSize: "0.75rem" }}><Flag code={v.flag} size={12} /> {v.location}</span>
           {/* Third surface, same statement. VaultCard and VaultDetail both say a
               showcase vault cannot be bought; this table listed the same two
