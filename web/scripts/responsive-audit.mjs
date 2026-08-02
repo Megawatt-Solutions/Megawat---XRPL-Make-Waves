@@ -144,6 +144,13 @@ const WIDTHS = arg("widths", "320,360,390,414,430,768,820,1024,1280,1440,1920").
 // block that uses it in the sweep for why this is a different check from
 // simply narrowing the viewport.
 const TEXT_ZOOM = Number(arg("text-zoom", 0)) || 0;
+// --cls: measure layout shift instead of geometry. A skeleton that reserves
+// the wrong space moves everything below it when the data lands, and no check
+// here had ever looked. Reported per route against the 0.1 Core Web Vitals
+// boundary, because the number only means something beside the route that
+// produced it.
+const CLS_MODE = flag("cls");
+const CLS_SETTLE = Number(arg("cls-settle", 4500));
 // Portrait by width, plus the LANDSCAPE counterparts. Rotating a phone gives a
 // short viewport, which is a different failure mode from a narrow one — it is
 // how the connect modal was found stranding its primary button off-screen.
@@ -862,6 +869,25 @@ try {
           // Set after navigation, since a reload would drop it, and awaited —
           // reflow at 200% is not instant and reading scrollWidth too early
           // reports the pre-zoom layout as clean.
+          if (CLS_MODE) {
+            // buffered:true so shifts dispatched before this ran are counted,
+            // and hadRecentInput skipped because a shift the user caused by
+            // clicking is not the kind this is looking for.
+            await evaluate(`window.__cls=0; window.__shifts=[];
+              new PerformanceObserver((l)=>{for(const e of l.getEntries()){
+                if(e.hadRecentInput) continue; window.__cls+=e.value;
+                window.__shifts.push({v:+e.value.toFixed(4),
+                  n:(e.sources||[]).slice(0,2).map(x=>{const el=x.node;
+                    if(!el||!el.tagName) return "?";
+                    const c=typeof el.className==="string"?el.className.split(/\s+/)[0]:"";
+                    return el.tagName.toLowerCase()+(c?"."+c:"");})});
+              }}).observe({type:"layout-shift",buffered:true}); return true;`);
+            await evaluate(`await new Promise(r=>setTimeout(r,${CLS_SETTLE})); return true;`);
+            const c = await evaluate(`return { cls:+(window.__cls||0).toFixed(4),
+              worst:(window.__shifts||[]).sort((a,b)=>b.v-a.v).slice(0,2) };`);
+            rows.push({ route, w, cls: c.cls, worst: c.worst });
+            continue;
+          }
           if (TEXT_ZOOM) {
             await evaluate(
               "document.documentElement.style.fontSize=" + JSON.stringify(TEXT_ZOOM + "%") + ";" +
@@ -902,6 +928,21 @@ try {
       }
     }
 
+    if (CLS_MODE) {
+      // 0.1 is the Core Web Vitals "good" boundary. Reported, not enforced:
+      // the one route over it is over by 3% and its cause is architectural,
+      // not a stray style. See the guidelines entry.
+      const ranked = [...rows].sort((a, b) => b.cls - a.cls);
+      console.log(`\ncumulative layout shift, settled after ${CLS_SETTLE}ms (good <= 0.1)\n`);
+      for (const r of ranked) {
+        console.log(`  ${String(r.cls).padEnd(8)} [${r.w}] ${r.route}${r.cls > 0.1 ? "  ** OVER" : ""}`);
+        if (r.cls > 0.05) for (const ws of r.worst) console.log(`           ${ws.v}  ${ws.n.join(", ")}`);
+      }
+      console.log(`\nroutes over 0.1: ${ranked.filter((r) => r.cls > 0.1).length}`);
+      // No early return: this runs at module top level, where `return` is
+      // illegal. In --cls mode the geometry rows are empty, so the normal
+      // summary below prints zeros harmlessly after this table.
+    }
     console.log(`\nruns: ${rows.length}   errors: ${errors.length}`);
     // Named in the summary, because "pages with horizontal overflow: 0" means
     // two very different things at 100% and at 200% text, and a log that does

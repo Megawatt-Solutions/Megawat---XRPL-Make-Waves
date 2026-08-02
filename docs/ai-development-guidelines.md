@@ -5841,3 +5841,64 @@ same way every time.
   constant. Prose and implementation agree.
 - Season prize tiers sum to the stated pool: 125+90+70+50+40+30+30+25+20+20 =
   $500.
+
+
+---
+
+## Layout shift, measured for the first time (2026-08-02)
+
+`npm run audit:cls` (`responsive-audit.mjs --cls`). Every check in this suite
+measures a layout at rest. None had ever measured a layout *moving*, which is
+what a user actually experiences while a page loads.
+
+Across all twelve routes at 1280:
+
+| route | CLS |
+|---|---|
+| `/spreadcast/log` | **0.0875** |
+| `/spreadcast/board` | 0.0178 |
+| `/spreadcast` | 0.0134 |
+| `/`, `/dashboard-v2` | 0.0007 |
+| everything else | 0.0001 or 0 |
+
+Most of the app is excellent. The `0.0007` on the landing page and dashboard is
+the Spreadcast clock, and it is that small precisely because someone reserved
+its height on purpose: `.scs-clock { min-height: 46px }` carries a comment
+saying the digits arrive a tick after mount and the card would otherwise grow at
+that moment. The measurement confirms the fix works.
+
+### The archive is the one route that moves
+
+Measured directly by delaying `/api/spreadcast/archive` by 2.5s:
+
+```
+during skeleton   panel 234px   6 skeleton rows    next section at y=499
+after load        panel 579px   12 real rows       next section at y=844
+                                                   everything below drops 345px
+```
+
+The skeleton renders **six** rows. The archive currently returns **twelve**, and
+it grows by one every day, because the route returns the whole store with no
+limit.
+
+**Not fixed, and the reason matters.** Every client-side fix trades one shift
+for another:
+
+- A larger constant is right today and wrong next month. The archive is
+  unbounded, so any hardcoded count drifts.
+- Remembering the last count in `localStorage` cannot help the paint that
+  matters: reading it after mount and re-rendering the skeleton *is* a shift.
+- Overestimating shifts upward instead of downward, which counts the same.
+
+The only fixes that actually remove it are architectural, and both are product
+calls rather than design ones:
+
+1. **Server-render the first rows** so the initial HTML has the real height.
+2. **Cap what the table shows** (say 10 rows plus "show more"), which makes the
+   skeleton exactly right forever *and* solves a problem this table has anyway:
+   at a year old it is 365 rows with no pagination.
+
+Note the reading is 0.0875 in the full sweep and 0.1027 when the route is
+measured alone. It sits on the 0.1 boundary and which side depends on timing,
+so the mode reports rather than fails. A check that goes red on a coin flip
+gets switched off, which is the note at the top of `consistency-lint.mjs`.
