@@ -2348,6 +2348,44 @@ button {
 }
 
 /* â”€â”€â”€ Chain selector (header) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Flex children default to min-width:auto, which refuses to shrink below their
+   content. The bar therefore had no way to give ground when its text grew, and
+   under a browser minimum-font-size (text-only zoom — page zoom is fine, since
+   that shrinks the viewport and the 860px breakpoint fires) the header pushed
+   500px past a 1280 viewport and took the whole page into horizontal scroll.
+
+   Root font at 200%, horizontal overflow, baseline -> with this rule. Each
+   baseline is a real rebuild with the rule deleted, not a runtime !important
+   override — the override version disagreed, because forcing min-width:auto
+   is not the same as restoring whatever the cascade actually had:
+
+     <=960   0  ->   0      1000  592 -> 175      1280  500 -> 126
+      320   27  ->  27      1024  568 -> 168      1440  402 ->  54
+                                                  1920  162 ->   0
+
+   Strict improvement above the breakpoint, no change below it, and nothing at
+   normal size: overflow 0 and nav height 58px at every width, as before.
+
+   Scoped to 981px, the app's existing desktop breakpoint, because that is
+   exactly where the baseline overflow starts (960 measures 0, 1000 measures
+   592). Unscoped it made narrow widths WORSE — 390 went 0 -> 63 and 700 went
+   0 -> 30 — since letting every child shrink lets one give up width that a
+   sibling with a floor then claims.
+
+   Two things measured and rejected rather than assumed: hiding
+   .chain-btn-name only reached 432px, so the cost was never the label but
+   that nothing could shrink at all; and .chain-btn { min-width: 0; overflow:
+   hidden } which this block first carried changed nothing at any width, so it
+   is not here.
+
+   The residual is .wallet-pill and it stays. Closing it means truncating an
+   address already middle-truncated to rrrrrr...LvTp, and an address the user
+   cannot read is worse than a header that scrolls in a configuration this
+   rare. */
+@media (min-width: 981px) {
+  .nav > * { min-width: 0; }
+}
+
 .chain-select { position: relative; }
 .chain-btn {
   border-radius: var(--r-control);
