@@ -27,7 +27,7 @@ export type MarketMode = "charging" | "discharging" | "idle";
 export interface YieldSplit {
   depositorBps: number; // paid out to vault depositors (headline APY)
   protocolFeeBps: number; // operations & protocol treasury
-  sinkingFundBps: number; // "replacement fund" — refresh batteries/gear
+  sinkingFundBps: number; // "replacement fund" - refresh batteries/gear
   reserveBps: number; // operational buffer for downtime
 }
 

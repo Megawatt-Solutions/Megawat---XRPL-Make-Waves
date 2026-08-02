@@ -33,7 +33,7 @@ export async function POST() {
       deeplink: payload.next.always,
     });
   } catch {
-    return NextResponse.json({ error: "Could not reach Xaman — try again in a moment." }, { status: 502 });
+    return NextResponse.json({ error: "Could not reach Xaman - try again in a moment." }, { status: 502 });
   }
 }
 

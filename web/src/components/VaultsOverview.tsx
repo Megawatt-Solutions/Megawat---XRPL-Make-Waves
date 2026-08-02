@@ -175,7 +175,7 @@ function VaultDetailRow({ row }: { row: VaultRow }) {
         {fmtPct(bpsToPct(row.apyBps))}
         {apyBpsIsGross(v) && <span className="muted" style={{ fontSize: "0.75rem" }}> gross</span>}
       </span>
-      <span className="num accent">{row.contributionBps > 0 ? `+${fmtPct(bpsToPct(row.contributionBps))}` : "—"}</span>
+      <span className="num accent">{row.contributionBps > 0 ? `+${fmtPct(bpsToPct(row.contributionBps))}` : "–"}</span>
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
         <span className={`badge ${badge.cls}`}>{badge.label}</span>
         <ChevronRightIcon size={15} style={{ color: "var(--muted)" }} />

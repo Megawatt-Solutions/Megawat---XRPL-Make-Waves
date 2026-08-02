@@ -92,7 +92,7 @@ export function ArchiveView() {
     <>
       <h1>Results</h1>
       <p className="sc-sub">
-        Every round is decided by the official European electricity market prices — never by us. Click a day for
+        Every round is decided by the official European electricity market prices - never by us. Click a day for
         the full price curve and everyone&apos;s revealed predictions.
       </p>
 
@@ -113,7 +113,7 @@ export function ArchiveView() {
                 <td colSpan={5} style={{ padding: "22px 12px", textAlign: "center" }}>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Results unavailable</div>
                   <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 440 }}>
-                    Past rounds can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+                    Past rounds can&apos;t be loaded right now - the rest of Megawatt is unaffected.
                   </p>
                   <button className="btn btn-ghost btn-sm" onClick={retry}>
                     Try again
@@ -148,7 +148,7 @@ export function ArchiveView() {
         <div>
           <div className="sc-next-step-title">Every round settles here</div>
           <p className="sc-next-step-sub">
-            Yours will too — one pick a day, free, scored from the official published prices.
+            Yours will too - one pick a day, free, scored from the official published prices.
           </p>
         </div>
         <Link className="btn btn-accent" href="/spreadcast">
@@ -158,7 +158,7 @@ export function ArchiveView() {
 
       <h2>Weekly blockchain anchors</h2>
       <p className="muted" style={{ fontSize: "0.8125rem", marginBottom: 10 }}>
-        Once a week, a fingerprint of every prediction and result is written to XRPL — so even email-only players
+        Once a week, a fingerprint of every prediction and result is written to XRPL - so even email-only players
         get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
       {/* Column headers describe rows. With no anchors written yet this
@@ -176,7 +176,7 @@ export function ArchiveView() {
             <div className="empty-state-title">No weekly anchor yet</div>
             <p className="empty-state-body">
               The first fingerprint is written once a full week of rounds has settled. Until then every prediction is
-              still committed and revealed daily — open any day in the table above to see the record.
+              still committed and revealed daily - open any day in the table above to see the record.
             </p>
           </div>
         </div>
@@ -230,7 +230,7 @@ function ShareDay({ day, spread, band }: { day: string; spread: number; band: st
 
   const onShare = async () => {
     const url = `${window.location.origin}${href}`;
-    const text = `Slovenia's day-ahead spread on ${day} settled at ${spread.toFixed(2)} €/MWh — ${band}.`;
+    const text = `Slovenia's day-ahead spread on ${day} settled at ${spread.toFixed(2)} €/MWh - ${band}.`;
     try {
       // navigator.share must be called in the click's own task or the gesture
       // is spent; do not await anything before it.
@@ -248,7 +248,7 @@ function ShareDay({ day, spread, band }: { day: string; spread: number; band: st
       // enough (insecure origin, no permission, unfocused document) that the
       // silent version would be a real dead end.
       if ((err as { name?: string })?.name === "AbortError") return;
-      setSaid("Couldn't copy — use Permalink");
+      setSaid("Couldn't copy - use Permalink");
     }
   };
 
@@ -398,7 +398,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                     there is nothing left to commit to it. */}
                 {detail.reveal.length === 0 ? (
                   <p className="muted" style={{ fontSize: "0.6875rem", margin: 0 }}>
-                    No predictions were committed for this day — the result above is settled from market
+                    No predictions were committed for this day - the result above is settled from market
                     prices either way.
                   </p>
                 ) : (
@@ -439,7 +439,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                           </td>
                           <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.hash.slice(0, 20)}…</td>
                           <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.salt.slice(0, 16)}…</td>
-                          <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.txHash ? `${p.txHash.slice(0, 18)}…` : "—"}</td>
+                          <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.txHash ? `${p.txHash.slice(0, 18)}…` : "–"}</td>
                           <td className="num">{p.points}</td>
                         </tr>
                       ))}
@@ -447,7 +447,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                   </table>
                   {detail.reveal.length > 12 && (
                     <p className="muted" style={{ fontSize: "0.6875rem", marginTop: 6 }}>
-                      + {detail.reveal.length - 12} more — full record at{" "}
+                      + {detail.reveal.length - 12} more - full record at{" "}
                       <span className="sc-mono">/api/spreadcast/archive/{r.day}</span>
                     </p>
                   )}

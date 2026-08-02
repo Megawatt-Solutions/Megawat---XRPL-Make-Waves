@@ -33,7 +33,7 @@ export default function VaultsError({
   // BESS Vaults" while showing a failure is how someone loses the broken tab
   // among the working ones.
   useEffect(() => {
-    document.title = "Something went wrong — Megawatt";
+    document.title = "Something went wrong - Megawatt";
   }, []);
 
   return (
@@ -53,7 +53,7 @@ export default function VaultsError({
               submitted" or "your funds are unaffected". It can only speak for
               the thing it actually knows about: this page failed to draw. */}
           <p className="empty-state-body">
-            This is a display problem — the page failed to draw. Trying again usually clears it. If you had just
+            This is a display problem - the page failed to draw. Trying again usually clears it. If you had just
             submitted something, check your portfolio to confirm where it landed.
           </p>
           <div className="empty-state-actions">

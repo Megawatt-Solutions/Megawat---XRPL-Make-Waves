@@ -28,7 +28,7 @@ export default function SpreadcastError({
       <span className="tick br" />
       <h2>Spreadcast is having a moment</h2>
       <p className="sc-notice" style={{ marginTop: 8 }}>
-        Something went wrong loading the forecasting game. The rest of Megawatt — vaults, portfolio and marketplace —
+        Something went wrong loading the forecasting game. The rest of Megawatt - vaults, portfolio and marketplace —
         is unaffected.
       </p>
       <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>

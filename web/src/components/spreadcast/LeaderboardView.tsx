@@ -150,7 +150,7 @@ export function LeaderboardView() {
                 <td colSpan={8} style={{ padding: "22px 12px", textAlign: "center" }}>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Leaderboard unavailable</div>
                   <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 420 }}>
-                    Standings can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+                    Standings can&apos;t be loaded right now - the rest of Megawatt is unaffected.
                   </p>
                   <button className="btn btn-ghost btn-sm" onClick={retry}>
                     Try again
@@ -172,7 +172,7 @@ export function LeaderboardView() {
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="muted">
-                  No predictions yet this period — lock in the first one on the Play tab.
+                  No predictions yet this period - lock in the first one on the Play tab.
                 </td>
               </tr>
             ) : (
@@ -204,12 +204,12 @@ export function LeaderboardView() {
                     )}{" "}
                     {r.signedPending && <span className="sc-tag v">on-chain</span>}
                   </td>
-                  <td className="sc-mono muted">{r.wallet ?? "—"}</td>
+                  <td className="sc-mono muted">{r.wallet ?? "–"}</td>
                   <td className="num" style={{ fontWeight: 700 }}>{r.points}</td>
-                  <td className="num">{r.played || "—"}</td>
-                  <td className="num">{r.played ? `${Math.round((r.correct / r.played) * 100)}%` : "—"}</td>
-                  <td className="num">{r.streak > 0 ? <span className="sc-streak-flame">🔥{r.streak}</span> : "—"}</td>
-                  <td className="num muted">{r.absError == null ? "—" : r.absError.toFixed(1)}</td>
+                  <td className="num">{r.played || "–"}</td>
+                  <td className="num">{r.played ? `${Math.round((r.correct / r.played) * 100)}%` : "–"}</td>
+                  <td className="num">{r.streak > 0 ? <span className="sc-streak-flame">🔥{r.streak}</span> : "–"}</td>
+                  <td className="num muted">{r.absError == null ? "–" : r.absError.toFixed(1)}</td>
                 </tr>
               ))
             )}
@@ -221,7 +221,7 @@ export function LeaderboardView() {
           reason to play rather than a reason to doubt. */}
       {rows != null && rows.length > 0 && rows.length < 4 && (
         <p className="sc-board-early">
-          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period — the
+          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period - the
           board fills as the week runs, and every prize tier is still open.
         </p>
       )}

@@ -97,7 +97,7 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [target]);
 
-  let countdown = "—";
+  let countdown = "–";
   if (left != null) {
     const s = Math.floor(left / 1000);
     const h = Math.floor(s / 3600);

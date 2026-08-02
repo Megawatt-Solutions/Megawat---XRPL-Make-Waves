@@ -15,15 +15,15 @@ import { SectionBar } from "@/components/spreadcast/SectionBar";
 // Spreadcast" survives that and "Spreadcast · Leaderboard" would not.
 export const metadata: Metadata = {
   title: {
-    template: "%s · Spreadcast — Megawatt",
-    default: "Spreadcast — Megawatt",
+    template: "%s · Spreadcast - Megawatt",
+    default: "Spreadcast - Megawatt",
   },
   description: "Call tomorrow's day-ahead spread on the Slovenian market. Free to play, every day.",
   // Without this the shared preview for the game read "Megawatt — BESS Vaults",
   // because og:title does not follow `title` — it has to be set. A link to the
   // game that advertises the vaults is a link doing the wrong job.
   openGraph: {
-    title: "Spreadcast — Megawatt",
+    title: "Spreadcast - Megawatt",
     description: "Call tomorrow's day-ahead spread on the Slovenian market. Free to play, every day.",
   },
 };

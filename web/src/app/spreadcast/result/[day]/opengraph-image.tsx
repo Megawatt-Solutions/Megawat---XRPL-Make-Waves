@@ -115,7 +115,7 @@ export default async function ResultOgImage({ params }: { params: Promise<{ day:
           )}
 
           <div style={{ display: "flex", fontSize: 26, color: CONDUIT, maxWidth: 900 }}>
-            The gap between the day&apos;s highest and lowest electricity price — the number grid batteries earn
+            The gap between the day&apos;s highest and lowest electricity price - the number grid batteries earn
             on.
           </div>
         </div>

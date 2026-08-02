@@ -36,7 +36,7 @@ export default function PortfolioPage() {
             <div className="empty-state-title">Your positions live here</div>
             <p className="empty-state-body">
               Connect a wallet to see what you&apos;ve deposited, what each vault has earned, and claim yield as it
-              accrues. Nothing is charged for connecting — it only reads your balances.
+              accrues. Nothing is charged for connecting - it only reads your balances.
             </p>
             <div className="empty-state-actions">
               <button className="btn btn-accent btn-sm" onClick={connect}>
@@ -80,7 +80,7 @@ export default function PortfolioPage() {
         <StatTile
           label="Avg APY"
           value={m.positionsCount === 0
-            ? <span className="muted">&mdash;</span>
+            ? <span className="muted">&ndash;</span>
             : <span className="accent">{fmtPct(bpsToPct(m.avgApyBps))}</span>}
           sub={m.positionsCount === 0 ? "No deposits yet" : "Deposit-weighted"}
           icon={<TrendingUpIcon size={18} />}
@@ -155,7 +155,7 @@ export default function PortfolioPage() {
                 pipeline cards already state. And the second action is something
                 that genuinely works today, rather than a second loop back. */}
             <p className="empty-state-body">
-              No vault is open for deposits yet — the pipeline sites start fundraising next quarter. Their targets and
+              No vault is open for deposits yet - the pipeline sites start fundraising next quarter. Their targets and
               capacity are on the vaults page, and Spreadcast is free to play in the meantime.
             </p>
             <div className="empty-state-actions">

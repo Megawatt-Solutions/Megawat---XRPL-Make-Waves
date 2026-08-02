@@ -119,13 +119,13 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
           </div>
           <div className="row">
             <span className="row-key">Accreditation</span>
-            <span className="row-val">{accredited ? "Full (Tier 2)" : verified ? "Basic (Tier 1)" : "—"}</span>
+            <span className="row-val">{accredited ? "Full (Tier 2)" : verified ? "Basic (Tier 1)" : "–"}</span>
           </div>
         </div>
 
         {!profile.rlusdTrustline && (
           <p className="muted" style={{ fontSize: "0.75rem", marginTop: 10 }}>
-            Vault deposits settle in RLUSD — you&apos;ll be asked to set the RLUSD trustline when fundraising
+            Vault deposits settle in RLUSD - you&apos;ll be asked to set the RLUSD trustline when fundraising
             opens.
           </p>
         )}

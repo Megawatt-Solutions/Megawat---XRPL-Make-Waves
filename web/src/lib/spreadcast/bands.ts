@@ -35,7 +35,7 @@ export function quintileBoundaries(spreads: number[]): number[] | null {
     const lo = Math.floor(idx);
     const hi = Math.ceil(idx);
     const v = s[lo] + (s[hi] - s[lo]) * (idx - lo);
-    return Math.round(v); // whole euros — friendlier UI, negligible skew
+    return Math.round(v); // whole euros - friendlier UI, negligible skew
   };
   const b = [q(0.2), q(0.4), q(0.6), q(0.8)];
   // Guard against degenerate history (identical values collapsing bands).

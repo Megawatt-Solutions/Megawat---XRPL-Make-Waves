@@ -59,7 +59,7 @@ export async function generateMetadata(
     openGraph: {
       type: "website",
       siteName: "Megawatt",
-      title: `${vault.name} — Megawatt`,
+      title: `${vault.name} - Megawatt`,
       description,
       images: inheritedImages,
     },

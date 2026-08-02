@@ -144,10 +144,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
         setShowConnect(false);
         notify(
           via === "xaman"
-            ? "Signed in with Xaman — XRPL Mainnet"
+            ? "Signed in with Xaman - XRPL Mainnet"
             : snap.funded
-              ? "Wallet linked (watch-only) — XRPL Mainnet"
-              : "Address linked — account not yet funded (1 XRP base reserve)",
+              ? "Wallet linked (watch-only) - XRPL Mainnet"
+              : "Address linked - account not yet funded (1 XRP base reserve)",
           "success"
         );
       } catch (e) {
@@ -279,7 +279,7 @@ function XrplConnectModal({
               />
               <div className="muted" style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}>
                 <span className="dot pulse" style={{ background: "var(--accent)" }} />
-                {connecting ? "Reading ledger…" : phase.opened ? "Opened in Xaman — approve to continue" : "Waiting for scan…"}
+                {connecting ? "Reading ledger…" : phase.opened ? "Opened in Xaman - approve to continue" : "Waiting for scan…"}
               </div>
               <a className="btn btn-ghost btn-block" href={phase.deeplink} target="_blank" rel="noreferrer">
                 Open in Xaman app

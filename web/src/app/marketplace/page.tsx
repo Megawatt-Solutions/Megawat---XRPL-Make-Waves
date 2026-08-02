@@ -44,7 +44,7 @@ export default function MarketplacePage() {
       <div className="page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="page-title">Marketplace</h1>
-          <div className="page-sub">Buy and sell vault positions — exit early or pick up yield at a discount.</div>
+          <div className="page-sub">Buy and sell vault positions - exit early or pick up yield at a discount.</div>
         </div>
         <button className="btn btn-accent" onClick={() => (connected ? setShowSell(true) : connect())}>
           Sell a position
@@ -75,7 +75,7 @@ export default function MarketplacePage() {
           label="Avg premium"
           value={
             views.length === 0
-              ? <span className="muted">&mdash;</span>
+              ? <span className="muted">&ndash;</span>
               : <span className={m.avgPremiumBps >= 0 ? "" : "accent"}>{premiumStr(m.avgPremiumBps)}</span>
           }
           sub={
@@ -240,7 +240,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
             <LayersIcon size={26} />
             <div className="empty-state-title">Nothing to list yet</div>
             <p className="empty-state-body">
-              Listing sells part of a vault position you already hold. No vault is open for deposits yet — the
+              Listing sells part of a vault position you already hold. No vault is open for deposits yet - the
               pipeline sites start fundraising next quarter, and once you hold a position it will show up here to
               list.
             </p>

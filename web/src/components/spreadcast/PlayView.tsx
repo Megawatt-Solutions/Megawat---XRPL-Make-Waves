@@ -107,7 +107,7 @@ export function PlayView() {
     try {
       setResultSeen(localStorage.getItem(`mw.sc.seen.${latestDay}`) === "1");
     } catch {
-      setResultSeen(false); // private mode — show it, just don't remember
+      setResultSeen(false); // private mode - show it, just don't remember
     }
   }, [latestDay, hasMyResult]);
   const dismissResult = () => {
@@ -150,7 +150,7 @@ export function PlayView() {
     const data = await res.json();
     setBusy(false);
     if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked — you're verified." });
+    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked - you're verified." });
     reload();
   };
 
@@ -167,7 +167,7 @@ export function PlayView() {
     setBusy(false);
     if (!res.ok) return setMsg({ kind: "err", text: data.error });
     setCommit({ hash: data.prediction.hash, signed: false });
-    setMsg({ kind: "ok", text: "Prediction locked in — you can change it until close." });
+    setMsg({ kind: "ok", text: "Prediction locked in - you can change it until close." });
     setEditing(false); // collapse back to the status strip
     reload();
   };
@@ -200,11 +200,11 @@ export function PlayView() {
           clearInterval(iv);
           setSignFlow(null);
           setCommit((c) => (c ? { ...c, signed: true, txHash: s.txHash } : c));
-          setMsg({ kind: "ok", text: "Locked — your prediction is now on XRPL mainnet." });
+          setMsg({ kind: "ok", text: "Locked - your prediction is now on XRPL mainnet." });
         } else if (s.cancelled || s.expired) {
           clearInterval(iv);
           setSignFlow(null);
-          setMsg({ kind: "err", text: s.expired ? "Sign request expired — try again." : "Sign request declined in Xaman." });
+          setMsg({ kind: "err", text: s.expired ? "Sign request expired - try again." : "Sign request declined in Xaman." });
         } else if (s.opened) {
           setSignFlow((f) => (f ? { ...f, opened: true } : f));
         }
@@ -231,7 +231,7 @@ export function PlayView() {
     });
     setBusy(false);
     setCommit({ ...commit, signed: true });
-    setMsg({ kind: "ok", text: "Commit signature recorded (simulated — Xaman signing arrives with API keys)." });
+    setMsg({ kind: "ok", text: "Commit signature recorded (simulated - Xaman signing arrives with API keys)." });
   };
 
   if (err)
@@ -245,7 +245,7 @@ export function PlayView() {
         <p className="sc-notice">
           {err}
           {" "}
-          Today&apos;s round can&apos;t be loaded right now — the rest of Megawatt is unaffected.
+          Today&apos;s round can&apos;t be loaded right now - the rest of Megawatt is unaffected.
         </p>
         <button
           className="btn btn-ghost btn-sm"
@@ -342,7 +342,7 @@ export function PlayView() {
             <div>
               <div className="pf-step-title">You pick a band</div>
               <div className="pf-step-body">
-                Before 11:45 Ljubljana time — hours before the auction that decides tomorrow&apos;s prices.
+                Before 11:45 Ljubljana time - hours before the auction that decides tomorrow&apos;s prices.
               </div>
             </div>
           </div>
@@ -351,7 +351,7 @@ export function PlayView() {
               <div className="pf-step-title">Your pick is fingerprinted</div>
               <div className="pf-step-body">
                 We hash your band and a secret salt with SHA-256. The hash proves what you chose without revealing it,
-                so nobody — including us — can change it afterwards.
+                so nobody - including us - can change it afterwards.
                 {commit && <span className="pf-value">{commit.hash}</span>}
               </div>
             </div>
@@ -381,7 +381,7 @@ export function PlayView() {
                   </>
                 ) : (
                   <>
-                    Email-only players are covered by a weekly Merkle anchor instead — one root covering every
+                    Email-only players are covered by a weekly Merkle anchor instead - one root covering every
                     prediction that week, written to XRPL. Link a wallet to get your own per-round transaction.
                   </>
                 )}
@@ -399,7 +399,7 @@ export function PlayView() {
           </div>
         </div>
         <p style={{ fontSize: "0.8125rem", color: "var(--muted)" }}>
-          Prices come from the ENTSO-E transparency platform — the same published data the market settles on.
+          Prices come from the ENTSO-E transparency platform - the same published data the market settles on.
         </p>
       </Sheet>
 
@@ -444,7 +444,7 @@ export function PlayView() {
           </h1>
           <p className="sc-sub" style={{ marginBottom: 0 }}>
             Slovenia&apos;s electricity price changes every hour. Predict how big the swing between the day&apos;s
-            highest and lowest price will be{isOpen ? ` on ${(state.open as { day: string }).day}` : ""} — free to
+            highest and lowest price will be{isOpen ? ` on ${(state.open as { day: string }).day}` : ""} - free to
             play, every day.
           </p>
         </div>
@@ -586,7 +586,7 @@ export function PlayView() {
                   the visual one. */}
               {exactInvalid && (
                 <p id="sc-exact-err" className="sc-field-err" role="alert">
-                  Enter a number like 92.5 — a swing is a high minus a low, so it cannot be negative. Or leave it blank.
+                  Enter a number like 92.5 - a swing is a high minus a low, so it cannot be negative. Or leave it blank.
                 </p>
               )}
               {/* On mobile this docks flush against the bottom tab bar, so the
@@ -679,7 +679,7 @@ export function PlayView() {
                   >
                     Join with your email
                   </button>{" "}
-                  to lock in your pick — it takes five seconds.
+                  to lock in your pick - it takes five seconds.
                 </p>
               )}
                 </>
@@ -746,7 +746,7 @@ export function PlayView() {
                           <img src={signFlow.qrPng} alt="Xaman commit QR" width={124} height={124} style={{ background: "#fff", padding: 5 }} />
                           <div style={{ display: "grid", gap: 8, justifyItems: "start" }}>
                             <span style={{ color: "var(--text-2)" }}>
-                              {signFlow.opened ? "Opened in Xaman — approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
+                              {signFlow.opened ? "Opened in Xaman - approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
                             </span>
                             <a className="btn btn-ghost btn-sm" href={signFlow.deeplink} target="_blank" rel="noreferrer">
                               Open in Xaman app
@@ -887,7 +887,7 @@ export function PlayView() {
                       ✓ you called it · +{latest.mine.points} pts · streak {latest.mine.streak}
                     </span>
                   ) : (
-                    <span className="sc-pill">your pick missed — streak reset</span>
+                    <span className="sc-pill">your pick missed - streak reset</span>
                   ))}
               </div>
               <div
@@ -929,7 +929,7 @@ export function PlayView() {
             <div className="panel sc-panel">
               <h2>Join free</h2>
               <p className="sc-notice" style={{ marginBottom: 12 }}>
-                Email only — instant play. No purchase, no deposits, ever.
+                Email only - instant play. No purchase, no deposits, ever.
               </p>
               {/* A real <form>, so Enter submits — this is a two-field signup
                   and reaching for the mouse to finish it is a needless step.
@@ -978,7 +978,7 @@ export function PlayView() {
                   // Don't imply the connected wallet already plays — /join is
                   // email-based. Just set the expectation honestly.
                   <p className="sc-notice" style={{ fontSize: "0.75rem" }}>
-                    You&apos;re connected as <span className="sc-mono">{fmtAddress(shellAddress)}</span> — you can link
+                    You&apos;re connected as <span className="sc-mono">{fmtAddress(shellAddress)}</span> - you can link
                     it right after, to become prize-eligible.
                   </p>
                 )}
@@ -1001,7 +1001,7 @@ export function PlayView() {
                 <>
                   <p className="sc-notice" style={{ margin: "10px 0" }}>
                     Link an XRPL wallet to join the verified leaderboard and become prize-eligible. Your daily
-                    prediction then gets locked on-chain — tamper-proof.
+                    prediction then gets locked on-chain - tamper-proof.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {shellAddress ? (
@@ -1083,7 +1083,7 @@ export function PlayView() {
           <div className="panel sc-panel">
             <h2>Prizes</h2>
             <p className="sc-notice">
-              <b style={{ color: "var(--accent)" }}>$500 RLUSD prize pool</b> — split across the top 10 of the
+              <b style={{ color: "var(--accent)" }}>$500 RLUSD prize pool</b> - split across the top 10 of the
               season leaderboard, paid on XRPL. Entry is always free; prizes are promotional awards from the
               sponsor, never a return on anything you paid.
             </p>

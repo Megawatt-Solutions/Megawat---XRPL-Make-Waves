@@ -1844,6 +1844,14 @@ button {
      needs it is the accepted answer where shrinking the text is not. */
   max-width: 100%;
   overflow-x: auto;
+  /* Explicit, because overflow-y does not stay `visible` once overflow-x is
+     set: the spec computes it to `auto`, and the reels are a 1em window over a
+     10-digit strip, so scrollHeight (33) exceeded clientHeight (30) and Chrome
+     drew a vertical scrollbar straight through the last digit. Visible at
+     normal size on the desktop dashboard, not only under zoom.
+     The horizontal scroll is deliberate and stays; the vertical one was never
+     asked for. */
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
 }
 .odo-reel {
@@ -4159,6 +4167,19 @@ button {
 .scs-sub { font-size: 0.8125rem; color: var(--text-2); margin-top: 4px; max-width: 52ch; }
 .scs-clock {
   flex-shrink: 0;
+  /* ...but never wider than the card. flex-shrink: 0 is right — the clock must
+     not be squeezed by the copy beside it — and it also pins the element at its
+     max-content width, which is however wide "until entries close" happens to
+     be on one line. At 320 with 200% text that is 274px inside a 254px content
+     box, and .scs has overflow: hidden, so the caption's tail was cut.
+     Capping at the container lets the caption wrap instead: measured 4px of
+     clipping -> 0, the clock going 274x93 to 254x126. Nothing changes at 390 or
+     1280, or at any width at default text — this only acts when the element has
+     genuinely outgrown its parent.
+     min-width: 0 does nothing here, which is worth recording: that is the usual
+     fix for a flex child that will not give ground, and flex-shrink: 0 makes it
+     a no-op. */
+  max-width: 100%;
   text-align: right;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;

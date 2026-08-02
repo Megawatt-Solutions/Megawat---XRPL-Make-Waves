@@ -76,7 +76,7 @@ export function useChartTheme(): ChartTheme {
 export function alpha(color: string, a: number): string {
   const hex = color.trim();
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
-  if (!m) return hex; // already rgb()/rgba()/named — hand it back untouched
+  if (!m) return hex; // already rgb()/rgba()/named - hand it back untouched
   let h = m[1];
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   const n = parseInt(h, 16);

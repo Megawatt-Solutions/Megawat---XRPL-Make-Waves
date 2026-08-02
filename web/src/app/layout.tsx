@@ -53,11 +53,11 @@ export const metadata: Metadata = {
   // behave exactly as before. Set it wherever the app is deployed.
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    template: "%s — Megawatt",
-    default: "Megawatt — BESS Vaults",
+    template: "%s - Megawatt",
+    default: "Megawatt - BESS Vaults",
   },
   description:
-    "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
+    "Invest in Battery Energy Storage Systems, earn yield, and trade your position - on the XRP Ledger.",
   applicationName: "Megawatt",
   // There were no og: tags at all, so a link pasted into Slack, WhatsApp or
   // anywhere else rendered as a bare URL with no preview — for a product whose
@@ -65,9 +65,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Megawatt",
-    title: "Megawatt — BESS Vaults",
+    title: "Megawatt - BESS Vaults",
     description:
-      "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
+      "Invest in Battery Energy Storage Systems, earn yield, and trade your position - on the XRP Ledger.",
   },
   // summary_large_image, not summary. This was correct when written — the
   // comment above used to end "no og:image yet" and there was none, so a small
