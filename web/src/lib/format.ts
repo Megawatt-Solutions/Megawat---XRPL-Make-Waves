@@ -73,8 +73,18 @@ export function fmtAgo(sec: number): string {
   return `${Math.round(sec / 3600)}h ago`;
 }
 
+// en-GB, to match the rest of the app rather than the number formatters above.
+// Today this changes nothing: with only month and year requested both locales
+// render "Jul 2024" identically, verified across every commissioned date in
+// vaults.ts. It matters the moment anyone adds `day` here, because the two
+// disagree on order - en-US gives "Aug 3, 2026" and en-GB "3 Aug 2026" - and
+// the shareable result page already renders its dates in en-GB. One app should
+// not order a date two ways depending on which screen you are on.
+// The NumberFormat locales above stay en-US: those are grouping and decimal
+// separators for an English-language UI, which is a different question and one
+// for the founders rather than a silent change here.
 export function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-GB", {
     month: "short",
     year: "numeric",
   });
