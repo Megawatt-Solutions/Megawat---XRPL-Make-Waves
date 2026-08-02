@@ -4657,3 +4657,37 @@ h1,
    The third is .v2-vault-name at 768 — and only for "BESS Bucharest 01", the
    longest of the six. The other five balance correctly at that width, which is
    the tell: the rule works, that one string is just longer than the column. */
+
+/* ─── Forced colours (Windows high contrast) ──────────────────────
+   Measured before writing anything: under `forced-colors: active` the six
+   status dots on the landing page go from three distinct backgrounds to one,
+   rgb(0,0,0), with a 0px border. Black circles on a black canvas. The two
+   allocation segments do the same, three to one.
+
+   Nothing is LOST, and that is worth stating because it is the result of a
+   habit this codebase already has: every one of these sits beside the text
+   that carries its meaning. The section dots are next to "Active vaults" and
+   "Pipeline", the card dots next to "Operational" and "Coming soon" badges,
+   and the allocation bar is aria-hidden with a legend below it naming every
+   segment and its value. Forced colours makes the app plainer, not wrong.
+
+   So this does not override the user's palette with forced-color-adjust: the
+   colours are reinforcement here, not information, and taking a high contrast
+   user's own colours away to restore decoration would be the wrong trade. It
+   only gives the shapes an edge so they are still perceivable as objects
+   rather than reading as holes in the page.
+
+   Chart canvases are deliberately untouched: canvas pixels are not overridden
+   by forced colours, so the three charts keep their own encoding. */
+@media (forced-colors: active) {
+  .dot,
+  .segbar > span,
+  .alloc-bar span,
+  .sc-band-chip,
+  .sc-bar-dot {
+    border: 1px solid CanvasText;
+  }
+  /* The pulse animates opacity on a shape that is now an outline; at 0.35 it
+     reads as flicker rather than life. */
+  .dot.pulse { animation: none; }
+}
