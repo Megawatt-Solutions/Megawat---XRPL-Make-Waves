@@ -114,6 +114,16 @@ const CASES = [
 
 const AUDIT = String.raw`
 const sel = SELECTOR;
+// Freeze motion, as the other two sweeps do. Prophylactic here rather than a
+// fix: measured at the 700ms this waits, the only thing still running is the
+// infinite pulse dot, and the panel's box is byte-identical at 700ms and after
+// a further 900ms. But the entry animations are 0.18-0.25s today and nothing
+// stops a longer one being added, at which point this would silently measure a
+// sheet mid-slide and report a height no user sees.
+const __freeze = document.createElement("style");
+__freeze.textContent = "*,*::before,*::after{transition:none!important;animation:none!important}";
+document.head.appendChild(__freeze);
+void document.body.offsetHeight;
 // Pick the PANEL, not the scrim. .overlay is a fixed full-viewport backdrop, so
 // measuring it makes "taller than the viewport" impossible by construction — it
 // is always exactly the viewport. Prefer the inner dialog and fall back only if

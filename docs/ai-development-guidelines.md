@@ -3392,6 +3392,42 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The freeze that was not needed, and the grep that was wrong
+
+Two negative results, both worth the time they took to establish.
+
+**overlay-audit did not need freezing.** Measured at the 700ms it waits: the
+only thing still running is the infinite pulse dot, and the panel's box is
+byte-identical at 700ms and after a further 900ms. The entry animations are
+0.18-0.25s, long finished. I added the freeze anyway for consistency with the
+other two sweeps and labelled it in the file as prophylactic rather than a fix —
+the distinction matters, because a comment claiming it solved something would
+send the next reader looking for a defect that was never there.
+
+**Reduced motion is fully honoured, including the parts CSS cannot reach.**
+Every animated element and every long transition drops to zero under
+`prefers-reduced-motion: reduce`, on all three pages carrying motion. The
+interesting case is the globe: it rotates through `requestAnimationFrame`, which
+no CSS media query can stop.
+
+I grepped `BessGlobe.tsx` for `prefers-reduced-motion|matchMedia|
+requestAnimationFrame`, found only the rAF calls, and concluded the rotation
+ignored the preference. **Then I measured it and the pins did not move** —
+identical coordinates across 1.5 seconds under the preference, and clearly moved
+without it. The component uses `usePrefersReducedMotion()` and gates the spin on
+it, with a comment saying so.
+
+The grep was the defect: **`prefers-reduced-motion` does not match
+`usePrefersReducedMotion`**, because the hyphenated CSS spelling and the
+camelCase hook name share no substring. Searching for a concept by one of its
+spellings finds the files that use that spelling and quietly excludes the rest.
+The right search was the hook name, which turns up three files — the globe, the
+Odometer, and the hook itself.
+
+That is now twice in two passes that measurement has corrected a conclusion I
+drew from reading source. Reading tells you what a file says; only running it
+tells you what the app does.
+
 ### Measuring while the page is still moving
 
 The skip-link false positive was a transition read at t=0, so this pass asked
