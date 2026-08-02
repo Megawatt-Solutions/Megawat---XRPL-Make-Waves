@@ -109,6 +109,20 @@ function solarBell(frac: number) {
   return Math.max(0, Math.exp(-x * x));
 }
 
+// A small set of plausible late-summer European conditions, indexed by the
+// vault seed so each site keeps its own and it never changes between renders.
+// `yield` is how much of a peak-month day this sky delivers, so the production
+// card and the weather card cannot disagree. Making the weather vary by seed
+// exposed that they could: Ljubljana came out Clear while its "today" sat BELOW
+// its own month's daily average, which no clear day does.
+const WEATHER: { tempC: number; condition: string; icon: WeatherIcon; yield: number }[] = [
+  { tempC: 23, condition: "Partly Cloudy", icon: "partly", yield: 0.85 },
+  { tempC: 26, condition: "Clear", icon: "sun", yield: 1.10 },
+  { tempC: 19, condition: "Overcast", icon: "cloud", yield: 0.55 },
+  { tempC: 21, condition: "Light Rain", icon: "rain", yield: 0.40 },
+  { tempC: 28, condition: "Sunny", icon: "sun", yield: 1.15 },
+];
+
 // ─── live snapshot ────────────────────────────────────────────
 export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
   const r = rng(vault.seed + Math.floor(t));
@@ -154,6 +168,24 @@ export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
 
   const ccy = vault.currency;
   const m = vault.metrics;
+  const sky = WEATHER[vault.seed % WEATHER.length];
+  // Solar is seasonal, so a peak month is 11% of the year. Battery throughput
+  // is not — a site that cycles on price spread does it as often in February as
+  // in August — so its month is a plain twelfth. The non-solar branch had
+  // inherited 0.18 from the solar one and reported 328 MWh a month against a
+  // stated year of 1,822: x12 = 3,936, more than twice its own year.
+  const monthKwh = hasSolar ? m.chargedMwh * 1000 * 0.11 : (m.dischargedMwh * 1000) / 12;
+  // One number for "a day", so the production card and the device panel cannot
+  // drift apart. They already did once: the panel was aligned to a flat 1,150
+  // constant, and the moment `today` started following the weather the two
+  // disagreed by 28% again.
+  // Wobbled HERE, once, not at each use site. Wobbling per-consumer is what
+  // re-opened the gap: the card read wob(today) and the panel read today, and
+  // the same quantity printed as 1,485 and 1,458 a few hundred pixels apart.
+  const todayKwh = wob(
+    hasSolar ? (monthKwh / 30) * sky.yield : monthKwh / 30,
+    hasSolar ? 60 : 200,
+  );
 
   return {
     vaultId: vault.id,
@@ -164,14 +196,23 @@ export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
       // month implied 2,168 kWh/day — 1.8x its own "today", 8.7 kWh/kWp/day on
       // a 250 kWp array, and month x 12 = 781 MWh against a stated year of 361.
       // Three figures in one card, two of them contradicting the third.
-      // 0.11 is a peak summer month in Slovenia and gives 1,283 kWh/day, just
-      // above a partly-cloudy today — which is what the weather card beside it
-      // says the day is.
-      ? { label: "Solar Production", todayKwh: round(wob(1150, 80)), monthKwh: round(m.chargedMwh * 1000 * 0.11), yearKwh: round(m.chargedMwh * 1000) }
-      : { label: "Energy Throughput", todayKwh: round(wob(kw * 4.1, 200)), monthKwh: round(m.dischargedMwh * 1000 * 0.18), yearKwh: round(m.dischargedMwh * 1000) },
-    weather: hasSolar
-      ? { tempC: 23, condition: "Partly Cloudy", location: vault.location.split(",")[0], icon: "partly" }
-      : { tempC: 26, condition: "Clear", location: vault.location.split(",")[0], icon: "sun" },
+      //
+      // today is now the month's daily average scaled by the sky on the weather
+      // card, rather than a flat 1,150. That constant was the last thing here
+      // that could contradict a neighbouring card, and it did the moment the
+      // weather stopped being fixed.
+      ? { label: "Solar Production", todayKwh: round(todayKwh), monthKwh: round(monthKwh), yearKwh: round(m.chargedMwh * 1000) }
+      : { label: "Energy Throughput", todayKwh: round(todayKwh), monthKwh: round(monthKwh), yearKwh: round(m.dischargedMwh * 1000) },
+    // Keyed on the site, not on whether it has panels. Weather was chosen by
+    // `hasSolar`, which is a fact about the hardware and says nothing about the
+    // sky: every solar site in the book reported 23°C Partly Cloudy and every
+    // other one 26°C Clear, so two towns an hour apart differed because one had
+    // an array on the roof. Same false coupling the kind-decides-* lint rules
+    // exist for, in a field nobody had looked at.
+    //
+    // vault.seed keeps it deterministic — the same site always reports the same
+    // sky, server and client agree, and there is no hydration mismatch.
+    weather: { tempC: sky.tempC, condition: sky.condition, icon: sky.icon, location: vault.location.split(",")[0] },
     savings: hasSolar
       // Derived from the site's own annual revenue rather than fixed constants.
       // The card ends in totalValue: netYtd, so it is describing this site's
@@ -186,11 +227,11 @@ export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
       // already fine (23.9K x 12 = 287K against 295K), which is what made the
       // day figure stand out once the two were compared rather than read apart.
       : { currency: ccy, primaryLabel: "Revenue", selfSufficiencyPct: 96, todayValue: round(wob(vault.annualRevenue / 365, (vault.annualRevenue / 365) * 0.2)), monthValue: round(m.netYtd * 0.18), totalValue: round(m.netYtd) },
-    devices: buildDevices(vault),
+    devices: buildDevices(vault, todayKwh),
   };
 }
 
-function buildDevices(vault: Vault): DeviceGroup[] {
+function buildDevices(vault: Vault, todayKwh: number): DeviceGroup[] {
   const m = vault.metrics;
   const groups: DeviceGroup[] = [
     {
@@ -215,9 +256,14 @@ function buildDevices(vault: Vault): DeviceGroup[] {
         // output, sitting 2.7x above the "TODAY 1,187 kWh" on the same screen.
         // 0.0032 lands on ~1,156 kWh, matching that card, and self-used at
         // 0.0024 gives ~75%, matching the "Self Sufficiency 76%" beside it.
-        { label: "Produced", value: round(m.chargedMwh * 1000 * 0.0032, 1), unit: "kWh", kind: "yield" },
-        { label: "Self-used", value: round(m.chargedMwh * 1000 * 0.0024, 1), unit: "kWh", kind: "self" },
-        { label: "Inverter", value: 100, unit: "%", kind: "soc" },
+        { label: "Produced", value: round(todayKwh, 1), unit: "kWh", kind: "yield" },
+        { label: "Self-used", value: round(todayKwh * 0.75, 1), unit: "kWh", kind: "self" },
+        // "Inverter 100%" sat between two readings and committed to neither:
+        // beside two kWh throughput rows it reads as efficiency, and no
+        // inverter is 100% efficient — real ones run 96-98%. The panel means
+        // the unit is up, so the label now says so and the number stops being
+        // a physical claim.
+        { label: "Inverter uptime", value: 100, unit: "%", kind: "soc" },
       ],
     });
   }
