@@ -5611,3 +5611,76 @@ And one thing deliberately left: the residual overflow is `.wallet-pill`.
 Closing it means truncating an address already middle-truncated to
 `rrrrrr...LvTp`. An address the user cannot read is worse than a header that
 scrolls in a configuration this rare.
+
+---
+
+## The text-zoom backlog, worked down — and the one question it closed (2026-08-02)
+
+`audit:zoom` from its first run to now:
+
+| kind | first run | now |
+|---|---|---|
+| `clipped-text` | 78 | 60 |
+| `overflows-viewport` | 37 | 0 |
+| `stranded-last-line` | 24 | 3 |
+| `text-overflows-box` | 10 | 1 |
+| `text-under-overlay` | 1 | 0 |
+| **pages with horizontal overflow** | **25** | **0** |
+| **unique findings** | **150** | **64** |
+
+**No page scrolls sideways at 200% text.** Of the 64 that remain, 60 are the
+mobile tab labels — see below — and 4 are measured, deliberate, and documented
+in the stylesheet beside the code they describe.
+
+### One shape, five times
+
+Five separate defects this session were the same CSS fact: **flex and grid
+children default to `min-width: auto` and will not shrink below their
+content.** The header, the Connect button, the segmented control, the section
+subtitle, and the dashboard's column headers. It never shows at default text
+because everything fits; the moment type grows, the child refuses to give
+ground and either pushes the page into horizontal scroll or paints over its
+neighbour.
+
+Worth knowing as a class, because the fix is nearly always `min-width: 0` plus
+a decision about what may break — and that second half is where the judgement
+lives:
+
+- prose (a section subtitle, a column heading) may wrap or break mid-word;
+- an identity (a date, a wallet address, a row's name) may not;
+- a **number** may never be broken or truncated, because a clipped figure is
+  not an awkward figure, it is a **different** one — `12%` rendered as `12`.
+
+### The tab bar: asked and answered, three times
+
+The mobile tab labels truncate at large text — 60 of the 64 remaining
+findings. An earlier pass chose truncation deliberately, on the grounds that
+wrapping doubles the bar's height while `--nav-h-safe` assumes one height.
+
+That reason was *partly* invalidated when `--nav-h-safe` was made to track the
+bar, and this was flagged three times as "now unblocked". **It is not.** Tested
+rather than assumed:
+
+- **Wrapping.** Bar height becomes a function of viewport width *and* text
+  scale — 93px at 820, 129px at 390, 164px at 320, all at 200%. The clearance
+  formula is linear in the root font *because the bar is one line*. With
+  wrapping there is no single expression, so every consumer of `--nav-h-safe`
+  breaks again.
+- **Container query + sr-only label.** Hides labels at *normal* text on 320,
+  still trips `clipped-text` (an sr-only box is 1px with wider content), and
+  moves the bar 75px → 67px, which breaks the clearance a third way.
+
+So truncation stays, and this is written down so it is not re-opened a fourth
+time. The icon and the link's accessible name both survive it, which is what
+1.4.4 asks for.
+
+### A check that was already right
+
+While chasing the above, the `clipped-text` exemptions looked like they keyed
+on class names — `.sr-only, .chain-btn-name` — which is the "rule describes the
+mistake instead of the invariant" trap this codebase warns about. Reading the
+whole block rather than the one line: it already exempts *any* element with a
+`clip-path`, and any 1px absolutely-positioned one. The class list only covers
+the case where an **ancestor** carries the sr-only styling, which a computed
+style on the element itself cannot see. Nothing to fix. Recorded because
+"I checked and it was already correct" is a result worth keeping.
