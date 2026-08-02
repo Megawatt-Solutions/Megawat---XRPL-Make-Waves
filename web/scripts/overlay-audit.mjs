@@ -104,12 +104,20 @@ const CASES = [
     // meaningful for everything else instead of leaving the suite permanently
     // red on something nobody is allowed to fix.
     dialogContractWaived: "wallet.tsx — see docs/wallet-tsx-handoff.md" },
-  // Unreachable in the current data: every vault is coming_soon or a showcase,
-  // so depositDisabled is true everywhere and no accent CTA renders. Kept so the
-  // summary keeps naming it rather than letting it vanish.
-  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".btn-accent", expect: "[role=dialog], .sheet, .overlay",
+  // Unreachable in the current data: POSITIONS is empty and every vault is
+  // coming_soon or a showcase, so the position card never renders its action
+  // footer. Kept so the summary keeps naming it rather than letting it vanish.
+  //
+  // The trigger was ".btn-accent", which does not open this dialog and never
+  // did: the deposit button is .btn-ghost, and the first .btn-accent in the
+  // position card is "Claim", which fires a toast. Verified by fixturing an
+  // active vault with a position — the case still reported "did not open",
+  // with a precondition string that sent the reader to look at vault status
+  // instead of at the selector. A skip reason is an explanation, and a wrong
+  // explanation is worse than none: it costs the next person the same hour.
+  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".detail-side .btn-ghost.btn-block", expect: "[role=dialog], .sheet, .overlay",
     expectText: "deposit", needsConnected: true,
-    precondition: "needs a vault with status active — all six are coming_soon or showcase" },
+    precondition: "needs a vault with status active AND a POSITIONS entry — the action footer renders only when one of deposit/claim applies" },
   { name: "wallet:sheet",      route: "/",               open: ".wallet-pill",     expect: ".sheet-panel, [role=dialog]", needsConnected: true },
 ];
 

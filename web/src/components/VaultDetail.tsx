@@ -922,7 +922,13 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
       >
         <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
           <span id="deposit-modal-title">Deposit into {vault.shortName}</span>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}><XIcon size={18} /></button>
+          {/* .modal-x, like every other close in the app. This one carried its
+              own inline styles with no padding, so it measured 18x28 — under
+              the 24px target minimum on its narrow axis — while the shared
+              class is 44x44. It went unnoticed because no audit could open this
+              modal: the overlay case needs an active vault AND a position, and
+              the data has neither. */}
+          <button type="button" className="modal-x" onClick={onClose} aria-label="Close"><XIcon size={18} /></button>
         </div>
 
         <div className="field" style={{ marginTop: 18 }}>

@@ -5769,3 +5769,38 @@ because the page cannot be populated. Not fixed here: a fix that can only be
 verified behind a fixture, on a page that renders empty in every audit run, is
 a fix nobody can keep honest. It is recorded so the next person to put real
 listings in front of this page knows to run `audit:zoom` on it first.
+
+### Postscript: what the position fixture found (2026-08-02)
+
+Same technique as the marketplace, on `POSITIONS` — plus `vaults.ts`, because
+one fixture was not enough. A position alone renders nothing: the card keys its
+distribution on `vault.raised`, and every vault open to deposits has raised
+zero, so the first attempt still showed "No deposits yet". Reaching the real
+card needed a position **and** a funded raise **and** `status: "active"`.
+
+That is worth knowing on its own — **three independent constants have to agree
+before the app's primary logged-in screen renders at all**, which is why it
+never has.
+
+What it showed, once it did:
+
+- The donut branch is sound. 0.39% / 99.61% sums to 100, and You $12,500 +
+  Others $3,187,500 is exactly the $3.20M capex. This closes the honest limit
+  recorded when that card was rewritten — "the donut branch cannot be reached
+  with today's data, so it was not measured end to end". It has been now.
+- **The deposit modal's close button was 18×28**, its own inline styles with no
+  padding, against `.modal-x` at 44×44 everywhere else. Under the 24px minimum
+  on its narrow axis. Fixed.
+- **`vault:deposit` could never have run**, whatever the data. Its trigger was
+  `.btn-accent`; the deposit button is `.btn-ghost`, and the first `.btn-accent`
+  in that card is "Claim", which fires a toast. The case reported *"needs a
+  vault with status active"* — a hardcoded note, not a diagnosis, and it sent
+  the reader to look at vault status while the selector was the problem. **A
+  wrong skip reason is worse than none: it costs the next person the same
+  hour.** Both corrected.
+
+Recorded rather than fixed, because it only exists behind the fixture: at 320
+the populated sell sheet is 791px in a 658px viewport, so "List position" and
+"Cancel" sit below the fold. The sheet scrolls and the audit passes it, but a
+primary action that needs a scroll on the narrowest phone is worth a look when
+listings become real.
