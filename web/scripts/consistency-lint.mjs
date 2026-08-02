@@ -47,9 +47,25 @@ const ASSET_FIELDS = "capex|raised|remaining|annualRevenue|sinkingFund|tvl|reser
 
 const RULES = [
   {
-    id: "raw-status-enum",
-    why: "renders the status enum instead of statusLabel()/STATUS_BADGE — produced three spellings of one status",
-    re: /\.status\.replace\s*\(/g,
+    id: "raw-enum-render",
+    why: "renders a stored enum or index straight to screen — use statusLabel()/STATUS_BADGE for status, BAND_NAMES for band; the reveal table printed \"2\" under a column headed BAND",
+    // Was `.status.replace(` alone, which is the shape of the defect that
+    // prompted it and not the invariant. The invariant is that a value stored
+    // as an enum or an index never reaches the screen unmapped, and the reveal
+    // table breached it with `{p.band}` — a bare 0-4 in the one table whose
+    // purpose is letting a stranger check a pick. That went unseen because the
+    // rule described the old mistake instead of the rule.
+    //
+    // outcomeName is deliberately absent: it arrives as "Swingy", a display
+    // string, so rendering it raw is correct and flagging it would be the
+    // listedFaceValue mistake noted at the top of this file.
+    // BAND_NAMES[p.band] does not match — the braces must wrap the access.
+    //
+    // (?<!\$) excludes template literals. `http ${res.status} from ${url}` is an
+    // HTTP status code in an error message, not an enum on screen, and the first
+    // version of this rule flagged two of those — a rule that flags correct code
+    // gets switched off, which is the note at the top of this file.
+    re: /\.status\.replace\s*\(|(?<!\$)\{\s*[A-Za-z_$][\w.$]*\.(?:status|kind|band|mode)\s*\}/g,
   },
   {
     id: "kind-decides-yield-label",
@@ -166,7 +182,7 @@ if (flag("canary")) {
   // Each rule gets a line that should trip it. A lint nobody has seen fail is
   // indistinguishable from a lint with a typo in its regex.
   const samples = {
-    "raw-status-enum": 'const s = vault.status.replace("_", " ");',
+    "raw-enum-render": '<td>{p.band}</td>',
     "kind-decides-yield-label": 'const l = v.kind === "showcase" ? "gross yield" : "APY";',
     "asset-figure-as-USD": 'const v = fmtMoney(remaining, "USD");',
     "raw-megawatt-field": "<span>{site.capacityMw.toFixed(1)} MW</span>",

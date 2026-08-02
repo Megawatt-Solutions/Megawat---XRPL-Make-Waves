@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShieldIcon } from "@/components/Icons";
 import { sourceLabelShort } from "./sourceLabel";
+import { BAND_NAMES } from "@/lib/spreadcast/bands";
 
 const BAND_VARS = ["--sc-b0", "--sc-b1", "--sc-b2", "--sc-b3", "--sc-b4"];
 
@@ -412,8 +413,21 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                           <td>
                             {p.user} {p.verified && <span className="sc-tag v" role="img" aria-label="Verified">V</span>}
                           </td>
+                          {/* The name, not the index. This column is headed BAND
+                              and printed "2". Every other surface in the app
+                              names them — the row above this table reads
+                              "SWINGY · 176 – 244", the play view's cards are
+                              Calm through Wild, the shared result page says
+                              "Swingy" — so the one place showing a bare 0-4 was
+                              the reveal table, whose entire purpose is letting a
+                              stranger check someone's pick against the outcome.
+                              A number they have to decode defeats that.
+
+                              Name only, not bandLabel(): the range is already in
+                              the row this expands from, and repeating it on
+                              twelve rows would widen the tightest table here. */}
                           <td className="num" style={{ color: p.correct ? "var(--accent)" : "var(--muted)" }}>
-                            {p.band}
+                            {BAND_NAMES[p.band] ?? p.band}
                             {p.correct ? " ✓" : ""}
                           </td>
                           <td className="sc-mono muted" style={{ fontSize: "0.625rem" }}>{p.hash.slice(0, 20)}…</td>

@@ -3392,6 +3392,45 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Auditing the rules the way I audit the app
+
+Last pass found a lint rule that matched the mistake I had made rather than the
+invariant it was meant to protect. So this pass asked the same question of every
+other rule — and the first one answered badly.
+
+`raw-status-enum` matched `.status.replace(`. That is one way to leak an enum to
+screen. The invariant is that **a value stored as an enum or an index never
+reaches the screen unmapped**, and stating it that way immediately found a
+breach the old rule could not see: the reveal table rendered `{p.band}`, a bare
+0-4, under a column headed BAND. Measured: "2 ✓".
+
+Every other surface names bands — the archive row above that very table reads
+"SWINGY · 176 – 244", the play view's cards are Calm through Wild, the shared
+result page says "Swingy". The one place showing a raw index was the reveal
+table, whose entire purpose is letting a stranger check somebody's pick against
+the outcome. A number they have to decode defeats the point of the table.
+
+Widening the rule then found a second breach and one false positive, both
+instructive:
+
+- **`label={snap.mode}`** on the vault hero tile rendered the raw MarketMode,
+  while the State of charge card 370 lines below formatted the same field as
+  "↑ Charging" / "Idle" / "↓ Discharging". One value, one page, two spellings —
+  and the arrow that says which way energy is flowing appeared on only one of
+  them. Both now go through one `modeLabel()`, and the tile gained the arrow,
+  which is the most useful thing about that field.
+- **`` `http ${res.status} from ${url}` ``** is an HTTP status code in an error
+  message, not an enum on screen. The rule needed `(?<!\$)` to exclude template
+  literals. A rule that flags correct code gets switched off — the note at the
+  top of that file, earned again.
+
+`outcomeName` stays deliberately unmatched: it arrives as "Swingy", already a
+display string, so rendering it raw is right.
+
+The pattern across both passes: **write the rule from the invariant, then check
+what it catches — not from the diff you just made.** Both times, stating the
+invariant found a live defect within minutes.
+
 ### The lint rule caught the mistake I made, not the one I missed
 
 Read the shareable result page — `/spreadcast/result/<day>` with a real day

@@ -154,7 +154,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
           />
           {hasTelemetry ? (
             <Tile
-              label={snap.mode}
+              label={modeLabel(snap.mode)}
               value={`${snap.socPct.toFixed(1)}%`}
               sub="State of charge"
               icon={<BoltIcon size={17} />}
@@ -330,6 +330,23 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 }
 
 // ─── Tiles ────────────────────────────────────────────────────
+/** One mapping for MarketMode, because there were two.
+ *
+ *  The hero tile rendered `label={snap.mode}` — the stored enum straight to
+ *  screen, showing CHARGING via .caps — while the State of charge card 370
+ *  lines below formatted the same field as "↑ Charging" / "Idle" /
+ *  "↓ Discharging". Same value, same page, two spellings, and the arrow that
+ *  tells you which way the energy is flowing appeared on only one of them.
+ *
+ *  The arrows are the point: charge direction is the single most useful thing
+ *  about this field, so the tile is the surface that most needed them.
+ */
+function modeLabel(mode: string): string {
+  if (mode === "charging") return "↑ Charging";
+  if (mode === "idle") return "Idle";
+  return "↓ Discharging";
+}
+
 function Tile({ label, value, sub, icon }: { label: string; value: React.ReactNode; sub?: string; icon?: React.ReactNode }) {
   return (
     <div className="tile">
@@ -527,7 +544,7 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
       <div className="card-title">
         State of charge
         <span className={`badge ${charging ? "badge-active" : "badge-fundraising"}`}>
-          {charging ? "↑ Charging" : snap.mode === "idle" ? "Idle" : "↓ Discharging"}
+          {modeLabel(snap.mode)}
         </span>
       </div>
       <div style={{ display: "flex", gap: 22, marginTop: 16, alignItems: "center" }}>
