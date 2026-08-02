@@ -3392,6 +3392,38 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Encoding the class the box checks cannot see
+
+Last pass found a battery's state-of-charge printed on top of its own glyph, and
+noted why nothing caught it: two SVG elements drawn over each other overflow
+nothing, clip nothing and cross no viewport edge, so there is no box for a
+geometry sweep to find. This pass turned that into coverage.
+
+Swept every SVG on eight routes first. **106 SVGs, zero text-over-text
+collisions, zero glyph collisions** — the EnergyFlow one was the only instance
+in the app.
+
+Two shapes are now checked. Text over text needs no judgement. Text over a
+**glyph** needs a size guard, because a donut's centre label legitimately sits
+inside its ring: only a graphic smaller than 4x the text counts as something the
+text has collided with rather than something it sits within.
+
+I validated that rule against three known geometries before running it anywhere,
+which is the part worth keeping — a threshold picked by intuition is a threshold
+nobody can argue with later:
+
+    pre-fix EnergyFlow   label 21x11 @993,1818  icon 18x13 @993,1818   FIRES
+    post-fix EnergyFlow  label 21x11 @993,1836  icon 18x13 @993,1811   silent
+    donut centre label   label 40x18 @500,300   ring 200x200 @420,220  silent
+
+Fires on the real defect, silent on the real fix, silent on the legitimate case
+that most resembles the defect. Then a canary in the sweep itself: two `<text>`
+nodes at identical coordinates, silent to fired to silent.
+
+Six checks now carry canaries in that file. That is the whole point of the
+exercise — the EnergyFlow bug survived 132 runs per sweep across dozens of
+passes because no check could express it, not because anything was broken.
+
 ### "64%" was printed on top of the battery
 
 No CI exists in this repo, and creating a workflow that runs on every push

@@ -479,6 +479,55 @@ for (const el of all) {
       detail: JSON.stringify(document.title) + " repeats " + JSON.stringify(dupes[0]) });
 }
 
+// Things drawn on top of each other inside an SVG.
+//
+// Every other check here works on DOM boxes, and two SVG elements overlapping
+// overflow nothing, clip nothing and cross no viewport edge — there is no box to
+// catch. EnergyFlow printed a battery's state-of-charge directly over its own
+// glyph for exactly that reason: label 21x11 at (993,1818), icon 18x13 at
+// (993,1818), the same box, invisible to all 132 runs of this sweep.
+//
+// Two shapes. Text over text is unambiguous. Text over a GLYPH needs a size
+// guard, because a donut's centre label legitimately sits inside its ring: only
+// count a graphic smaller than 4x the text as something the text is colliding
+// with rather than sitting in. Validated against the real geometry — fires on
+// the pre-fix EnergyFlow numbers, silent on the post-fix ones, silent on a
+// donut label.
+for (const svg of document.querySelectorAll("svg")) {
+  if (!svg.getClientRects().length) continue;
+  const texts = [...svg.querySelectorAll("text")]
+    .filter((t) => (t.textContent || "").trim() && t.getClientRects().length);
+  if (!texts.length) continue;
+  const boxes = texts.map((t) => t.getBoundingClientRect());
+  for (let i = 0; i < texts.length; i++) {
+    const a = boxes[i];
+    if (a.width < 1 || a.height < 1) continue;
+    for (let j = i + 1; j < texts.length; j++) {
+      const b = boxes[j];
+      if (b.width < 1 || b.height < 1) continue;
+      const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ox > 2 && oy > 2)
+        findings.push({ kind: "svg-text-collision", el: label(svg),
+          detail: JSON.stringify(texts[i].textContent.trim().slice(0, 14)) + " over " +
+                  JSON.stringify(texts[j].textContent.trim().slice(0, 14)) });
+    }
+    const ta = a.width * a.height;
+    for (const g of svg.querySelectorAll("g,path,circle,rect,image")) {
+      if (g.contains(texts[i]) || texts[i].contains(g)) continue;
+      const b = g.getBoundingClientRect();
+      if (b.width < 1 || b.height < 1 || b.width * b.height >= ta * 4) continue;
+      const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ox > 2 && oy > 2 && ox * oy > ta * 0.5) {
+        findings.push({ kind: "svg-text-over-glyph", el: label(svg),
+          detail: JSON.stringify(texts[i].textContent.trim().slice(0, 14)) + " over a " + g.tagName });
+        break;
+      }
+    }
+  }
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
@@ -559,7 +608,23 @@ const run = () => {
     const lw = Math.max(...lr.map((r) => r.right)) - Math.min(...lr.map((r) => r.left));
     if (Math.round((lw / b.width) * 100) < 25) stranded++;
   }
-  return { overflow, tiny, spill, longline, stranded };
+  let svgOverlap = 0;
+  for (const svg of document.querySelectorAll("svg")) {
+    if (!svg.getClientRects().length) continue;
+    const ts = [...svg.querySelectorAll("text")].filter((t) => (t.textContent || "").trim() && t.getClientRects().length);
+    const bx = ts.map((t) => t.getBoundingClientRect());
+    for (let i = 0; i < ts.length; i++) {
+      const a = bx[i];
+      if (a.width < 1 || a.height < 1) continue;
+      for (let j = i + 1; j < ts.length; j++) {
+        const b = bx[j];
+        if (b.width < 1 || b.height < 1) continue;
+        if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 &&
+            Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) svgOverlap++;
+      }
+    }
+  }
+  return { overflow, tiny, spill, longline, stranded, svgOverlap };
 };
 const baseline = run();
 const wide = document.createElement("div");
@@ -596,15 +661,28 @@ const runt = document.createElement("div");
 runt.style.cssText = "width:110px;font-size:16px;text-wrap:normal";
 runt.textContent = "Extraordinarily 01";
 document.body.appendChild(runt);
+// Two <text> nodes at the same coordinates inside one SVG — the shape that hid
+// the EnergyFlow collision from every box-based check in this file.
+const svgNS = "http://www.w3.org/2000/svg";
+const badSvg = document.createElementNS(svgNS, "svg");
+badSvg.setAttribute("width", "120"); badSvg.setAttribute("height", "40");
+for (const label of ["AAAA", "BBBB"]) {
+  const tx = document.createElementNS(svgNS, "text");
+  tx.setAttribute("x", "10"); tx.setAttribute("y", "24"); tx.setAttribute("font-size", "16");
+  tx.textContent = label;
+  badSvg.appendChild(tx);
+}
+document.body.appendChild(badSvg);
 const defect = run();
-wide.remove(); small.remove(); spilled.remove(); longp.remove(); runt.remove();
+wide.remove(); small.remove(); spilled.remove(); longp.remove(); runt.remove(); badSvg.remove();
 const restored = run();
 return { baseline, defect, restored,
   overflowCheckFires: defect.overflow > baseline.overflow && restored.overflow === baseline.overflow,
   tapCheckFires: defect.tiny === baseline.tiny + 1 && restored.tiny === baseline.tiny,
   spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill,
   measureCheckFires: defect.longline === baseline.longline + 1 && restored.longline === baseline.longline,
-  strandedCheckFires: defect.stranded === baseline.stranded + 1 && restored.stranded === baseline.stranded };
+  strandedCheckFires: defect.stranded === baseline.stranded + 1 && restored.stranded === baseline.stranded,
+  svgOverlapCheckFires: defect.svgOverlap === baseline.svgOverlap + 1 && restored.svgOverlap === baseline.svgOverlap };
 `;
 
 // ── minimal CDP client ───────────────────────────────────────────────────
@@ -726,7 +804,7 @@ try {
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
-    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires || !c.strandedCheckFires) {
+    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires || !c.strandedCheckFires || !c.svgOverlapCheckFires) {
       console.error("\nCANARY FAILED — the checks do not detect a defect they are given.");
       exitCode = 1;
     } else {
