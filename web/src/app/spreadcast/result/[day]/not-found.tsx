@@ -20,7 +20,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClockIcon } from "@/components/Icons";
 
-export const metadata: Metadata = { title: "Result not found · Spreadcast" };
+// Bare title. The section layout's template is "%s · Spreadcast — Megawatt", so
+// appending "· Spreadcast" here produced
+// "Result not found · Spreadcast · Spreadcast — Megawatt" — in the tab and in
+// search results. page.tsx already returns the bare string for the same state;
+// the two disagreed and the one with the manual suffix won, because a not-found
+// boundary's metadata overrides the page's.
+export const metadata: Metadata = { title: "Result not found" };
 
 export default function ResultNotFound() {
   return (

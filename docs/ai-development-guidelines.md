@@ -3392,6 +3392,40 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### "Result not found · Spreadcast · Spreadcast — Megawatt"
+
+Read every title and description as a set rather than one page at a time, which
+is how they are actually encountered — a column of search results.
+
+The set holds up. Titles follow one template, `<Page> — Megawatt`, with
+`· Spreadcast` for that section, and all sit under the ~60 character limit.
+Descriptions run 70-155; the two showcase vaults are the longest at 155 and 153,
+right at the ceiling and not over. Every route has one, including the failure
+pages. The homepage's claim of "six vaults across five countries" checks out —
+Slovenia twice, then Serbia, Germany, Lithuania, Romania.
+
+One defect, and it only exists in the composition. The Spreadcast layout's
+template is `"%s · Spreadcast — Megawatt"`, and the result page's not-found
+boundary set `title: "Result not found · Spreadcast"` — appending the section by
+hand under a template that appends it too. The tab and the search result read
+**"Result not found · Spreadcast · Spreadcast — Megawatt"**.
+
+What makes it worth writing down is that **both files were individually
+correct-looking**, and `page.tsx` even had it right: it returns the bare
+`"Result not found"` for the same state. The two disagreed, and the one with the
+manual suffix won, because a not-found boundary's metadata overrides the page's.
+Nothing is visible from inside either file — only the composed string is wrong.
+
+Checked the neighbours before assuming a pattern: `marketplace/layout` and
+`spreadcast/layout` use `default`, which is not templated, and `app/page.tsx`
+and `spreadcast/page.tsx` sit in the *same* segment as their layout, where the
+template does not apply. Only a nested segment gets composed, which is why this
+one route was the only one affected.
+
+Encoded generally rather than narrowly: split the title on its separators and
+flag any part appearing twice. That needs no list of section names and would
+have caught this the first time it rendered.
+
 ### The page said "not investable" and its own description said "Deposit"
 
 Every check in this repo measures what a visitor sees. The description tag is

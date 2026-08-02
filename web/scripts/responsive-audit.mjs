@@ -439,6 +439,26 @@ for (const el of all) {
   }
 }
 
+// A title segment repeated. Next composes titles from nested layout templates,
+// so a page that also appends the section by hand gets it twice: the result
+// not-found boundary set "Result not found · Spreadcast" under a template of
+// "%s · Spreadcast — Megawatt" and shipped
+// "Result not found · Spreadcast · Spreadcast — Megawatt" to the tab and to
+// search results.
+//
+// It is invisible from inside one file — the page and the boundary each looked
+// right, and only the composed string was wrong — which is what makes it worth
+// a check rather than a convention. General on purpose: it needs no list of
+// section names, just the observation that no part of a title should appear
+// twice.
+{
+  const parts = document.title.split(/[·—|]/).map((p) => p.trim()).filter(Boolean);
+  const dupes = parts.filter((p, i) => parts.indexOf(p) !== i);
+  if (dupes.length)
+    findings.push({ kind: "title-segment-repeated", el: "document.title",
+      detail: JSON.stringify(document.title) + " repeats " + JSON.stringify(dupes[0]) });
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
