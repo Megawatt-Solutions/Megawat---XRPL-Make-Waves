@@ -491,6 +491,7 @@ try {
       const a = document.activeElement;
       if (!a || a === document.body) return { none: true };
       const r = a.getBoundingClientRect();
+      const cs = getComputedStyle(a);
       const cls = typeof a.className === "string" ? a.className.trim().split(/\s+/).slice(0,2).join(".") : "";
       return { tag: a.tagName.toLowerCase(), cls,
         text: (a.textContent || "").trim().replace(/\s+/g," ").slice(0,26) || a.getAttribute("aria-label") || "",
@@ -512,7 +513,38 @@ try {
         // tag+class+text cannot tell the two charts' "1W" buttons apart and
         // ended the walk 24 stops early; including position instead breaks on
         // position:fixed elements, whose document offset moves as you scroll.
-        repeat: a.dataset.tabseen === "1" ? true : (a.dataset.tabseen = "1", false) };
+        repeat: a.dataset.tabseen === "1" ? true : (a.dataset.tabseen = "1", false),
+        // WCAG 2.4.7 is about the ring being SEEN, and a correct
+        // :focus-visible rule is not enough on its own. This app draws the
+        // ring 2px outside the element, and any control that fills a rounded
+        // parent with overflow: hidden has it cut off. Measured here rather
+        // than assumed, because a probe that calls el.focus() gets Chrome's
+        // OWN default ring instead of the page's — programmatic focus does not
+        // reliably match :focus-visible — and reports numbers for a ring the
+        // app never draws. This runs inside the trusted-Tab walk, so the ring
+        // it measures is the real one.
+        ringCut: (() => {
+          const ow = parseFloat(cs.outlineWidth) || 0;
+          const oo = parseFloat(cs.outlineOffset) || 0;
+          if (cs.outlineStyle === "none" || ow === 0) return 0;
+          for (let p = a.parentElement; p && p !== document.body; p = p.parentElement) {
+            const pcs = getComputedStyle(p);
+            if (!/hidden|clip/.test(pcs.overflowX + pcs.overflowY)) continue;
+            const pr = p.getBoundingClientRect();
+            return Math.round(Math.max(
+              pr.left - (r.left - oo - ow), pr.top - (r.top - oo - ow),
+              (r.right + oo + ow) - pr.right, (r.bottom + oo + ow) - pr.bottom));
+          }
+          return 0;
+        })(),
+        ringBy: (() => {
+          for (let p = a.parentElement; p && p !== document.body; p = p.parentElement) {
+            const pcs = getComputedStyle(p);
+            if (!/hidden|clip/.test(pcs.overflowX + pcs.overflowY)) continue;
+            return typeof p.className === "string" && p.className ? p.className.split(/\s+/)[0] : p.tagName;
+          }
+          return "";
+        })() };
     })()`;
     for (const w of WIDTHS) {
       await s("Emulation.setDeviceMetricsOverride", { width: w, height: w < 768 ? 844 : 900, deviceScaleFactor: 1, mobile: w < 768 });
@@ -536,6 +568,10 @@ try {
           seq.push(d);
         }
         const ghosts = seq.filter(x => x.hidden);
+        // A ring the container cuts off is a ring nobody sees. Grouped by the
+        // clipping ancestor, because the fix belongs to the container rather
+        // than to each control inside it.
+        const clipped = seq.filter(x => !x.hidden && x.ringCut > 0);
         const off = seq.filter(x => !x.hidden && !x.onScreen);
         const jumps = [];
         for (let i = 1; i < seq.length; i++)
@@ -551,11 +587,13 @@ try {
         // Report tab-bar reachability explicitly: reordering the DOM to fix
         // focus order must never orphan the five destinations it contains.
         const inBar = seq.filter(x => x.inBottomNav).length;
-        const bad = ghosts.length || off.length || jumps.length;
+        const bad = ghosts.length || off.length || jumps.length || clipped.length;
         console.log(`  [${w}] ${route.padEnd(26)} ${String(seq.length).padStart(3)} stops` +
           (cycled >= 0 ? " (cycles)" : " (NO CYCLE)") +
           (inBar ? `  tabbar=${inBar}` : "") +
-          (bad ? `  ** ghosts=${ghosts.length} offscreen=${off.length} jumps=${jumps.length}` : "  ok"));
+          (bad ? `  ** ghosts=${ghosts.length} offscreen=${off.length} jumps=${jumps.length} focus-ring-clipped=${clipped.length}` : "  ok"));
+        for (const c of clipped.slice(0, 3))
+          console.log(`        focus ring cut ${c.ringCut}px by .${c.ringBy}: ${c.tag}${c.cls ? "." + c.cls : ""} "${c.text.slice(0, 20)}"`);
         for (const g of ghosts) console.log(`        tabbable but 0x0: ${g.tag}.${g.cls} "${g.text}"`);
         for (const o of off) console.log(`        focused off-screen: ${o.tag}.${o.cls} "${o.text}"`);
         for (const j of jumps) console.log(`        order jump: ${j}`);
