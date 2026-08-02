@@ -159,7 +159,15 @@ export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
     vaultId: vault.id,
     live: { timestamp: new Date(0).toISOString(), housePowerKw, channels },
     production: hasSolar
-      ? { label: "Solar Production", todayKwh: round(wob(1150, 80)), monthKwh: round(m.chargedMwh * 1000 * 0.18), yearKwh: round(m.chargedMwh * 1000) }
+      // 0.11, not 0.18. A month cannot be 18% of a year: the card showed
+      // TODAY 1,187 kWh, THIS MONTH 65.1 MWh and THIS YEAR 361 MWh, where the
+      // month implied 2,168 kWh/day — 1.8x its own "today", 8.7 kWh/kWp/day on
+      // a 250 kWp array, and month x 12 = 781 MWh against a stated year of 361.
+      // Three figures in one card, two of them contradicting the third.
+      // 0.11 is a peak summer month in Slovenia and gives 1,283 kWh/day, just
+      // above a partly-cloudy today — which is what the weather card beside it
+      // says the day is.
+      ? { label: "Solar Production", todayKwh: round(wob(1150, 80)), monthKwh: round(m.chargedMwh * 1000 * 0.11), yearKwh: round(m.chargedMwh * 1000) }
       : { label: "Energy Throughput", todayKwh: round(wob(kw * 4.1, 200)), monthKwh: round(m.dischargedMwh * 1000 * 0.18), yearKwh: round(m.dischargedMwh * 1000) },
     weather: hasSolar
       ? { tempC: 23, condition: "Partly Cloudy", location: vault.location.split(",")[0], icon: "partly" }
@@ -190,8 +198,14 @@ function buildDevices(vault: Vault): DeviceGroup[] {
       label: "Solar power plant",
       deviceCount: 4,
       metrics: [
-        { label: "Produced", value: round(m.chargedMwh * 1000 * 0.0089, 1), unit: "kWh", kind: "yield" },
-        { label: "Self-used", value: round(m.chargedMwh * 1000 * 0.0064, 1), unit: "kWh", kind: "self" },
+        // Daily scale, like every other row in this panel. Grid shows 87 kWh
+        // imported and the battery 101 kWh charged — both a day's worth — while
+        // solar showed 3,217 kWh with no period stated: about three days of
+        // output, sitting 2.7x above the "TODAY 1,187 kWh" on the same screen.
+        // 0.0032 lands on ~1,156 kWh, matching that card, and self-used at
+        // 0.0024 gives ~75%, matching the "Self Sufficiency 76%" beside it.
+        { label: "Produced", value: round(m.chargedMwh * 1000 * 0.0032, 1), unit: "kWh", kind: "yield" },
+        { label: "Self-used", value: round(m.chargedMwh * 1000 * 0.0024, 1), unit: "kWh", kind: "self" },
         { label: "Inverter", value: 100, unit: "%", kind: "soc" },
       ],
     });

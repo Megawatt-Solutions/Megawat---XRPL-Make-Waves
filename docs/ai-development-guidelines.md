@@ -3392,6 +3392,38 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Three figures in one card, two contradicting the third
+
+Last pass found a chart drawing a 250 kWp array at 370 kW. The same panel had
+more of it, and the useful move was to check the numbers against **each other**
+rather than against intuition — a card that disagrees with itself needs no
+domain knowledge to convict.
+
+    TODAY       1,187 kWh   4.75 kWh/kWp/day   plausible
+    THIS MONTH   65.1 MWh   8.70 kWh/kWp/day   impossible
+    THIS YEAR   361.4 MWh   1,446 kWh/kWp/yr   plausible
+
+The month was `chargedMwh * 0.18` — 18% of a year in one month. It implied
+2,168 kWh/day, 1.8x its own "today" two columns to the left, and month x 12 came
+to 781 MWh against a stated year of 361. Now 0.11: a peak Slovenian summer month,
+1,325 kWh/day, just above a partly-cloudy today — which is what the weather card
+beside it says the day is.
+
+Note that month x 12 is still 1.32x the year, and that is correct rather than a
+remaining bug: a peak month should exceed a twelfth of the annual total. The
+test is not "these multiply cleanly", it is "is the relationship the one the
+physical world would produce".
+
+The device panel had the second one. Every row in it is daily scale — 87 kWh
+grid import, 101 kWh battery charged, 235 kWh consumed — and solar showed
+**3,217 kWh with no period stated at all**, roughly three days of output, 2.7x
+the "TODAY" on the same screen. Now 1,157 kWh, within 3% of that figure, and
+self-used at 75% against the "Self Sufficiency 76%" printed beside it.
+
+What made all three findable was refusing to accept a number on its own. Each is
+defensible in isolation; only the ratios between them are wrong, and the ratios
+are what a reader forms an impression from.
+
 ### A 250 kWp array producing 370 kW
 
 Canvas is the one surface where no DOM check reaches — including the SVG
