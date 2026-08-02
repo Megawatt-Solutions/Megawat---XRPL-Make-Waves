@@ -3234,7 +3234,7 @@ button {
 @media (max-width: 700px) {
   /* Column headers stop meaning anything once the row stacks — the labels
      move into the rows instead. */
-  .mk-head, .pf-head { display: none; }
+  .pf-head { display: none; }
   .row-lbl {
     display: block;
     font-family: var(--mono);
@@ -3245,20 +3245,6 @@ button {
     font-weight: 500;
     margin-bottom: 3px;
   }
-
-  /* Identity and share count on the first line, the three metrics that decide
-     the trade on the second, and the action full-width on its own where it can
-     actually be tapped. */
-  .mk-row {
-    grid-template-columns: 1fr auto;
-    grid-template-areas: "id ask" "meta meta" "buy buy";
-    row-gap: 12px;
-    padding: 16px 0;
-  }
-  .mk-c-id { grid-area: id; }
-  .mk-c-shares { grid-area: ask; }
-  .mk-c-buy { grid-area: buy; }
-  .mk-c-buy .btn { width: 100%; }
 
   .pf-row {
     grid-template-columns: 1fr 20px;
@@ -3283,6 +3269,49 @@ button {
   /* The leading metric anchors the left edge; right-aligning its label over a
      shrink-to-fit box just makes the two ragged against each other. */
   .mk-meta > :first-child, .pf-meta > :first-child { text-align: left; }
+}
+
+/* The listing rows stack on ROOM, not on viewport width.
+   The rules above are keyed to max-width: 700px, which is the right question
+   at default text and the wrong one under zoom: the viewport does not change,
+   so at 768 and 820 with 200% text the six-column grid stayed on and its cells
+   printed over each other. Measured collisions, not overhangs — the name/seller
+   block ran 123px into the shares column, shares 48px into premium, six
+   overlaps in three rows.
+   A container query in em asks whether there is room for the content at the
+   text size in force. Calibrated against the breakpoint it replaces: the card
+   measures 40.3em at 700px and 40.3em at 701px, so 40.3em reproduces today's
+   behaviour at default text almost exactly, while at 200% the same cards at
+   768 and 820 measure 22.3em and 23.9em and stack, which is the point.
+   One mechanism, not two: the mk rules are gone from the media query above,
+   which keeps .pf-row and the shared .row-lbl since those are a different
+   surface. */
+.mk-card { container-type: inline-size; }
+@container (max-width: 40.3em) {
+  .mk-head { display: none; }
+  .mk-row .row-lbl { display: block; }
+  /* Identity and share count on the first line, the three metrics that decide
+     the trade on the second, and the action full-width on its own where it can
+     actually be tapped. */
+  .mk-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "id ask" "meta meta" "buy buy";
+    row-gap: 12px;
+    padding: 16px 0;
+  }
+  .mk-c-id { grid-area: id; }
+  .mk-c-shares { grid-area: ask; }
+  .mk-c-buy { grid-area: buy; }
+  .mk-c-buy .btn { width: 100%; }
+  .mk-meta {
+    grid-area: meta;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+  }
+  .mk-meta > :first-child { text-align: left; }
 }
 
 .sc-commit-head {

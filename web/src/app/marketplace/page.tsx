@@ -102,7 +102,7 @@ export default function MarketplacePage() {
         <span className="muted" style={{ fontSize: "0.8125rem" }}>Settled in RLUSD</span>
       </div>
 
-      <div className="card" style={{ padding: "8px 20px" }}>
+      <div className="card mk-card" style={{ padding: "8px 20px" }}>
         {/* Column headers describe rows — with no rows they describe nothing,
             so they'd sit as a stray strip above the empty state on desktop. */}
         <div className="drow-head mk-head caps" aria-hidden="true" hidden={views.length === 0}>
