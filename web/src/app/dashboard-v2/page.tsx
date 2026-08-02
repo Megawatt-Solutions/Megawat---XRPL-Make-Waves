@@ -12,7 +12,14 @@ import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
   title: "Protocol overview",
-  description: "Value locked, depositor yield and deployed capacity across the Megawatt vault network.",
+  // Same correction the visible subtitle already got, applied to the copy that
+  // reaches search results and link previews. This said "Value locked,
+  // depositor yield" — the two claims removed from the page below for being
+  // wrong: the tiles show operational-site capex and site revenue, and there
+  // are no depositors yet. The sentence was fixed where it was visible and left
+  // where it was not.
+  description:
+    "Operational value, site revenue and deployed capacity across the Megawatt vault network.",
 };
 
 function Ticks() {

@@ -33,7 +33,25 @@ export async function generateMetadata(
   // MWh" — understating one figure, overstating the other, and inventing a
   // unit the vault does not warrant. The shared helpers keep sub-MW sites in
   // kW and match what the page itself prints.
-  const description = `${fmtPower(vault.spec.powerKw)} / ${fmtEnergy(vault.spec.energyKwh)} battery storage in ${vault.location}. Deposit RLUSD, earn a share of what it makes on the day-ahead market.`;
+  // The second sentence depends on whether you can actually put money in.
+  //
+  // It used to be the deposit line for every vault, which meant the two
+  // showcase sites carried "Deposit RLUSD, earn a share of what it makes" in
+  // search results and link previews — while the page itself carries a pill
+  // reading "Showcase site · not investable" and Site overview says deposits
+  // happen in the on-chain vaults instead. The page was careful and the
+  // sentence beside it contradicted it, in the copy that reaches people who
+  // have not opened the page.
+  //
+  // Keyed on `kind`, and that is the right key here: whether a site is
+  // investable is exactly what kind records. Not on `status` — a coming_soon
+  // on-chain vault is still one you will be able to deposit into, and the page
+  // says so with "Opens for fundraising next quarter".
+  const spec = `${fmtPower(vault.spec.powerKw)} / ${fmtEnergy(vault.spec.energyKwh)} battery storage in ${vault.location}.`;
+  const description =
+    vault.kind === "showcase"
+      ? `${spec} One of our operating sites, published so the performance behind Megawatt's numbers can be checked.`
+      : `${spec} Deposit RLUSD, earn a share of what it makes on the day-ahead market.`;
 
   return {
     title: vault.name,

@@ -3392,6 +3392,44 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The page said "not investable" and its own description said "Deposit"
+
+Every check in this repo measures what a visitor sees. The description tag is
+what everyone ELSE sees — a search result, a link pasted into a chat — and
+nothing had ever compared the two.
+
+Both showcase vaults shipped **"Deposit RLUSD, earn a share of what it makes on
+the day-ahead market"** as their meta and og:description, while the page itself
+carries a pill reading **"Showcase site · not investable"** and Site overview
+says deposits happen in the on-chain vaults instead. The page was carefully
+corrected; the sentence beside it was not — and the sentence beside it is the
+one that reaches people who have not opened the page.
+
+Keyed on `kind` now, which is the right key: whether a site is investable is
+exactly what `kind` records. Not `status` — a coming_soon on-chain vault is
+still one you will be able to deposit into, and the page says so.
+
+The same shape appeared once more in the same pass. `/dashboard-v2`'s
+description still read "Value locked, depositor yield and deployed capacity" —
+the two claims removed from that page's visible subtitle several passes ago
+because the tiles show operational-site capex and site revenue and there are no
+depositors. **The sentence was fixed where it was visible and left where it was
+not.**
+
+Encoded as a check, deliberately narrow: if the body says "not investable" and
+the description says "deposit", flag it. A general contradiction detector would
+have to understand the copy; this pair is worth hard-coding because the app
+states the negation in so many words.
+
+And a self-inflicted lesson while canarying it. I restored the old description
+to prove the check fires — it did — and then reverted with `git checkout --` on
+that path, which took the **legitimate fix in the same file** with it. The
+temporary-fixture technique only works when the file has no other uncommitted
+work; otherwise the revert has to remove the fixture line specifically. Caught
+it immediately because the verification grep came back empty, which is the
+argument for grepping for the fix rather than assuming the revert did what you
+meant.
+
 ### The 180px square nobody had rendered
 
 Last pass found a defect in an artifact with no DOM, so this pass enumerated the

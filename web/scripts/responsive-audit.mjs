@@ -417,6 +417,28 @@ for (const el of all) {
       detail: '"' + txt.split(" ").pop() + '" alone at ' + pct + "% over " + tops.length + " lines" });
 }
 
+// Metadata that contradicts the page it describes.
+//
+// Every check in this file measures what a visitor sees. The description tag is
+// what everyone ELSE sees — search results, a link pasted into a chat — and
+// nothing had ever compared the two. The two showcase vaults shipped
+// "Deposit RLUSD, earn a share of what it makes" while the page itself carries
+// a pill reading "Showcase site · not investable". The page was careful; the
+// sentence beside it was not, in the copy that reaches people who have not
+// opened the page.
+//
+// Deliberately one narrow pair rather than a general contradiction detector,
+// which would need to understand the copy. This pair is worth hard-coding
+// because the app states the negation in so many words.
+{
+  const desc = document.querySelector('meta[name="description"]');
+  const body = document.body.innerText;
+  if (desc && /not investable/i.test(body) && /\bdeposit\b/i.test(desc.content)) {
+    findings.push({ kind: "metadata-contradicts-page", el: 'meta[name=description]',
+      detail: "page says \"not investable\", description invites a deposit" });
+  }
+}
+
 const CTRL = "a[href], button, [role=button], input:not([type=hidden]), select, textarea";
 for (const el of [...document.querySelectorAll(CTRL)].filter(visible)) {
   const r = el.getBoundingClientRect();
