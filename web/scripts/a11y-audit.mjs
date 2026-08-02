@@ -498,6 +498,9 @@ try {
         // shrinks as you move DOWN the document — that reported four order
         // violations on a long page which were purely scrolling.
         docY: Math.round(r.top + window.scrollY),
+        // The id this control declares it operates, so a deliberate
+        // backwards move can be told apart from a DOM-order accident.
+        id: a.id || "", controls: a.getAttribute("aria-controls") || "",
         // 2px, not 1. Focusing an element below the fold scrolls it flush with
         // the viewport edge, and sub-pixel rounding lands it a fraction over —
         // measured bottom=901 against innerHeight=900. Three vault cards were
@@ -536,7 +539,14 @@ try {
         const off = seq.filter(x => !x.hidden && !x.onScreen);
         const jumps = [];
         for (let i = 1; i < seq.length; i++)
-          if (!seq[i-1].hidden && !seq[i].hidden && seq[i].docY < seq[i-1].docY - 60)
+          // A control that names the next stop via aria-controls is not
+          // out of order — it is pointing at it. The join link sits in
+          // the left column at 1280 and the field it opens is higher up
+          // in the right one, so the move is backwards on screen and
+          // exactly right in meaning. Keyed on the declared relationship,
+          // not on the element, so it cannot quietly excuse anything else.
+          if (!seq[i-1].hidden && !seq[i].hidden && seq[i].docY < seq[i-1].docY - 60 &&
+              !(seq[i-1].controls && seq[i-1].controls === seq[i].id))
             jumps.push(`${seq[i-1].tag}.${seq[i-1].cls}@${seq[i-1].docY} -> ${seq[i].tag}.${seq[i].cls}@${seq[i].docY}`);
         // Report tab-bar reachability explicitly: reordering the DOM to fix
         // focus order must never orphan the five destinations it contains.
