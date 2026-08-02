@@ -44,7 +44,7 @@ export default function MarketplacePage() {
       <div className="page-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 className="page-title">Marketplace</h1>
-          <div className="page-sub">Buy and sell vault positions - exit early or pick up yield at a discount.</div>
+          <div className="page-sub">Buy and sell vault positions: exit early, or pick up yield at a discount.</div>
         </div>
         <button className="btn btn-accent" onClick={() => (connected ? setShowSell(true) : connect())}>
           Sell a position

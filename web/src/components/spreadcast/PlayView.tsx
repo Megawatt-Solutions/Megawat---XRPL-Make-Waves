@@ -444,7 +444,7 @@ export function PlayView() {
           </h1>
           <p className="sc-sub" style={{ marginBottom: 0 }}>
             Slovenia&apos;s electricity price changes every hour. Predict how big the swing between the day&apos;s
-            highest and lowest price will be{isOpen ? ` on ${(state.open as { day: string }).day}` : ""} - free to
+            highest and lowest price will be{isOpen ? ` on ${(state.open as { day: string }).day}` : ""}. Free to
             play, every day.
           </p>
         </div>
@@ -679,7 +679,7 @@ export function PlayView() {
                   >
                     Join with your email
                   </button>{" "}
-                  to lock in your pick - it takes five seconds.
+                  to lock in your pick. It takes five seconds.
                 </p>
               )}
                 </>
@@ -929,7 +929,7 @@ export function PlayView() {
             <div className="panel sc-panel">
               <h2>Join free</h2>
               <p className="sc-notice" style={{ marginBottom: 12 }}>
-                Email only - instant play. No purchase, no deposits, ever.
+                Email only, instant play. No purchase, no deposits, ever.
               </p>
               {/* A real <form>, so Enter submits — this is a two-field signup
                   and reaching for the mouse to finish it is a needless step.
@@ -1083,7 +1083,7 @@ export function PlayView() {
           <div className="panel sc-panel">
             <h2>Prizes</h2>
             <p className="sc-notice">
-              <b style={{ color: "var(--accent)" }}>$500 RLUSD prize pool</b> - split across the top 10 of the
+              <b style={{ color: "var(--accent)" }}>$500 RLUSD prize pool</b>, split across the top 10 of the
               season leaderboard, paid on XRPL. Entry is always free; prizes are promotional awards from the
               sponsor, never a return on anything you paid.
             </p>

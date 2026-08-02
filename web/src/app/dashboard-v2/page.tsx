@@ -58,7 +58,7 @@ export default function DashboardV2Page() {
             <span className="dot pulse" style={{ background: "var(--accent)" }} />
             All systems operational
           </span>
-          <span className="ribbon-item">XRPL - Mainnet</span>
+          <span className="ribbon-item">XRPL · Mainnet</span>
         </div>
         <div className="ribbon-group ribbon-right">
           <span className="ribbon-item">Tokenization: XRPL MPT · RLUSD settlement</span>
@@ -80,7 +80,7 @@ export default function DashboardV2Page() {
             depositors), which is a statement about the model, not a claim that
             anyone has been paid. */}
         <div className="page-sub">
-          Institutional access to distributed battery storage - operational value, site revenue, and deployed
+          Institutional access to distributed battery storage: operational value, site revenue, and deployed
           capacity across the vault network.
         </div>
       </div>
@@ -173,7 +173,7 @@ export default function DashboardV2Page() {
       </div>
 
       {/* 02 — Charts */}
-      <SectionHead index="02" name="Performance" meta="TVL & depositor APY - historical" />
+      <SectionHead index="02" name="Performance" meta="TVL & depositor APY · historical" />
       <div className="v2-charts">
         <OverviewChart type="tvl" title="Total Value Locked" />
         <OverviewChart type="apy" title="Depositor APY" />
@@ -197,7 +197,7 @@ export default function DashboardV2Page() {
       <footer className="v2-footer">
         <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
           <BrandMark height={10} color="var(--muted)" />
-          Megawatt Protocol - Tokenized Energy Infrastructure
+          Megawatt Protocol · Tokenized Energy Infrastructure
         </span>
         <span>XRPL Mainnet · MPT receipt tokens · RLUSD settlement</span>
       </footer>

@@ -221,7 +221,7 @@ export function LeaderboardView() {
           reason to play rather than a reason to doubt. */}
       {rows != null && rows.length > 0 && rows.length < 4 && (
         <p className="sc-board-early">
-          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period - the
+          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period. The
           board fills as the week runs, and every prize tier is still open.
         </p>
       )}

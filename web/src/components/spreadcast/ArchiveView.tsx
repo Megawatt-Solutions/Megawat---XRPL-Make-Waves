@@ -92,7 +92,7 @@ export function ArchiveView() {
     <>
       <h1>Results</h1>
       <p className="sc-sub">
-        Every round is decided by the official European electricity market prices - never by us. Click a day for
+        Every round is decided by the official European electricity market prices, never by us. Click a day for
         the full price curve and everyone&apos;s revealed predictions.
       </p>
 
@@ -148,7 +148,7 @@ export function ArchiveView() {
         <div>
           <div className="sc-next-step-title">Every round settles here</div>
           <p className="sc-next-step-sub">
-            Yours will too - one pick a day, free, scored from the official published prices.
+            Yours will too: one pick a day, free, scored from the official published prices.
           </p>
         </div>
         <Link className="btn btn-accent" href="/spreadcast">
@@ -158,7 +158,7 @@ export function ArchiveView() {
 
       <h2>Weekly blockchain anchors</h2>
       <p className="muted" style={{ fontSize: "0.8125rem", marginBottom: 10 }}>
-        Once a week, a fingerprint of every prediction and result is written to XRPL - so even email-only players
+        Once a week, a fingerprint of every prediction and result is written to XRPL, so even email-only players
         get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
       {/* Column headers describe rows. With no anchors written yet this
@@ -176,7 +176,7 @@ export function ArchiveView() {
             <div className="empty-state-title">No weekly anchor yet</div>
             <p className="empty-state-body">
               The first fingerprint is written once a full week of rounds has settled. Until then every prediction is
-              still committed and revealed daily - open any day in the table above to see the record.
+              still committed and revealed daily. Open any day in the table above to see the record.
             </p>
           </div>
         </div>

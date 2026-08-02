@@ -36,7 +36,7 @@ export default function PortfolioPage() {
             <div className="empty-state-title">Your positions live here</div>
             <p className="empty-state-body">
               Connect a wallet to see what you&apos;ve deposited, what each vault has earned, and claim yield as it
-              accrues. Nothing is charged for connecting - it only reads your balances.
+              accrues. Nothing is charged for connecting; it only reads your balances.
             </p>
             <div className="empty-state-actions">
               <button className="btn btn-accent btn-sm" onClick={connect}>
