@@ -150,7 +150,7 @@ export function LeaderboardView() {
                 <td colSpan={8} style={{ padding: "22px 12px", textAlign: "center" }}>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Leaderboard unavailable</div>
                   <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 420 }}>
-                    Standings can&apos;t be loaded right now - the rest of Megawatt is unaffected.
+                    Standings can&apos;t be loaded right now. The rest of Megawatt is unaffected.
                   </p>
                   <button className="btn btn-ghost btn-sm" onClick={retry}>
                     Try again

@@ -150,7 +150,7 @@ export function PlayView() {
     const data = await res.json();
     setBusy(false);
     if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked - you're verified." });
+    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked. You're verified." });
     reload();
   };
 
@@ -167,7 +167,7 @@ export function PlayView() {
     setBusy(false);
     if (!res.ok) return setMsg({ kind: "err", text: data.error });
     setCommit({ hash: data.prediction.hash, signed: false });
-    setMsg({ kind: "ok", text: "Prediction locked in - you can change it until close." });
+    setMsg({ kind: "ok", text: "Prediction locked in. You can change it until close." });
     setEditing(false); // collapse back to the status strip
     reload();
   };
@@ -204,7 +204,7 @@ export function PlayView() {
         } else if (s.cancelled || s.expired) {
           clearInterval(iv);
           setSignFlow(null);
-          setMsg({ kind: "err", text: s.expired ? "Sign request expired - try again." : "Sign request declined in Xaman." });
+          setMsg({ kind: "err", text: s.expired ? "Sign request expired. Try again." : "Sign request declined in Xaman." });
         } else if (s.opened) {
           setSignFlow((f) => (f ? { ...f, opened: true } : f));
         }
@@ -746,7 +746,7 @@ export function PlayView() {
                           <img src={signFlow.qrPng} alt="Xaman commit QR" width={124} height={124} style={{ background: "#fff", padding: 5 }} />
                           <div style={{ display: "grid", gap: 8, justifyItems: "start" }}>
                             <span style={{ color: "var(--text-2)" }}>
-                              {signFlow.opened ? "Opened in Xaman - approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
+                              {signFlow.opened ? "Opened in Xaman. Approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
                             </span>
                             <a className="btn btn-ghost btn-sm" href={signFlow.deeplink} target="_blank" rel="noreferrer">
                               Open in Xaman app
@@ -887,7 +887,7 @@ export function PlayView() {
                       ✓ you called it · +{latest.mine.points} pts · streak {latest.mine.streak}
                     </span>
                   ) : (
-                    <span className="sc-pill">your pick missed - streak reset</span>
+                    <span className="sc-pill">your pick missed, streak reset</span>
                   ))}
               </div>
               <div

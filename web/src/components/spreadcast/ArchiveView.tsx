@@ -113,7 +113,7 @@ export function ArchiveView() {
                 <td colSpan={5} style={{ padding: "22px 12px", textAlign: "center" }}>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Results unavailable</div>
                   <p className="sc-notice" style={{ margin: "0 auto 12px", maxWidth: 440 }}>
-                    Past rounds can&apos;t be loaded right now - the rest of Megawatt is unaffected.
+                    Past rounds can&apos;t be loaded right now. The rest of Megawatt is unaffected.
                   </p>
                   <button className="btn btn-ghost btn-sm" onClick={retry}>
                     Try again
@@ -248,7 +248,7 @@ function ShareDay({ day, spread, band }: { day: string; spread: number; band: st
       // enough (insecure origin, no permission, unfocused document) that the
       // silent version would be a real dead end.
       if ((err as { name?: string })?.name === "AbortError") return;
-      setSaid("Couldn't copy - use Permalink");
+      setSaid("Couldn't copy. Use Permalink");
     }
   };
 

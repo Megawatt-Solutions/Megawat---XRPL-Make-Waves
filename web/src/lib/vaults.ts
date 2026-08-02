@@ -116,7 +116,7 @@ export const VAULTS: Vault[] = [
     sinkingFundBalance: 0,
     annualRevenue: 832000,
     description:
-      "Pipeline - a 5 MW / 10 MWh battery in Belgrade. Opens for fundraising next quarter.",
+      "Pipeline: a 5 MW / 10 MWh battery in Belgrade. Opens for fundraising next quarter.",
     seed: 707,
   },
 
@@ -152,7 +152,7 @@ export const VAULTS: Vault[] = [
     sinkingFundBalance: 0,
     annualRevenue: 260400,
     description:
-      "Pipeline - a 3 MW / 6 MWh battery near Leipzig bidding into the German aFRR and intraday markets.",
+      "Pipeline: a 3 MW / 6 MWh battery near Leipzig bidding into the German aFRR and intraday markets.",
     seed: 808,
   },
 
@@ -188,7 +188,7 @@ export const VAULTS: Vault[] = [
     sinkingFundBalance: 0,
     annualRevenue: 183400,
     description:
-      "Pipeline - a 2 MW / 4 MWh battery in Vilnius serving the Baltic FCR market after desynchronisation from the Russian grid.",
+      "Pipeline: a 2 MW / 4 MWh battery in Vilnius serving the Baltic FCR market after desynchronisation from the Russian grid.",
     seed: 909,
   },
 
@@ -224,7 +224,7 @@ export const VAULTS: Vault[] = [
     sinkingFundBalance: 0,
     annualRevenue: 217600,
     description:
-      "Pipeline - a 2.5 MW / 5 MWh battery in Bucharest targeting Romania's fast-growing balancing market.",
+      "Pipeline: a 2.5 MW / 5 MWh battery in Bucharest targeting Romania's fast-growing balancing market.",
     seed: 1010,
   },
 ];

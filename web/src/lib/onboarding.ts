@@ -68,9 +68,9 @@ export const STEPS: OnboardingStep[] = [
     body: "Everything lives under one nav. Nothing here needs a wallet to look at.",
     points: [
       "Vaults - every site, its capacity, and what it yields",
-      "Portfolio - your positions and claimable yield",
-      "Marketplace - trade a position before it matures",
-      "Spreadcast - the free daily game, explained next",
+      "Portfolio: your positions and claimable yield",
+      "Marketplace: trade a position before it matures",
+      "Spreadcast: the free daily game, explained next",
     ],
     cta: "What's Spreadcast?",
   },
@@ -79,7 +79,7 @@ export const STEPS: OnboardingStep[] = [
     eyebrow: "The daily habit",
     title: "Call tomorrow's spread",
     body:
-      "Spreadcast asks you to predict how far apart tomorrow's highest and lowest electricity prices will be - the exact number the batteries earn on. One pick a day, free, no purchase.",
+      "Spreadcast asks you to predict how far apart tomorrow's highest and lowest electricity prices will be, the exact number the batteries earn on. One pick a day, free, no purchase.",
     points: [
       "Pick a band before 11:45 Ljubljana time",
       "It settles against official European market prices",

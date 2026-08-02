@@ -769,7 +769,7 @@ function PositionCard(props: {
           <WalletIcon size={26} />
           <p className="empty-state-body" style={{ marginTop: 2 }}>
             {depositDisabled
-              ? `No deposits yet - this vault opens when the ${fmtCompact(vault.capex, vault.currency)} raise goes live. Your wallet is connected and ready.`
+              ? `No deposits yet. This vault opens when the ${fmtCompact(vault.capex, vault.currency)} raise goes live. Your wallet is connected and ready.`
               : `No deposits yet. The first ${fmtCompact(vault.capex, vault.currency)} of this raise is still open.`}
           </p>
         </div>
@@ -1006,7 +1006,7 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.75rem", color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>
           {kycOk ? <CheckIcon size={14} /> : <ShieldIcon size={14} />}
-          {kycOk ? "KYC verified - eligible to deposit" : "KYC verification required to deposit"}
+          {kycOk ? "KYC verified, eligible to deposit" : "KYC verification required to deposit"}
         </div>
 
         <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
