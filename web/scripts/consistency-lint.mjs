@@ -83,8 +83,19 @@ const RULES = [
   },
   {
     id: "raw-megawatt-field",
-    why: "prints a MW/MWh field directly; fmtPower/fmtEnergy pick the unit, so 350 kW does not become 0.3 MW",
-    re: /\{\s*[A-Za-z_$][\w.$]*\.(?:capacityMw|energyMwh|mw|mwh|totalMw)\s*(?:\.toFixed\(\d\))?\s*\}\s*(?:MW|MWh)\b/g,
+    why: "prints a power/energy field with a hardcoded unit; fmtPower/fmtEnergy pick it, so 350 kW does not become 0.3 MW and 6400 kWh does not stay 6400 kWh",
+    // powerKw and energyKwh added: those are the spec fields, and they are the
+    // ones that cross a unit boundary — a 6400 kWh site reads better as 6.4 MWh
+    // and fmtEnergy already does that. The original list named only the MW
+    // fields, which is the shape of the NetworkPanel defect rather than the rule.
+    //
+    // Deliberately NOT listed: chargedMwh/dischargedMwh, printed as "MWh" in
+    // four places. Checked rather than assumed — fmtEnergy has no GWh tier, so
+    // routing them through it returns the same string with one decimal fewer,
+    // and cumulative YTD throughput on an operating site never falls under
+    // 1 MWh. The field name and the unit agree and no magnitude misleads.
+    // solarKwp likewise: kWp is peak capacity, a unit neither formatter models.
+    re: /\{\s*[A-Za-z_$][\w.$]*\.(?:capacityMw|energyMwh|mw|mwh|totalMw|powerKw|energyKwh)\s*(?:\.toFixed\(\d\))?\s*\}\s*(?:MW|MWh|kW|kWh)\b/g,
   },
   {
     id: "currency-prefixed-rate",

@@ -3392,6 +3392,44 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### A dead link previewed as a settled result
+
+Restating the last three rules as invariants was mostly a quiet exercise, and
+the honest result is worth writing down as much as the defect that followed.
+
+`currency-prefixed-rate` holds: every `€/MWh` in the app is a suffix, which is
+the correct idiom, and the symbol-prefixed shape appears nowhere.
+
+`raw-megawatt-field` had a genuine gap — it listed only the MW fields, which is
+the shape of the NetworkPanel defect rather than the rule — so `powerKw` and
+`energyKwh` joined it. But `chargedMwh`/`dischargedMwh`, printed as "MWh" in
+four places, are deliberately left out. **Checked rather than assumed**:
+`fmtEnergy` has no GWh tier, so routing them through it returns the same string
+with one decimal fewer, and cumulative YTD throughput never falls under 1 MWh.
+Changing those would have been churn dressed as consistency.
+
+Then the OG share card, which no audit covers because it is a raster.
+
+For a day with no result it rendered **"SETTLED RESULT · SI DAY-AHEAD ·
+2099-01-01"** with the middle band lit at full opacity. Two claims, both false:
+a settlement, and a determined band outcome. `band = 2` exists so the colour
+lookup has something to index; it was reaching the rule and becoming an
+assertion. **A default that exists to keep a lookup safe must not become a
+claim.**
+
+The sharpest part is where it lands. The page itself calls `notFound()` for such
+a day — but the image route returns 200. So a dead or mistyped link 404s for
+anyone who clicks it and previews as a settled result for everyone who merely
+sees it pasted in a chat. The preview is the only part most people ever
+encounter, and it was the part making the claim.
+
+Both branches verified by generating the actual PNGs: the real day still reads
+196.76 €/MWh with the Swingy band lit in amber, the unknown day now reads
+"SI DAY-AHEAD · FREE DAILY GAME" with all five bands uniformly dimmed.
+
+Worth noting the coverage gap this sits in: everything else here is measured in
+a DOM, and this artifact has none. It was found by rendering it and looking.
+
 ### Auditing the rules the way I audit the app
 
 Last pass found a lint rule that matched the mistake I had made rather than the
