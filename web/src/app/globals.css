@@ -2837,6 +2837,29 @@ button {
    Note this is not a wide-viewport bug — main is already capped, so 1440, 1920
    and 2560 all rendered the same 140. It was wrong at every desktop width. */
 .sc-notice { color: var(--text-2); font-size: 0.8125rem; max-width: 68ch; }
+/* A button that reads as the link it behaves like. Inherits size and family so
+   it sits inside the sentence rather than interrupting it, and keeps the
+   underline so it is not colour alone that marks it as actionable — the notice
+   text is already --text-2, and accent-on-muted is a hue difference a
+   colour-blind reader can miss. */
+.sc-link-btn {
+  background: none;
+  border: 0;
+  /* 21px of line box is under the 24px minimum. WCAG 2.5.8 exempts targets
+     inside a sentence, and this one is — but the exemption is an argument and
+     padding is a fix, so take the fix. Padding grows the hit area of an inline
+     box without affecting the line height, and the negative margin cancels the
+     horizontal shift, so the sentence sets identically. Same technique the
+     cancel control in this view already uses. */
+  padding: 4px 2px;
+  margin: -4px -2px;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.sc-link-btn:hover { text-decoration-thickness: 2px; }
 
 /* Explanatory prose sitting under a data view — the leaderboard's legend and
    the how page's band paragraph. Both ran past the measure once the layout gave

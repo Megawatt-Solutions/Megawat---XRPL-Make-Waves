@@ -574,7 +574,38 @@ export function PlayView() {
                   </button>
                 </div>
               ) : (
-                <p className="sc-notice">Join with your email in the panel below — it takes five seconds.</p>
+                /* "in the panel below" was a positional instruction, and the
+                   position depends on the breakpoint. Measured against the
+                   join form's own email field: below at 390 and 768 — though
+                   682-844px below, so off-screen either way — and at 1280 and
+                   1920 it is 141px ABOVE and in the other column, x=875 against
+                   this line at x=131. The sentence pointed down and left at the
+                   width where the panel is up and right.
+                   Naming the control instead of its location is true at every
+                   width, and stays true the next time the layout changes.
+
+                   It is a button rather than prose because "below" was doing
+                   navigation work: on a phone the join form is 682-844px away,
+                   so even a truthful direction leaves the player hunting for
+                   it. This takes them there and puts the caret in the field. */
+                <p className="sc-notice">
+                  <button
+                    type="button"
+                    className="sc-link-btn"
+                    onClick={() => {
+                      const el = document.getElementById("sc-join-email");
+                      if (!el) return;
+                      el.scrollIntoView({
+                        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+                        block: "center",
+                      });
+                      el.focus({ preventScroll: true });
+                    }}
+                  >
+                    Join with your email
+                  </button>{" "}
+                  to lock in your pick — it takes five seconds.
+                </p>
               )}
                 </>
               )}
