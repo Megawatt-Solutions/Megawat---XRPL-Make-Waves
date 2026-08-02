@@ -24,6 +24,16 @@ export function PlayView() {
   // "radio group, 1 of 5", the user presses an arrow, and nothing happens.
   const bandRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [exact, setExact] = useState("");
+  // The tiebreaker was sent as `Number(exact)`, and JSON.stringify turns NaN
+  // into null — so "abc" left the browser as no tiebreaker at all, with nothing
+  // said. A tiebreaker is what settles a tie on the leaderboard, so silently
+  // dropping it costs the player the tie they thought they had covered.
+  // "-50" went through untouched, and a swing is a day's high minus its low:
+  // it cannot be negative.
+  // Empty stays valid — the field is optional and says so.
+  const exactTrimmed = exact.trim();
+  const exactInvalid =
+    exactTrimmed !== "" && !(Number.isFinite(Number(exactTrimmed)) && Number(exactTrimmed) >= 0);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -544,9 +554,22 @@ export function PlayView() {
                   inputMode="decimal"
                   value={exact}
                   onChange={(e) => setExact(e.target.value)}
+                  aria-invalid={exactInvalid || undefined}
+                  aria-describedby={exactInvalid ? "sc-exact-err" : undefined}
                 />
                 <span className="muted" style={{ fontSize: "0.75rem" }}>€/MWh</span>
               </div>
+              {/* Visible, not sr-only. The submit hint above it can be sr-only
+                  because its reason is five large cards on screen — a sighted
+                  player already knows why the button is dim. Nothing on screen
+                  says why "abc" is a problem, so hiding this would repeat the
+                  countdown defect: the accessible version informing more than
+                  the visual one. */}
+              {exactInvalid && (
+                <p id="sc-exact-err" className="sc-field-err" role="alert">
+                  Enter a number like 92.5 — a swing is a high minus a low, so it cannot be negative. Or leave it blank.
+                </p>
+              )}
               {/* On mobile this docks flush against the bottom tab bar, so the
                   CTA and the nav read as one assembly rather than a button
                   colliding with chrome. Static on desktop. */}
@@ -559,16 +582,18 @@ export function PlayView() {
                       states the rule this follows — "a disabled button with no
                       stated reason is a dead end" — so the reason is attached
                       when, and only when, it applies. */}
-                  {sel == null && (
+                  {(sel == null || exactInvalid) && (
                     <span id="sc-submit-hint" className="sr-only">
-                      Pick one of the five bands above to enable this.
+                      {sel == null
+                        ? "Pick one of the five bands above to enable this."
+                        : "Fix the exact swing, or clear it, to enable this."}
                     </span>
                   )}
                   <button
                     className="btn btn-accent btn-block"
                     onClick={submit}
-                    disabled={busy || sel == null}
-                    aria-describedby={sel == null ? "sc-submit-hint" : undefined}
+                    disabled={busy || sel == null || exactInvalid}
+                    aria-describedby={sel == null || exactInvalid ? "sc-submit-hint" : undefined}
                   >
                     {state.mine ? "Update prediction" : "Lock in prediction"}
                   </button>
