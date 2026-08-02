@@ -3392,6 +3392,39 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The ratio test, applied twice more
+
+Same method as last pass — compare the figures to each other rather than to
+intuition — on the two cards I had not checked.
+
+**The battery panel contradicted a number printed on the same page.** It showed
+101 kWh charged against 81 discharged, an 80.2% round trip, while the State of
+charge card says **93.1% Round-trip efficiency**. The underlying metrics agree
+with the card: 336.20 / 361.40 = 93.0%. The panel broke a correct ratio in the
+act of displaying it, by scaling charged by 0.28 and discharged by 0.24. One
+shared factor and the ratio survives — now 101 and 94, which is 93.0%.
+
+**The savings card annualised past its own site.** €3,120 a month is €37.4K a
+year against an annual run-rate of €29.3K printed two cards away, and 2.9x the
+€12,950 net YTD the same card totals to. Both figures now derive from
+`vault.annualRevenue` — day and month land within 1% of each other and
+annualise to exactly the run-rate.
+
+Then the part I nearly shipped half-done. Having fixed the solar branch I ran
+the non-solar one and it had the same defect, worse: `todayValue` was a flat
+`wob(2480, 200)` regardless of site, so Metlika showed **€2,477 a day — €904K a
+year against its own €295K run-rate**, and 3.1x the daily average implied by its
+own "This Month". Its `monthValue` was already correct, which is exactly what
+made the day figure visible once the two were compared instead of read
+separately.
+
+Two process notes. A `python` string replacement failed silently on a trailing
+`,` I had typed as `;` — the build then succeeded with the old code, and only
+re-measuring the page caught it. **A replacement that asserts its match is
+worth the extra line**, and re-measuring after a fix is worth more. And the
+sibling branch was one `?:` away from the one I had just edited; I found it only
+because I ran the other site, not because the diff suggested it.
+
 ### Three figures in one card, two contradicting the third
 
 Last pass found a chart drawing a 250 kWp array at 370 kW. The same panel had

@@ -173,8 +173,19 @@ export function getTelemetry(vault: Vault, t: number): SiteTelemetry {
       ? { tempC: 23, condition: "Partly Cloudy", location: vault.location.split(",")[0], icon: "partly" }
       : { tempC: 26, condition: "Clear", location: vault.location.split(",")[0], icon: "sun" },
     savings: hasSolar
-      ? { currency: ccy, primaryLabel: "Self Sufficiency", selfSufficiencyPct: round(wob(78, 6)), todayValue: round(wob(142, 14), 2), monthValue: round(wob(3120, 60)), totalValue: round(m.netYtd) }
-      : { currency: ccy, primaryLabel: "Revenue", selfSufficiencyPct: 96, todayValue: round(wob(2480, 200)), monthValue: round(m.netYtd * 0.18), totalValue: round(m.netYtd) },
+      // Derived from the site's own annual revenue rather than fixed constants.
+      // The card ends in totalValue: netYtd, so it is describing this site's
+      // earnings — and the constants had it earning 3,120/month, which is
+      // 37,440 a year against an annual run-rate of 29,300 printed two cards
+      // away, and 2.9x the 12,950 net YTD the same card totals to.
+      ? { currency: ccy, primaryLabel: "Self Sufficiency", selfSufficiencyPct: round(wob(78, 6)), todayValue: round(wob(vault.annualRevenue / 365, vault.annualRevenue / 365 * 0.2), 2), monthValue: round(wob(vault.annualRevenue / 12, vault.annualRevenue / 12 * 0.05)), totalValue: round(m.netYtd) }
+      // Same correction as the solar branch above, and it needed it just as
+      // badly: todayValue was a flat 2,480 whatever the site, so Metlika showed
+      // €2,477 a day — €904K a year against its own €295K run-rate, and 3.1x
+      // the daily average implied by its own "This Month". monthValue was
+      // already fine (23.9K x 12 = 287K against 295K), which is what made the
+      // day figure stand out once the two were compared rather than read apart.
+      : { currency: ccy, primaryLabel: "Revenue", selfSufficiencyPct: 96, todayValue: round(wob(vault.annualRevenue / 365, (vault.annualRevenue / 365) * 0.2)), monthValue: round(m.netYtd * 0.18), totalValue: round(m.netYtd) },
     devices: buildDevices(vault),
   };
 }
@@ -215,8 +226,14 @@ function buildDevices(vault: Vault): DeviceGroup[] {
     label: "Battery",
     deviceCount: 1,
     metrics: [
+      // The SAME factor for both, so the ratio survives. 0.28 and 0.24 gave
+      // 101 kWh charged against 81 discharged — an 80.2% round trip — while the
+      // State of charge card on the same page prints "93.1% Round-trip
+      // efficiency". The underlying metrics already agree with that card:
+      // 336.20 / 361.40 = 93.0%. Two different scale factors broke a ratio that
+      // was correct in the data before it was displayed.
       { label: "Charged", value: round(m.chargedMwh * 0.28), unit: "kWh", kind: "charge" },
-      { label: "Discharged", value: round(m.dischargedMwh * 0.24), unit: "kWh", kind: "discharge" },
+      { label: "Discharged", value: round(m.dischargedMwh * 0.28), unit: "kWh", kind: "discharge" },
       { label: "State of charge", value: round(m.socPct), unit: "%", kind: "soc" },
     ],
   });
