@@ -3392,6 +3392,41 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### Measuring while the page is still moving
+
+The skip-link false positive was a transition read at t=0, so this pass asked
+where else the suite measures during motion. The answer was measurable rather
+than speculative: `document.getAnimations()` at settle time reports **7 running
+on /dashboard-v2** — the pulsing status dot, and six `.globe-pin` elements
+mid-opacity-transition.
+
+The pins are the problem. `painted()` excludes opacity **exactly** 0, so a pin
+caught at 0.4 counts as visible — and pins are absolutely positioned on a
+rotating globe, drifting in and out of the viewport. That is an intermittent
+geometry finding on something nobody can see, and it is the failure mode already
+described in that helper's own comment. The mitigation was written for pins that
+have finished fading; it does nothing for pins still fading.
+
+Both sweeps now freeze motion before measuring:
+
+    *,*::before,*::after{transition:none!important;animation:none!important}
+
+`transition: none` does not pause a transition — it snaps the element to its
+target. So a pin fading toward 0 lands at 0 and is excluded deterministically,
+rather than being caught at whatever fraction the frame happened to fall on.
+Verified: running animations 7 to 0, and two identical full runs.
+
+Two things checked rather than assumed. The `pulse` keyframe goes 1 to 0.35 to
+1, never 0, so the status dot was never at risk — worth confirming before
+treating it as a cause. And the canary still passes, because it runs its own
+script outside the frozen page.
+
+The general shape, third time this session: **an instrument that samples a
+moving target reads a value no user is shown for more than a frame.** The
+scroll-lock check needed trusted input, the Tab check needed trusted input, and
+these two needed the page to hold still. In every case the wrong answer looked
+plausible.
+
 ### Three wrong checks before one that worked
 
 Walked the real tab order on the main pages with trusted keys. **The app is

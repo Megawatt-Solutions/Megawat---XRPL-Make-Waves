@@ -49,6 +49,26 @@ const CHECK = String.raw`
 // Audit each page in every state its own controls can reach, not just the one
 // it loads in. Tabs, range selectors and filters all re-render layout, and a
 // sweep that only measures the default state never sees any of it.
+// Freeze motion before measuring anything.
+//
+// Six .globe-pin elements are mid-opacity-transition at the moment this runs on
+// dashboard-v2 — measured, not guessed: document.getAnimations() reported 7
+// running at settle time. painted() excludes opacity EXACTLY 0, so a pin caught
+// at 0.4 counts as visible, and pins sit absolutely positioned on a rotating
+// globe, drifting in and out of the viewport. That is an intermittent finding
+// on something nobody can see, and it is the same trap that made the a11y focus
+// check report a correct skip link as stranded: measuring during a transition
+// reads a position no user is ever shown for more than a frame.
+//
+// transition: none does not pause a transition, it snaps the element to its
+// target — so a pin fading toward 0 lands at 0 and is excluded deterministically.
+// Verified: running animations 7 -> 0.
+const __freeze = document.createElement("style");
+__freeze.textContent = "*,*::before,*::after{transition:none!important;animation:none!important}";
+document.head.appendChild(__freeze);
+void document.body.offsetHeight;
+await new Promise((r) => setTimeout(r, 50));
+
 const W = window.innerWidth;
 const visible = (el) => {
   if (!el.getClientRects().length) return false;
