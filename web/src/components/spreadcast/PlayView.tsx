@@ -77,6 +77,25 @@ export function PlayView() {
   // below — they cannot move down next to the render that uses them.
   const [resultSeen, setResultSeen] = useState(true);
   const [editing, setEditing] = useState(false);
+  // Both edges of this toggle destroy the control that was focused, and focus
+  // fell to <body> each time — measured after clicking "Change pick":
+  // activeElement was BODY. A keyboard or screen-reader player activates the
+  // button, the button ceases to exist, and they are returned to the top of the
+  // document with no idea the picker opened.
+  // Entering: the checked band, because changing it is why they pressed it.
+  // Leaving: the button they will have come back to the strip to press again.
+  const changePickRef = useRef<HTMLButtonElement | null>(null);
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    // Only on the transitions, never on mount: `editing` starts false, and a
+    // bare `if (!editing)` here would grab focus on first paint.
+    // sel is the band index and bandRefs is keyed by it, so no lookup is
+    // needed — and this must not depend on `bands`, which is computed after an
+    // early return and so cannot be read from a hook.
+    if (editing && !wasEditing.current) bandRefs.current[sel ?? 0]?.focus();
+    else if (!editing && wasEditing.current) changePickRef.current?.focus();
+    wasEditing.current = editing;
+  }, [editing, sel]);
   // Chart readouts — the touch-reachable replacement for hover tooltips.
   const [tip, setTip] = useState<string | null>(null);
   const [hourTip, setHourTip] = useState<string | null>(null);
@@ -471,7 +490,7 @@ export function PlayView() {
                     </div>
                   </div>
                   <span className="sc-pill ok">Locked</span>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
+                  <button ref={changePickRef} className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
                     Change pick
                   </button>
                 </div>
@@ -597,6 +616,27 @@ export function PlayView() {
                   >
                     {state.mine ? "Update prediction" : "Lock in prediction"}
                   </button>
+                  {/* "Change pick" had no way back. The only path out of edit
+                      mode was a successful submit, so a player who pressed it by
+                      accident — or looked at the bands and decided to stand pat —
+                      could not return to the locked strip without re-submitting a
+                      prediction they had already made.
+                      It restores sel and exact from the stored pick as well as
+                      collapsing, because the picker is live: someone can click
+                      three bands while deciding, and "keep" has to mean the one
+                      on the server, not the last one they touched. */}
+                  {state.mine && editing && (
+                    <button
+                      className="btn btn-ghost btn-block"
+                      onClick={() => {
+                        setSel(state.mine!.band);
+                        setExact(state.mine!.exact != null ? String(state.mine!.exact) : "");
+                        setEditing(false);
+                      }}
+                    >
+                      Keep current pick
+                    </button>
+                  )}
                 </div>
               ) : (
                 /* "in the panel below" was a positional instruction, and the
@@ -617,6 +657,16 @@ export function PlayView() {
                   <button
                     type="button"
                     className="sc-link-btn"
+                    /* The element this operates, named in the accessibility
+                       tree rather than only in the click handler. It also
+                       explains the one thing the tab-order audit flags here:
+                       at 1280 this sits at y=493 and the field it leads to is
+                       at y=377 in the other column, so Tab appears to move
+                       backwards. It is not a DOM-order accident — the next
+                       thing after "Join with your email" is the email field.
+                       At 390 there is no jump at all, since one column puts
+                       them in visual order. */
+                    aria-controls="sc-join-email"
                     onClick={() => {
                       const el = document.getElementById("sc-join-email");
                       if (!el) return;
