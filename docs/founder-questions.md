@@ -91,3 +91,50 @@ budget, so I have not created one. If you want it, it is roughly:
 
 The audits need a running server on port 3100 and a Chrome binary; they find one
 via `CHROME_PATH` or the usual install locations.
+
+## "Total value locked" is your operating assets, not deposits
+
+`dashboard-v2` leads with:
+
+    TOTAL VALUE LOCKED
+    €2.44M
+    2 operational sites · €37.0K replacement fund
+
+That figure is `OPERATIONAL_VALUE` in `src/lib/protocol.ts`:
+
+```ts
+export const OPERATIONAL_VALUE =
+  VAULTS.filter((v) => v.kind === "showcase").reduce((s, v) => s + v.capex, 0);
+```
+
+— the combined capex of Ljubljana (€240K) and Metlika (€2.2M). Both are
+showcase sites: off-chain, not investable, and every card that shows one says
+"Showcase site · not investable". Depositor capital in the protocol is €0, and
+will be until the pipeline opens.
+
+The arithmetic is right and the subtitle is honest about scope. The question is
+the label. In this market "TVL" is a term of art for **capital third parties
+have placed in the protocol**, and it is the first number an institutional
+reader will look for. Ours currently means "book value of the batteries we
+operate", which is a genuinely impressive but different claim.
+
+Three ways forward, all small, none of them mine to pick:
+
+1. **Rename the tile** — "Operating assets" or "Assets under management" says
+   what the number is, and nobody has to interpret it.
+2. **Keep TVL and change what it counts** — depositor principal, which is €0
+   today and grows when the raise opens. Honest, and an empty headline metric
+   on a launch dashboard is a real cost.
+3. **Show both** — "Operating assets €2.44M" beside "Deposits €0", which is the
+   fullest picture and the most work.
+
+I have not changed it, because it is a positioning decision rather than a
+design one, and it is adjacent to `apyBps` and `currentValue` already in this
+file. Say which and it is a few lines.
+
+Everything else on that page checked out: the odometer hides its digit reels
+from assistive tech and exposes the real figure to it, the view tabs use
+`aria-pressed` in a labelled group and honour exactly the keyboard contract
+that pattern implies, and the figures cohere — cumulative yield €328,793
+against Ljubljana + Metlika annual revenue of €324.3K is about one year, and
+13.5% of €2.44M matches the projected APY beside it.
