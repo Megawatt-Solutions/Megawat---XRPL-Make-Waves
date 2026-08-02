@@ -187,7 +187,18 @@ for (let i = 0; i < 10; i++) {
 }
 
 const bad = results.filter(r => r.overflow.length || r.clipped.length || r.spill.length || r.pageOverflow);
+// Did the APP render, or is this Chrome's own error page? With the server down
+// every navigation "succeeds" into an error document, the geometry checks find
+// nothing wrong with it, and this reported "states exercised: 7 ... clean" and
+// exited 0. Counting states is not enough — a dead server still produces
+// states. The only honest signal is whether something the app owns is present.
+// NOT #main-content. Chrome's own "This site can't be reached" page contains an
+// element with that id, so including it made the sentinel present in exactly the
+// failure state it was meant to detect — the check passed on the error page and
+// reported it clean. Only selectors this app owns.
+const appLoaded = !!document.querySelector("header.nav, main.page, .sc-shell");
 return {
+  appLoaded,
   statesChecked: results.length,
   groupsFound: GROUPS.filter(s => document.querySelectorAll(s).length > 0),
   disclosuresOpened: opened,
@@ -271,6 +282,10 @@ try {
       const res = await s("Runtime.evaluate", { expression: `(async () => { ${CHECK} })()`, awaitPromise: true, returnByValue: true });
       if (res.exceptionDetails) { console.log(`  [${w}] ${route}: ERROR`); exitCode = 1; continue; }
       const v = res.result.value;
+      if (!v.appLoaded) {
+        console.log(`  [${w}] ${route}: APP DID NOT RENDER — measured something else (error page?)`);
+        exitCode = 1;
+      }
       states += v.statesChecked;
       for (const p of v.problems) {
         problems++;
@@ -289,7 +304,15 @@ try {
   }
   console.log(`
 states exercised: ${states}   disclosures opened: ${disclosures}   problem states: ${problems}`);
-  if (!problems) console.log("  clean.");
+  // Measuring nothing is a failed run, not a clean one. With the server down
+  // every navigation errors, every route is skipped, and this printed
+  // "states exercised: 0 ... clean." and exited 0 — so `npm run audit` would
+  // have reported success on an app that never loaded. A suite that cannot
+  // distinguish "nothing wrong" from "nothing checked" is worse than no suite.
+  if (states === 0) {
+    console.log("  NO STATES MEASURED — the server was unreachable or every route failed.");
+    exitCode = 1;
+  } else if (!problems) console.log("  clean.");
   if (problems) exitCode = 1;
 } catch (e) { console.error(String(e)); exitCode = 1; }
 finally { chrome.kill(); try {

@@ -3392,6 +3392,45 @@ Two more corrections getting the badge onto its own row:
 
 All six names are now single-line at 320, 360 and 390.
 
+### The suite had no front door, and two of it could not fail
+
+Went looking for audit modes nothing runs. The answer was larger than expected:
+**package.json had `dev`, `build`, `start` and nothing else.** Five audits and
+about a dozen modes existed only as commands I typed from memory each pass —
+undiscoverable to anyone who had not read the transcripts. `npm run audit`,
+`audit:canary`, `audit:deep` and `audit:all` now wire them up, which is what
+turns a habit into a thing a repo has.
+
+Wiring them exposed something worse. Testing the chain against a dead server —
+the most ordinary way a suite goes wrong — **overlay-audit and state-audit both
+exited 0**. So `npm run audit` would have reported success on an app that never
+loaded.
+
+overlay-audit was straightforward: nothing opened, so nothing was measured, and
+counting measurements fixed it.
+
+state-audit was not. It printed **"states exercised: 7 ... clean"** against a
+dead server, because Chrome answers a refused connection with its own error
+page, the geometry checks find nothing wrong with that page, and every route
+duly produces states. **Counting states cannot distinguish "nothing wrong" from
+"nothing checked"** — a dead server still produces states.
+
+So the guard became "did anything the app owns render". And the first version of
+that was wrong in the most instructive way available: I included `#main-content`
+in the sentinel, and **Chrome's error page contains an element with that id.**
+The marker chosen to prove the app loaded was present in precisely the failure
+state it was meant to detect, so the check passed on the error page and called it
+clean. Only app-owned selectors now — `header.nav, main.page, .sc-shell` —
+verified absent from the error document before being trusted.
+
+Both directions checked: dead server exits 1 and names the route, live server
+exits 0 and reports clean.
+
+Two smaller notes. `$?` after a pipe is the exit code of `tail`, not of the
+command — my first two "still exits 0" readings were measuring the wrong
+process. And `--routes "/"` needs `MSYS_NO_PATHCONV=1`, which my own guard
+caught and explained, which is the second time that guard has paid for itself.
+
 ### The comment predicted my mistake and I made it anyway
 
 Looked at the Odometer, the third reduced-motion consumer. **It is correct**, and

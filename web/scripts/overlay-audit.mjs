@@ -79,6 +79,7 @@ const asConnected = process.argv.includes("--as-connected");
 // name, route, selector to click (null = already open), selector that should appear
 const skipped = new Map();
 const gated = new Map();
+let measured = 0;
 const CASES = [
   { name: "onboarding",        route: "/?onboarding=1",  open: null,               expect: ".ob-sheet, [role=dialog]" },
   // Never runs anonymously: .sc-commit-why only renders once a signed-in user
@@ -300,6 +301,7 @@ try {
         if (seedId) await s("Page.removeScriptToEvaluateOnNewDocument", { identifier: seedId });
         continue;
       }
+      measured++;
       const flags = [];
       if (res.overflowsRight) flags.push("OVERFLOWS-RIGHT");
       if (res.tallerThanViewport && !res.scrollable && !res.bodyScrolls) flags.push("TALLER-THAN-VIEWPORT-NO-SCROLL");
@@ -379,6 +381,12 @@ try {
   } else {
     console.log("");
     console.log(gatedNames.length ? "every case that ran, ran at every width." : "every case ran at every width.");
+  }
+  // Same guard as state-audit: if nothing opened anywhere, the run proved
+  // nothing. With the server down every case skipped and this still exited 0.
+  if (measured === 0) {
+    console.log("NO OVERLAY MEASURED — the server was unreachable or every trigger failed.");
+    process.exitCode = 1;
   }
 } catch (e) { console.log("fatal: " + e); process.exitCode = 1; }
 finally { chrome.kill(); try {
