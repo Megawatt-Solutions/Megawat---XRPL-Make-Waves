@@ -72,6 +72,37 @@ entirely in `src/components/WalletModal.tsx` (`accredited` is derived at line 18
 from `profile.kycLevel`), so a "pending verification" treatment is a small,
 self-contained change there — say the word and I will make it.
 
+### One extra fact, found while reading the sheet
+
+The sheet was opened with a **watch-only** connection, which is an address the
+visitor pasted rather than one they proved they control. It still showed:
+
+    Accredited Investor
+    Megawatt Compliance · XRPL Credentials (XLS-70) · Jul 2026
+    ELIGIBLE
+    Accreditation    Full (Tier 2)
+
+The status line four lines above it correctly reads `XRPL · Mainnet ·
+watch-only`, so the component already knows. `profile.via` is used on line 66
+to choose between "Xaman sign-in" and "watch-only", and the accreditation block
+below simply does not consult it.
+
+That makes the claim narrower and more specific than the one above: whatever
+you decide about the placeholder badge in general, asserting a regulatory
+status for an address whose ownership has not been demonstrated is a different
+thing again. Anyone can paste anyone's address.
+
+It also makes the fix cheap whichever way you go, because the flag is already
+in hand:
+
+- gate the whole accreditation block on `profile.via === "xaman"`, or
+- keep it and qualify it, e.g. "Accreditation shown for the connected address;
+  ownership not verified in watch-only mode".
+
+Still not changed, for the same reason as above and one more: it sits inside
+the decision you have not made yet, so choosing for you here would be choosing
+the general question by way of a special case.
+
 ## The audit suite is ready for CI, but wiring it is your call
 
 `npm run audit` runs all five audits, `audit:canary` proves each check can still
