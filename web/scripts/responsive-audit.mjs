@@ -223,10 +223,21 @@ const painted = (el) => {
 const all = [...document.querySelectorAll("body *")].filter(painted);
 // An element inside overflow-x:auto is MEANT to exceed it — the vault table
 // deliberately scrolls sideways below 641px. Flagging those is pure noise.
+//
+// hidden and clip belong here for a different reason, and their absence was
+// producing phantom findings: an element clipped by an ancestor CANNOT be
+// visible past that ancestor, so it cannot overflow the viewport, whatever
+// getBoundingClientRect says — rects ignore an ancestor's clip entirely. The
+// header logo was reported at right=456 on eleven routes while sitting inside
+// a 0px-wide overflow:hidden parent, painting nothing at all.
+//
+// Nothing real is silenced: if the CLIPPING ancestor itself overflows the
+// viewport, this same loop reports the ancestor, which is the element a person
+// can actually see and fix.
 const inScroller = (el) => {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
     const ov = getComputedStyle(p).overflowX;
-    if (ov === "auto" || ov === "scroll") return true;
+    if (ov === "auto" || ov === "scroll" || ov === "hidden" || ov === "clip") return true;
   }
   return false;
 };

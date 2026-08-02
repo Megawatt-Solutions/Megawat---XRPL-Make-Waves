@@ -5553,21 +5553,33 @@ content. Fixed for the header (see the `.nav > *` block in `globals.css`).
 
 ### The honest state of the rest
 
-`audit:zoom` currently reports **25 pages with horizontal overflow and 150
-findings**:
+First run, and after one pass of working it down:
 
-| kind | count |
-|---|---|
-| `clipped-text` | 78 |
-| `overflows-viewport` | 37 |
-| `stranded-last-line` | 24 |
-| `text-overflows-box` | 10 |
-| `text-under-overlay` | 1 |
+| kind | first run | now |
+|---|---|---|
+| `clipped-text` | 78 | 78 |
+| `overflows-viewport` | 37 | 1 |
+| `stranded-last-line` | 24 | 13 |
+| `text-overflows-box` | 10 | 4 |
+| `text-under-overlay` | 1 | 1 |
+| **pages with horizontal overflow** | **25** | **1** |
+| **unique findings** | **150** | **97** |
+
+**The 150 was inflated and is corrected here**, because it was published
+before the check was right. `overflows-viewport` exempted `overflow-x:
+auto/scroll` ancestors but not `hidden`/`clip`, and
+`getBoundingClientRect` ignores an ancestor's clip entirely — so a 444×295
+logo path inside a 0px-wide `overflow:hidden` parent was reported on eleven
+routes while painting nothing. Part of the drop from 150 is those phantoms
+going away rather than pixels moving; the logo fix and the exemption address
+the same element from two sides and were not measured separately.
 
 This is a **backlog, not a gate**. `audit:zoom` is deliberately NOT part of
-`npm run audit`, `audit:deep` or `audit:all`, because wiring a 150-finding
-check into the chain that gates every commit trains people to ignore the
-chain. It is a separate entrypoint, run deliberately, and worked down.
+`npm run audit`, `audit:deep` or `audit:all`, because wiring a check this size
+into the chain that gates every commit trains people to ignore the chain. It is
+a separate entrypoint, run deliberately, and worked down.
+
+`clipped-text` is untouched and is the next thing to work on.
 
 The summary line names the mode — `root font scaled to 200% (text-only zoom,
 viewport unchanged)` — because "pages with horizontal overflow: 0" means two

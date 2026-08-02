@@ -302,6 +302,18 @@ button {
      the nav row is far taller than 24px so nothing around it shifts. */
   min-height: 24px;
 }
+/* The mark is a flex item with width:auto, and an SVG's min-content width is
+   zero — so when the wordmark beside it grows, flex takes the width out of the
+   logo rather than out of the text. Measured: 23x15 at normal text, 0x15 at
+   BOTH 150% and 200%. Not clipped, not shrunk — gone, on every page, while the
+   wordmark stayed. It also read as a phantom viewport overflow in the audit,
+   because the 444x295 path keeps its intrinsic box inside a 0px-wide
+   overflow:hidden parent.
+   flex-shrink:0 keeps the aspect ratio doing the sizing. The mark is 23px; the
+   header has room for it at every width this app supports. */
+.nav-brand > svg {
+  flex-shrink: 0;
+}
 
 .nav-links {
   display: flex;
@@ -2383,7 +2395,29 @@ button {
    cannot read is worse than a header that scrolls in a configuration this
    rare. */
 @media (min-width: 981px) {
-  .nav > * { min-width: 0; }
+  /* Descendants, not just children. Scoped to > * first, which fixed the
+     wallet cluster but left the Connect Wallet button overflowing its own
+     parent by 84px — the cluster measured 303px ending inside the viewport
+     while the button inside it ran to 1092 on a 1024 screen. min-width:auto
+     applies at every level of a flex tree, so exempting one level moves the
+     floor down rather than removing it.
+     Measured with the selector broadened: 1000 76->0, 1024 68->0, 1280 26->0,
+     every other width unchanged, normal size untouched, nav height 58px
+     throughout. overflow/text-overflow/white-space on .connect-btn were
+     measured alongside and changed nothing, so they are not here.
+
+     :not(.nav-link) because plain `.nav *` traded one defect for a worse one.
+     It cleared the viewport overflow and then let all five nav labels spill
+     35-72px past their own boxes, overlapping each other — a scrollbar is a
+     nuisance, overlapping labels are unreadable. The audit caught it:
+     text-overflows-box went 4 -> 64 in the same run that took pages with
+     horizontal overflow from 25 -> 1.
+
+     The floor belongs on the individual link, not on .nav-links: excluding the
+     whole container instead left 123px of overflow at 1024 and 60px at 1280,
+     because the container has to be free to shrink. With this selector both
+     numbers are 0 at 1024 and 1280, normal and 200%. */
+  .nav *:not(.nav-link) { min-width: 0; }
 }
 
 .chain-select { position: relative; }
