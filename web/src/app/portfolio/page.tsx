@@ -131,7 +131,7 @@ export default function PortfolioPage() {
         )}
       </div>
 
-      <div className="card" style={{ padding: "8px 20px" }}>
+      <div className="card pf-card" style={{ padding: "8px 20px" }}>
         <div className="drow-head pf-head caps" aria-hidden="true" hidden={POSITIONS.length === 0}>
           <span>Vault</span>
           <span style={{ textAlign: "right" }}>Deposited</span>

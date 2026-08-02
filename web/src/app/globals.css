@@ -3229,46 +3229,34 @@ button {
 
 /* Column headers supply the labels above 700px, so in-row labels are dead
    weight there. */
-.row-lbl { display: none; }
+/* The stacked-row label. Everything except `display` lives here, so the rules
+   that reveal it only ever toggle visibility. It was the other way round —
+   the whole declaration sat inside the max-width: 700px block — and the moment
+   .mk-row started stacking from a container query instead, the label appeared
+   at 768 under zoom in Inter 32px with no letter-spacing and no uppercase,
+   because the styling was still behind a viewport the page no longer matched.
+   Measured: 390 gave JetBrains Mono 20px uppercase, 768 gave Inter 32px. */
+.row-lbl {
+  display: none;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
 
 @media (max-width: 700px) {
   /* Column headers stop meaning anything once the row stacks — the labels
      move into the rows instead. */
-  .pf-head { display: none; }
-  .row-lbl {
-    display: block;
-    font-family: var(--mono);
-    font-size: 0.625rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-    margin-bottom: 3px;
-  }
 
-  .pf-row {
-    grid-template-columns: 1fr 20px;
-    grid-template-areas: "id chev" "meta chev";
-    row-gap: 12px;
-    padding: 14px 0;
-  }
-  .pf-c-id { grid-area: id; }
-  .pf-c-chev { grid-area: chev; align-self: center; }
 
   /* One shared metric strip for both surfaces: labelled figures spread across
      the row's own line. Baseline alignment keeps the numbers on a line even
      when one of them is a badge. */
-  .mk-meta, .pf-meta {
-    grid-area: meta;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    min-width: 0;
-  }
   /* The leading metric anchors the left edge; right-aligning its label over a
      shrink-to-fit box just makes the two ragged against each other. */
-  .mk-meta > :first-child, .pf-meta > :first-child { text-align: left; }
 }
 
 /* The listing rows stack on ROOM, not on viewport width.
@@ -3286,6 +3274,36 @@ button {
    One mechanism, not two: the mk rules are gone from the media query above,
    which keeps .pf-row and the shared .row-lbl since those are a different
    surface. */
+/* Same treatment, same reason, measured separately rather than assumed. The
+   portfolio row collided too under zoom — "BESS Leipzig 01" printing 41px over
+   "Deposited $640,000" at 768/200% — and its card calibrates identically:
+   40.3em at a 700px viewport, 40.3em at 701px.
+   The dashboard's .v2-row was tested the same way and needed nothing: zero
+   collisions at 768, 820, 1024, 1280 and 1920, at both text sizes. Three grids
+   sharing one pattern, and only two of them were broken by it. */
+.pf-card { container-type: inline-size; }
+@container (max-width: 40.3em) {
+  .pf-head { display: none; }
+  .pf-row .row-lbl { display: block; }
+  .pf-row {
+    grid-template-columns: 1fr 20px;
+    grid-template-areas: "id chev" "meta chev";
+    row-gap: 12px;
+    padding: 14px 0;
+  }
+  .pf-c-id { grid-area: id; }
+  .pf-c-chev { grid-area: chev; align-self: center; }
+  .pf-meta {
+    grid-area: meta;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+  }
+  .pf-meta > :first-child { text-align: left; }
+}
+
 .mk-card { container-type: inline-size; }
 @container (max-width: 40.3em) {
   .mk-head { display: none; }
