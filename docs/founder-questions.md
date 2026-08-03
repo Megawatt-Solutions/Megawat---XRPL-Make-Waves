@@ -219,3 +219,44 @@ One thing deliberately **not** done, and worth knowing why: shrinking the chip t
 its mark alone. The XRPL mark is a stylised X on a dark roundel, and at 16px
 beside a green Connect button it reads as a close button — wrong, and alarming
 next to the primary account control. It either keeps a word or it goes.
+
+---
+
+## The app can now be added to a home screen properly. Whether it should be
+## *installable* is your call
+
+Until today there was no web app manifest, so "Add to Home Screen" produced a
+browser shortcut: the page title as the label, browser chrome on launch, no
+splash. The app was already built for the standalone case and only lacked the
+file that says so — `layout.tsx` sets `viewportFit: "cover"` and the stylesheet
+pads the tab bar with `env(safe-area-inset-bottom)`, both of which exist
+precisely for a window with no browser UI at the bottom.
+
+There is a manifest now: name, short name, description, `start_url`,
+`display: standalone`, brand colours for the splash and system chrome, and the
+icons that exist. On iOS that is the whole story — the home-screen icon and
+label are correct.
+
+**What is deliberately not done, because it is a product decision:**
+
+Chrome will not offer to *install* the app without PNG icons at 192px and 512px
+(the manifest currently carries the SVG and the 180px Apple icon). Adding them
+is straightforward — two generated image routes reusing the mark that
+`apple-icon.tsx` already draws — but installability is a choice, not a
+completion:
+
+- An installed app has **no browser back button**. This app has a bottom tab bar
+  and in-app back links, so it would survive that, but it has never been tested
+  in standalone mode.
+- Chrome shows an install prompt on repeat visits. On a product where the
+  primary action is connecting a wallet, an install prompt competing with that
+  is a real consideration.
+
+Say the word and it is two files plus a standalone-mode pass. Left alone, the
+current state is strictly better than before and adds no prompt.
+
+**One thing fixed on the way there:** both icon files used `#0a0b0a` as their
+plate colour, described in a comment as coming from the brand tokens. It does
+not — `--mw-carbon` is `#030907`, and `#0a0b0a` appeared nowhere else in the
+codebase. It sat directly against `themeColor`, which is `#030907`. Both are the
+brand value now.

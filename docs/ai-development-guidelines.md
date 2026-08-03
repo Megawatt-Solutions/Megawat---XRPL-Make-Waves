@@ -6665,3 +6665,61 @@ is when the drift is created.
 reasoning in the original entries is still why the current code looks the way it
 does, and the wrong turn is often the more useful half — `.nav-brand` is a
 better warning as "this obvious fix was itself the defect" than as a tidy rule.
+
+---
+
+## The two files nobody looks at: icons and the manifest (2026-08-03)
+
+Everything in this app had been measured except how it presents itself *outside*
+the browser window.
+
+### A sixth near-black that claimed to be a brand token
+
+`apple-icon.tsx` declared:
+
+```
+// Brand tokens, mirrored from globals.css :root — same pair icon.svg uses.
+const CARBON = "#0a0b0a";
+```
+
+`--mw-carbon` is `#030907`. `#0a0b0a` appeared in exactly two files — that one
+and `icon.svg` — and nowhere else in the codebase. The comment asserted
+provenance the value did not have.
+
+It matters where it sits rather than on its own: this plate is the background of
+the iOS home-screen icon and the splash, directly against `themeColor`, which is
+`#030907`. Two near-blacks that disagree by seven values of red are invisible
+apart and a seam together.
+
+> A constant named after a token is not the token. The brand kit defines five
+> colours; this was a sixth, introduced by a comment saying it was one of the
+> five.
+
+### No manifest at all
+
+"Add to Home Screen" produced a browser shortcut — page title as the label,
+browser chrome on launch, no splash.
+
+The app was already built for the standalone case and only lacked the file that
+says so: `layout.tsx` sets `viewportFit: "cover"` and the stylesheet pads the
+tab bar with `env(safe-area-inset-bottom)`, both of which exist *precisely* for
+a window with no browser UI at the bottom. The evidence that this was an
+oversight rather than a decision was already in the code.
+
+`manifest.ts` now serves valid `application/manifest+json` with every required
+field, brand colours for splash and system chrome, and the icons that exist.
+
+**Stopped deliberately short of installability.** Chrome wants PNG icons at
+192px and 512px, which the manifest does not carry. Adding them is two generated
+routes — but an installed app has no browser back button and Chrome starts
+prompting on repeat visits, and neither has been tested here. That is a product
+decision, so it went to `founder-questions.md` with the cost stated, not into
+the code.
+
+**How to check this class of thing** — all of it is one `curl` away and none of
+it is visible in the app:
+
+```
+curl -sI /icon.svg /apple-icon /manifest.webmanifest    # status + content-type
+curl -s / | grep -oE '<link rel="(icon|apple-touch-icon|manifest)"[^>]*>'
+```

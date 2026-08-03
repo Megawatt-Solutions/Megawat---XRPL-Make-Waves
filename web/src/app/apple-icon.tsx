@@ -15,7 +15,15 @@ export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
 // Brand tokens, mirrored from globals.css :root — same pair icon.svg uses.
-const CARBON = "#0a0b0a";
+//
+// CARBON was #0a0b0a here and in icon.svg, and nowhere else in the codebase.
+// The comment above claims these come from the brand tokens and they did not:
+// --mw-carbon is #030907, and #0a0b0a was a sixth near-black that existed only
+// in the two icon files. Invisible on its own and not invisible in place — this
+// plate sits behind the mark on an iOS home screen and in the splash, directly
+// against themeColor, which is #030907. A value that claims provenance it does
+// not have is the thing worth fixing here; the pixels are the smaller half.
+const CARBON = "#030907";
 const GREEN = "#42E7AA";
 
 // The symbol from public/brand/megawatt-symbol-green.svg, unchanged.
