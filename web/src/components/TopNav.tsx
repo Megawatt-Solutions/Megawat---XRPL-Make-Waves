@@ -44,7 +44,10 @@ export function TopNav() {
       <header className="nav">
         <Link href="/" className="nav-brand">
           <BrandMark height={15} color="var(--accent)" />
-          Megawatt
+          {/* In a span so the compact bar can set it aside when the links need
+              the room. It becomes sr-only rather than display:none, so the link
+              is still called "Megawatt" and not just an unnamed graphic. */}
+          <span className="nav-brand-word">Megawatt</span>
         </Link>
 
         {/* The navigation landmark now wraps only the things that navigate.
@@ -65,7 +68,15 @@ export function TopNav() {
               aria-current={isActive(l.href) ? "page" : undefined}
               className={`nav-link ${isActive(l.href) ? "active" : ""}`}
             >
-              {l.label}
+              {/* Both, always in the DOM, one shown at a time by the container
+                  query in globals.css. At a 1000px window with 200% text the
+                  five labels need roughly twice the width the bar has, and no
+                  amount of shedding elsewhere closes that: the icons are the
+                  only version of this navigation that fits. The label stays as
+                  the accessible name, so nothing about the link changes for a
+                  screen reader when the visible form does. */}
+              <l.icon size={16} className="nav-link-icon" />
+              <span className="nav-link-label">{l.label}</span>
             </Link>
           ))}
         </nav>
@@ -83,7 +94,13 @@ export function TopNav() {
           ) : (
             <button className="connect-btn" onClick={connect} disabled={connecting}>
               <WalletIcon size={16} />
-              {connecting ? "Connecting…" : "Connect Wallet"}
+              {/* "Wallet" is in a span so the bar can drop it when there is no
+                  room for it, rather than truncating the label to "CONNECT WA…"
+                  or letting it paint outside its own button. The word carries
+                  no information the wallet icon beside it does not already
+                  give, so "Connect" is the same instruction one word shorter.
+                  Threshold and measurements are on .cb-word in globals.css. */}
+              {connecting ? "Connecting…" : <>Connect<span className="cb-word"> Wallet</span></>}
             </button>
           )}
         </div>

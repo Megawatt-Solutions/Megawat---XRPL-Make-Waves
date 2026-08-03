@@ -5949,3 +5949,174 @@ on a dense map.
 **So: left at 9px deliberately.** Recorded because the next pass to notice it
 will reach for the same padding fix, and the spacing measurement is the reason
 not to.
+
+---
+
+## The bar that could not have moved (2026-08-03)
+
+The header is `height: 58px`. That one constant hid a defect on every route,
+survived a fix that was measured and written up, and produced four separate
+lessons worth keeping.
+
+### The finding
+
+At 200% text the Connect button measured **91.5px inside the 58px bar**. Its top
+17.3px was cut off by the top of the window and its bottom 16.3px hung below the
+header's border, over the page. Every desktop width, every route.
+
+The cause was a *previous* fix. `min-width: 0` had been added to the bar's
+descendants to stop the button overflowing horizontally, and the note recording
+it says "nav height 58px throughout". That is true and it proves nothing:
+
+> **Measuring a container tells you nothing about its contents when the
+> container's size is a constant.**
+
+The bar was declared 58px, so it read 58px before the fix and 58px after,
+whatever happened inside it. The button shrank as intended; the text it held had
+to go somewhere, and it went down, out of a box that measures the same either
+way. The right measurement was the children's rects against the parent's.
+
+### `min-width: 0` is for wrappers, not for controls
+
+Letting a box shrink below its contents is correct for a **wrapper** — the
+wallet cluster should give ground. It is wrong for a **control**. With the
+button included, its box settled at 111px while its label needed 144, so
+"CONNECT" painted 33px outside the accent rectangle that is supposed to *be* the
+button.
+
+The label has to get shorter. The box must not get smaller than whatever label
+it ends up with. Those are two different fixes and both are needed.
+
+### What was underneath: links overflowing their own container
+
+Fixing the button exposed the larger problem. From **125% text upward, at every
+desktop width including 1920**, the five nav links ask for more width than the
+bar has. The links keep their own floor, so what gives is `.nav-links`, the box
+around them: it shrinks and the links carry on past its right edge, under the
+chain chip and the Connect button, which paint over them.
+
+```
+container width   links past their container   document overflow
+63.2em (1440@125%)        0px                        0
+61.4em (1280@125%)     14.8px                        0
+51.2em (1280@150%)    109.8px                        0
+40.3em (1000@150%)    159.9px                        0
+30.3em (1000@200%)    300.2px                        3px
+```
+
+**Document overflow was 0 for nearly all of it**, which is exactly why no audit
+ever saw this. The links overflow their container, and the container is inside
+the bar. A page-level overflow check cannot see a defect that stays inside the
+page.
+
+### The fix: a bar that sheds, cheapest thing first
+
+Three container-query steps on `.nav`, thresholds set from the table above, all
+nested inside the existing `min-width: 981px` query — a phone's bar carries no
+links and has room to spare, so a bare container query would compact every phone
+to solve a problem phones do not have.
+
+| step | container | what goes |
+|---|---|---|
+| 1 | ≤62em | chip drops "MAINNET" |
+| 2 | ≤55em | chip goes, wordmark goes, button drops "Wallet", link padding 14px → 8px |
+| 3 | ≤36em | link labels become their icons |
+
+Everything shed keeps an `sr-only` label, so nothing is lost to a screen reader,
+only to width. Navigation labels are the most valuable text in the bar and the
+last to go.
+
+**Estimating the saving was wrong.** Arithmetic on the chip's own width
+predicted it would return 141px; measured, it returned about 74, because the
+bar's other items take a share of anything freed. Every threshold here is set
+from what a change actually recovered, not from what its width suggested.
+
+### Fitting is not the same as being right
+
+Step 2 originally shrank the chip to its mark alone. Every measurement passed.
+The screenshot did not: the XRPL mark is a stylised X on a dark roundel, and at
+16px beside the Connect button **it reads as a close button** — wrong, and
+alarming next to the primary account control.
+
+> Screenshot the intermediate states of a responsive ladder. The numbers only
+> tell you it fits.
+
+The same decision had already been made the other way, on phones, and shipped:
+`@media (max-width: 640.98px)` shed "XRPL" and left the mark alone, with a
+comment describing it as a space saving. It is the same ambiguous × chip, in the
+layout most people use, within a thumb's reach of the primary account action.
+Below 640px there is no room to keep "XRPL" — the bar has 12px of slack at
+normal text — so the chip now goes entirely, still `sr-only` rather than
+`display: none` so the network stays announced.
+
+**A rule can be individually reasonable and wrong in the aggregate.** Nothing
+about that phone rule looks incorrect in isolation; it only looks wrong once you
+render it.
+
+### A rule overridden by source order fails silently
+
+`.nav-link-icon { display: none }` was written *after* the compact-bar block.
+Same specificity, later in the file, so it quietly beat the `display: block`
+that step 3 sets. The result was a nav bar with five invisible links: the labels
+went sr-only on cue and nothing took their place. Nothing warns about this.
+
+The same trap caught `.chain-select { position: relative }`, declared later at
+equal specificity, silently dropping an unprefixed `position: absolute`.
+
+**Declare a base rule beside its siblings, not after the block that overrides
+it** — or prefix the override so it wins on specificity rather than on order.
+
+### Probe caveat, confirmed a second time
+
+The vertical-spill probe reported 8–25px of spill at every step-2 size. It was
+an artifact: `getBoundingClientRect` **ignores an ancestor's clip**, and the
+sheds are `sr-only` (1×1, `overflow: hidden`, `clip-path: inset(50%)`), so the
+full-size chip inside them measures large and paints nothing. Confirmed with
+`elementFromPoint` below the bar — only `main.page` — and with a screenshot.
+
+This is the same bug the suite's `overflows-viewport` check had and fixed. It is
+worth assuming any new rect-based probe has it until proven otherwise. Teaching
+the probe to walk up and discard anything a clipping ancestor already cuts off
+took the reading to 0 at every step, which is the difference between asserting
+the artifact and measuring it.
+
+### The trap, three times in one change
+
+Three separate rules in this change were silently lost to source order:
+
+| rule | beaten by | symptom |
+|---|---|---|
+| `.nav-link-icon { display: none }` | itself, written after the block that turns it on | five invisible links |
+| `.chain-select` sr-only | `.chain-select { position: relative }` | shed element stayed in flow |
+| `.nav-link { padding: 0 8px }` | the 981–1180px band's own `.nav-link` | padding never applied on the narrow desktop widths that needed it most |
+
+All three at equal specificity, all three later in the file, none of them
+warned about by anything. The fix each time is a `.nav ` prefix so the override
+wins on specificity rather than on position — or, better, declaring the base
+rule beside its siblings in the first place.
+
+### What shedding an element does to its tap target
+
+The zoom audit caught the one regression: with the wordmark shed, `.nav-brand`
+is left as its mark alone and measured **23x24px** — one pixel under WCAG 2.5.8
+— on all twelve routes at 1024px and wider.
+
+The mark's own aspect ratio set that number. Nothing chose it. `.nav-brand`
+already carried `min-height: 24px` for exactly this reason in the other axis;
+it now carries `min-width` too.
+
+That fix needed `.nav-brand` added to the `min-width: 0` exclusion list beside
+`.nav-link` and `.connect-btn`, because the floor rule outranks a plain
+`.nav-brand` selector on specificity and would have discarded the minimum
+silently. Which is the same trap again, in a fourth place.
+
+> **When a responsive step removes part of a control, re-measure the control.**
+> What is left is often sized by whatever happens to remain, not by a decision.
+
+### Checked and correct
+
+`#main-content { scroll-margin-top: 110px }` looked like the same class of
+defect — a hardcoded clearance for chrome that grows with text. It is not. Both
+bars are fixed-height, so the chrome does not grow, and measured clearance after
+a skip-link jump is **72–82px positive at every width and text size tested**.
+Left alone.

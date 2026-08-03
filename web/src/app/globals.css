@@ -296,6 +296,11 @@ button {
   background: color-mix(in srgb, var(--mw-carbon) 88%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
+  /* So the bar can ask how much room it has AT THE CURRENT TEXT SIZE, which is
+     the actual question: the bar's width in px never changes, but everything
+     inside it grows with the reader's font setting. See .cb-word. */
+  container-type: inline-size;
+  container-name: navbar;
 }
 
 .nav-brand {
@@ -309,8 +314,16 @@ button {
   /* Measured 121x21 at 1024 and 132x23 at 1280 — the height fell short of the
      24px minimum (WCAG 2.5.8) on every page in the app. Already a centred flex
      container, so a min-height grows the hit area without moving the text, and
-     the nav row is far taller than 24px so nothing around it shifts. */
+     the nav row is far taller than 24px so nothing around it shifts.
+
+     min-width for the same reason in the other axis, and it became load-bearing
+     when the compact bar started shedding the wordmark: with only the mark left
+     the link measures 23px wide, one pixel under the minimum, and the zoom
+     audit flagged it on all twelve routes at 200% text. The mark's own width is
+     what set that number, which is exactly the kind of accidental sizing a
+     minimum exists to catch. */
   min-height: 24px;
+  min-width: 24px;
 }
 /* The mark is a flex item with width:auto, and an SVG's min-content width is
    zero — so when the wordmark beside it grows, flex takes the width out of the
@@ -330,6 +343,21 @@ button {
   align-items: stretch;
   align-self: stretch;
   gap: 2px;
+}
+/* Declared HERE, beside .nav-link, and not after the compact-bar block further
+   down. It was written there first and the icons never appeared: same
+   specificity, later in the file, so `display: none` quietly beat the
+   `display: block` that the deepest compact step sets. The labels vanished on
+   cue and nothing took their place - a nav bar with five invisible links.
+   A rule that is overridden by source order fails silently; nothing warns. */
+.nav-link-icon {
+  display: none;
+  /* em, so the icons follow the reader's text size like everything else in
+     this bar. At a fixed 16px they would shrink relative to their
+     surroundings exactly when the reader has asked for larger text. */
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
 }
 .nav-link {
   display: inline-flex;
@@ -415,6 +443,21 @@ button {
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--t-ui) var(--ease);
+  /* One line, always. The bar is `height: 58px` and this button is the only
+     thing in it that outgrew that: at 200% text the label wrapped to two lines
+     and the button measured 91.5px, so 17.3px of it was cut off by the top of
+     the window and 16.3px hung below the header's border over the page.
+
+     The wrap is a side effect of the `min-width: 0` further down, which was
+     added to stop this button overflowing its parent horizontally. That note
+     records "nav height 58px throughout" and it is true, but the bar has a
+     FIXED height, so it could not have moved whatever happened inside it. The
+     button shrank as intended; the text it contains had to go somewhere, and
+     it went down, out of a box that measures the same either way.
+
+     Measuring the container tells you nothing about the container's contents
+     when the container's size is a constant. */
+  white-space: nowrap;
 }
 .connect-btn:hover {
   filter: brightness(1.06);
@@ -2493,7 +2536,136 @@ button {
      whole container instead left 123px of overflow at 1024 and 60px at 1280,
      because the container has to be free to shrink. With this selector both
      numbers are 0 at 1024 and 1280, normal and 200%. */
-  .nav *:not(.nav-link) { min-width: 0; }
+  /* :not(.connect-btn) as well, for the same reason .nav-link is excluded.
+     min-width: 0 lets a box shrink below its own contents, which is right for
+     a WRAPPER - the wallet cluster should give ground - and wrong for a
+     CONTROL. Measured with the button included: its box settled at 111px while
+     its label needed 144, so "CONNECT" painted 33px outside the accent
+     rectangle that is supposed to be the button. The label needs to get
+     shorter, which is what the container query below does; the box must not
+     get smaller than whatever label it ends up with. */
+  /* .nav-brand joins the exclusions for the same reason .connect-btn did: it is
+     a control, not a wrapper, and a control must not shrink below its contents.
+     It also has to keep an explicit min-width once the compact bar sheds its
+     wordmark - see .nav-brand - and this floor rule outranks that one on
+     specificity, so without the exclusion the min-width would never apply. */
+  .nav *:not(.nav-link):not(.connect-btn):not(.nav-brand) { min-width: 0; }
+
+  /* The compact bar.
+     -------------------------------------------------------------------
+     At 125% text and above, this bar asks for more width than it has, at every
+     desktop width including 1920. The five links keep their own floor (see
+     :not(.nav-link) above), so what gives is .nav-links, the box AROUND them:
+     it shrinks and the links carry straight on past its right edge, under the
+     chain chip and the Connect button, which paint over them. Measured with the
+     bar at full length, links past their container:
+
+       63.2em (1440 @ 125%)     0px
+       61.4em (1280 @ 125%)  14.8px
+       52.7em (1440 @ 150%)  89.5px
+       51.2em (1280 @ 150%) 109.8px
+       48.4em (1000 @ 125%)  74.3px
+       45.1em (1440 @ 175%) 185.6px
+       40.3em (1000 @ 150%) 159.9px
+       34.6em (1000 @ 175%) 247.1px
+
+     Document overflow was 0 for every row above 1000px, which is why no audit
+     ever saw this: the links overflow their CONTAINER, and the container is
+     inside the bar. Measuring the outer box says nothing about whether the
+     contents fit inside it - the same mistake as the note on .connect-btn.
+
+     So the bar sheds, cheapest thing first. Navigation labels are the most
+     valuable text here and the last to go; the wordmark and the chain chip are
+     the least, and both keep an sr-only label so nothing is lost to a screen
+     reader, only to width.
+
+     Widths are the CONTAINER's content box, which is what a container query
+     measures - the bar's own left/right padding is already subtracted. Nested
+     inside the >=981px query because a phone's bar carries no links at all and
+     has room to spare: at 375px it is 23em wide at NORMAL text, so a bare
+     container query would compact every phone to solve a problem phones do not
+     have. The container query asks "is it tight", the media query asks "is this
+     the layout that can get tight". */
+  @container navbar (max-width: 62em) {
+    /* Step one: the chip drops "MAINNET" and keeps its mark and "XRPL". It is a
+       static indicator on a single-chain app, not a control, so it is the
+       cheapest text in the bar to lose.
+
+       Only the network word. Shedding "XRPL" as well leaves the mark alone, and
+       the mark is a stylised X on a dark roundel: at 16px beside the Connect
+       button it reads as a close button, which is both wrong and alarming next
+       to the primary account control. Screenshotting the intermediate step is
+       the only reason this was caught - every measurement said it fitted, and
+       it did fit. Fitting is not the same as being right.
+
+       .nav prefixed: the base `.chain-net` rule near the bottom of this file
+       sets padding and a border at equal specificity and later in the source,
+       which would otherwise leave this "hidden" element 13px wide. */
+    .nav .chain-net {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
+  @container navbar (max-width: 55em) {
+    /* Step two: the chip goes entirely, the wordmark becomes the mark alone,
+       the button drops "Wallet", and the links pull their padding in from 14px
+       to 8px. Shedding text alone does not cover the deficit - measured, the
+       chip returned about 74px where arithmetic on its own width predicted 141,
+       because the bar's other items take a share of anything freed. Estimating
+       the saving was wrong; these thresholds are set from what each change
+       actually recovered.
+
+       The brand mark stays. A bar with no mark at all stops looking like the
+       product's own chrome, and it is 31px. */
+    .nav .chain-select,
+    .nav-brand-word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+    .cb-word { display: none; }
+    /* .nav prefixed, like .chain-select above: the 981-1180px band further down
+       sets .nav-link padding at equal specificity and later in the file, so an
+       unprefixed rule here is dropped on exactly the narrow desktop widths that
+       need it most. Third instance of this trap in one change. */
+    .nav .nav-link { padding: 0 8px; }
+  }
+  @container navbar (max-width: 36em) {
+    /* Step three, roughly 200% text on anything narrower than a wide desktop.
+       The labels become their icons. Everything above this step trims spacing
+       and sheds decoration; this is the step where the navigation itself has to
+       change form, because at a 1000px window and 200% text the five labels ask
+       for about twice the width the bar has. The label survives as the
+       accessible name, so the link reads identically to a screen reader either
+       way. Sized in em so the icons follow the reader's text setting rather
+       than staying at a fixed 16px while everything around them grows. */
+    .nav-link-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+    .nav .nav-link-icon { display: block; }
+    .nav .nav-link { padding: 0 10px; }
+  }
 }
 
 .chain-select { position: relative; }
@@ -2560,15 +2732,40 @@ button {
   margin-top: 2px;
 }
 @media (max-width: 640.98px) {
-  /* Visually hidden, NOT display: none. Below 640px the chain indicator sheds
-     its "XRPL" label for space and becomes an icon alone — and display: none
-     takes the word out of the accessibility tree too, leaving the element
-     named only by its `title` attribute. A title is the weakest naming
-     mechanism there is: unreliable across screen readers and invisible on
-     touch, where hover does not exist. Clipping the text keeps the name at
-     every width and costs nothing visually.
-     Same declarations as .sr-only; inlined because this is one modifier on an
-     existing element rather than a class the markup should carry. */
+  /* The whole chip, not just its label.
+     -------------------------------------------------------------------
+     This rule used to shed "XRPL" and leave the mark alone, which is a
+     reasonable-sounding space decision and produced an unreasonable result: the
+     XRPL mark is a stylised X on a dark roundel, and at 16px in a bordered box
+     beside a green "CONNECT WALLET" it reads as a close button. On a phone that
+     is the single worst place for an ambiguous dismiss-looking control, because
+     it sits within a thumb's reach of the primary account action.
+
+     The desktop compact bar reached the same conclusion from the other
+     direction and stops one step earlier, keeping "XRPL" beside the mark rather
+     than ever showing the mark alone. There is no room for that at 375px - the
+     bar has 12px of slack at normal text - so here the chip goes entirely.
+
+     Visually hidden, NOT display: none, for the reason the previous comment
+     gave and which still holds: display: none takes the name out of the
+     accessibility tree, leaving `title` as the only source, and a title is
+     unreliable across screen readers and invisible on touch where hover does
+     not exist. Clipped, the network stays announced at every width.
+
+     The two rules further down that clip .chain-btn-name and .chain-net are
+     inside this element and now have nothing left to do; they are harmless and
+     left alone rather than churned. */
+  .nav .chain-select {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
   .chain-btn .chain-btn-name {
     position: absolute;
     width: 1px;
