@@ -316,14 +316,18 @@ button {
      container, so a min-height grows the hit area without moving the text, and
      the nav row is far taller than 24px so nothing around it shifts.
 
-     min-width for the same reason in the other axis, and it became load-bearing
-     when the compact bar started shedding the wordmark: with only the mark left
-     the link measures 23px wide, one pixel under the minimum, and the zoom
-     audit flagged it on all twelve routes at 200% text. The mark's own width is
-     what set that number, which is exactly the kind of accidental sizing a
-     minimum exists to catch. */
+     The matching min-width is NOT here, and that is the whole point. Putting it
+     here was a defect of its own: an explicit min-width REPLACES the flex
+     default of `auto`, and `auto` is what stops a flex item shrinking below its
+     own contents. With `min-width: 24px` on the base rule the brand could
+     collapse to 24px whenever the bar got tight, and "Megawatt" printed 106px
+     outside its own box on twelve routes at 390-768 with 200% text. The new
+     content-outgrows-box check found it in the first sweep after it shipped.
+
+     A minimum meant to guarantee a floor removed the floor that was already
+     there. It belongs only where the wordmark is shed and the mark really is
+     the whole target - see the compact bar. */
   min-height: 24px;
-  min-width: 24px;
 }
 /* The mark is a flex item with width:auto, and an SVG's min-content width is
    zero — so when the wordmark beside it grows, flex takes the width out of the
@@ -509,6 +513,14 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  /* A title and a status badge on one row, with no way off it. At 320 and 200%
+     text "State of charge" and its "Discharging" badge needed 37px more than
+     the card had, and "Pipeline" with "Not yet open" 23px more, so the badge
+     printed outside the card. Wrapping costs nothing when there is room - the
+     row only breaks once the pair genuinely stops fitting - and row-gap keeps
+     the badge from sitting flush against the title when it does. */
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 
 /* â”€â”€â”€ Label / caps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -666,7 +678,17 @@ button {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   line-height: 1.5;
-  white-space: nowrap;
+  /* Was `white-space: nowrap`, on the same reasoning as .ribbon-item and with
+     the same result. A badge is two or three words in a pill and wants one
+     line, and it gets one whenever there is room; the declaration only ever
+     applied in the case where there was not. Measured at 320 and 200% text:
+     after .card-title was allowed to wrap, "↓ Discharging" still ran 8px past
+     the card on its own line, because the pill could not use the width it had
+     just been given.
+
+     max-width so the pill's own box cannot exceed the row either — a rounded
+     rectangle drawn wider than its container is the same defect one level up. */
+  max-width: 100%;
 }
 .badge-active {
   background: color-mix(in srgb, var(--accent) 7%, transparent);
@@ -2255,7 +2277,13 @@ button {
   color: var(--muted);
 }
 .ribbon-group { display: inline-flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-.ribbon-item { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+/* No white-space: nowrap. It was here to keep each status phrase on one line,
+   which it does whenever there is room - and when there is not, it forbids the
+   break without providing anywhere else to go: at 320 and 200% text the ribbon
+   ran 73px past its own box, on a bar that already has flex-wrap: wrap and was
+   perfectly willing to give the item another line.
+   nowrap only ever takes effect in the case where wrapping is what you want. */
+.ribbon-item { display: inline-flex; align-items: center; gap: 8px; }
 .ribbon-item .dot { width: 6px; height: 6px; }
 .ribbon-live { color: var(--accent); }
 
@@ -2624,6 +2652,11 @@ button {
 
        The brand mark stays. A bar with no mark at all stops looking like the
        product's own chrome, and it is 31px. */
+    /* Only here. Once the wordmark is sr-only the mark is the entire target and
+       measures 23px, one pixel under WCAG 2.5.8 - so the floor is needed
+       exactly when there is no content left to provide one, and nowhere else.
+       See the note on .nav-brand for what putting it on the base rule cost. */
+    .nav .nav-brand { min-width: 24px; }
     .nav .chain-select,
     .nav-brand-word {
       position: absolute;
@@ -2637,6 +2670,19 @@ button {
       border: 0;
     }
     .cb-word { display: none; }
+    /* The signed-in half of this bar, which is the wider one: the wallet pill
+       reaches 257px at 200% text where the Connect button is 164px, so the
+       connected bar runs out of room at a size where the signed-out bar still
+       fits. Measured across the whole matrix, exactly one cell failed - 1280 at
+       200%, links 26.2px past their container - and it only exists connected.
+
+       The alternative was to bring the icon step forward to cover it, which
+       would have dropped all five labels to icons at 1280 to solve a problem
+       worth 26px. Shedding a decorative avatar is the smaller loss by a wide
+       margin. Same declarations the phone layout already uses for the same
+       pill, so the two agree rather than each inventing a compact form. */
+    .nav .wallet-avatar { display: none; }
+    .nav .wallet-pill { padding: 6px 10px; gap: 7px; }
     /* .nav prefixed, like .chain-select above: the 981-1180px band further down
        sets .nav-link padding at equal specificity and later in the file, so an
        unprefixed rule here is dropped on exactly the narrow desktop widths that
@@ -2829,10 +2875,43 @@ button {
   .wallet-pill { padding: 6px 10px; gap: 7px; }
   .connect-btn { padding: 10px 12px; letter-spacing: 0.06em; }
 }
+/* The same last resort, asked as a question about ROOM rather than about
+   viewport width. The 380px rule below is correct and blind in one direction:
+   it fires when the window is narrow and never when the text is large, and the
+   phone bar runs out of room either way. Measured at 200% text, with the
+   wordmark still showing:
+
+     390px   nav content 94px past the bar
+     430px   nav content 54px past the bar
+
+   and `pages with horizontal overflow` read 0 for both, because `body` is
+   `overflow-x: hidden` — so the primary account control was simply cut off at
+   the edge of the screen with nothing to indicate it.
+
+   19em is the last container width that still fits the wordmark: 320 at normal
+   text is 18.5em and already collapsed by the rule below, 390 at 200% is
+   11.4em, and the widths that must keep it — 390 at normal text (22.9em) and
+   768 at 200% (22.4em) — sit above it. Scoped under 981px so it cannot collide
+   with the desktop compact bar, which answers the same question with its own
+   ladder. */
+@media (max-width: 980.98px) {
+  @container navbar (max-width: 19em) {
+    .nav-brand span, .nav-brand { font-size: 0; gap: 0; }
+    .nav-brand svg { font-size: initial; }
+    .nav-brand { min-width: 44px; }
+  }
+}
 @media (max-width: 380px) {
   /* Last resort before the address itself would be cut. */
   .nav-brand span, .nav-brand { font-size: 0; gap: 0; }
   .nav-brand svg { font-size: initial; }
+  /* Here, and only here, the mark IS the whole target: the wordmark above is
+     collapsed to nothing, so the link measures 23px and the flex content floor
+     has no content left to protect. 44px is the platform convention the rest of
+     the touch-target block uses. Above 380 this must NOT be set — an explicit
+     min-width replaces the `auto` floor and lets the wordmark spill out of its
+     own box, which is what it did for 106px at 200% text. */
+  .nav-brand { min-width: 44px; }
 }
 
 /* Responsive overrides for the chrome above â€” must stay after the base rules */
@@ -4065,14 +4144,55 @@ button {
 }
 
 /* Key/value detail rows: the value is usually an unbreakable currency or
-   percentage token, so let the pair wrap onto two lines instead of clipping. */
+   percentage token, so let the pair wrap onto two lines instead of clipping.
+
+   That was the stated intent and the rule below it did the opposite. `.row-val`
+   carried `overflow-wrap: anywhere`, which permits a break at ANY character,
+   and the wrapping that saved the pair was scoped to 560px. So at 1280 with
+   200% text the vault's metrics card rendered:
+
+       Gross revenue      €15,6
+       (YTD)              20
+
+   A number broken across two lines is a different number for as long as it
+   takes to read the second half. This codebase's own rule, written during the
+   text-zoom pass, is that prose may wrap, an identity may not, and a number may
+   never be broken or truncated.
+
+   So: the row wraps at every width now, not just under 560px. Flex chooses a
+   line break by comparing items at their natural widths, so the pair separates
+   as soon as they stop fitting side by side, which is the behaviour the 560px
+   query was approximating with a viewport number. `anywhere` stays on the KEY,
+   which is prose and the one thing here that may safely break mid-word as a
+   last resort. */
+.row { flex-wrap: wrap; row-gap: 2px; }
 @media (max-width: 560px) {
-  .row { flex-wrap: wrap; row-gap: 2px; }
   .row-key { flex: 1 1 100%; }
   .row-val { flex: 1 1 100%; }
 }
-.row-key,
-.row-val { overflow-wrap: anywhere; }
+.row-key { overflow-wrap: anywhere; }
+/* Not every .row-val is a number. The same class carries "Site secured,
+   permitting under way" and a commissioning date, so the three tiers this
+   codebase settled on during the text-zoom pass all appear under one selector:
+   prose may wrap and may break mid-word, an identity may wrap but not break
+   mid-token, and a number may do neither.
+
+   `overflow-wrap: normal` is the whole fix, and it is enough on its own: normal
+   wrapping never breaks INSIDE a word, so "€15,620" and "Jul 2024" stay whole
+   while the row still wraps between them.
+
+   Two attempts at more than that were both wrong, and the audit caught each in
+   one run. `white-space: nowrap` on every .row-val ran the status sentence
+   "Site secured, permitting under way" 44px past its box at 320 and 360.
+   Narrowing it to .row-val.num was no better: `num` is a TYPOGRAPHIC class - it
+   buys tabular figures - and it sits on "LFP + 250 kWp solar", "mwBEL01 · XRPL
+   MPT" and "350 kW / 550 kWh" as readily as on a price. Eight of those ran up
+   to 110px past their boxes on the phone widths.
+
+   A class that means "has digits in it" cannot answer "is this one atomic
+   quantity". Keeping a value with its unit is a property of the STRING, so it
+   belongs in the string: the call sites use a non-breaking space. */
+.row-val { overflow-wrap: normal; }
 
 /* A button may shrink to its container before it overflows the screen, and
    a long label may wrap rather than push the button past its parent. */
@@ -4173,10 +4293,29 @@ button {
   .sc-seg button { padding-top: 0; padding-bottom: 0; }
 
   /* The brand mark is a link to home — it was a 23x15 target, and below
-     380px the wordmark collapses so only the 23px symbol remains. */
+     380px the wordmark collapses so only the 23px symbol remains.
+
+     max(), not a bare 44px. An explicit min-width REPLACES the flex default of
+     `auto`, and `auto` is the only thing stopping a flex item shrinking below
+     its own contents — so a minimum written to guarantee a floor removed the
+     floor that was already there. Measured at 200% text with the bare value:
+     the box sat at 101px while "MEGAWATT" needed 207, printing 106px outside
+     itself, on every route at 390, 414, 430 and 768. Nothing caught it until
+     content-outgrows-box existed.
+
+     `max(44px, min-content)` says both things at once and Chrome does not
+     accept it — an intrinsic keyword inside max() is dropped as invalid, which
+     silently falls back to `auto`. Measured: min-width computed to "auto", the
+     spill went to 0 at every width, and the 23px target came straight back at
+     320. A declaration that fails parsing looks exactly like one that works
+     when the fallback happens to be what you wanted.
+
+     So the floor goes where it is actually needed instead: the wordmark is
+     collapsed to font-size: 0 below 380px, and that is the only width at which
+     the mark is the whole target. Above it, `auto` is the right minimum,
+     because there the brand has contents to be measured by. */
   .nav-brand {
     min-height: 44px;
-    min-width: 44px;
     align-items: center;
     justify-content: flex-start;
   }
@@ -4905,4 +5044,186 @@ h1,
   /* The pulse animates opacity on a shape that is now an outline; at 0.35 it
      reads as flicker rather than life. */
   .dot.pulse { animation: none; }
+}
+
+/* ─── Paper ──────────────────────────────────────────────────────────────
+   This app is a dark theme and had no print rules at all, which does not mean
+   "prints like the screen". Browsers omit background graphics unless the reader
+   ticks a box most readers never see, so the ink goes away and near-white text
+   goes with it. Measured under print emulation before this block existed:
+
+     /vault/bess-ljubljana-01   85 of 89 text nodes below 3:1 on paper
+     /dashboard-v2            136 of 138 text nodes below 3:1 on paper
+
+   with the vault's own <h1> at contrast 1.00 — white on white, gone. What did
+   survive was "CONNECT WALLET" and the mobile tab bar.
+
+   That matters here more than it would on most products: this is an
+   institutional page, and the way an institutional reader shares a page is to
+   print it to PDF and put it in a memo.
+
+   Redefining the variables rather than restyling the components, because the
+   palette is where every colour in this app comes from — including the ones
+   set inline in JSX as style={{ color: "var(--muted)" }}. One block reaches
+   all of them; a component-by-component pass would reach whichever ones
+   somebody remembered. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  :root {
+    /* Surfaces collapse to paper. The ladder from Carbon that separates cards
+       on screen has nothing to separate on white, so borders do that job
+       below. */
+    --bg: #fff;
+    --surface: #fff;
+    --card: #fff;
+    --card-2: #fff;
+    --elevated: #fff;
+    --sheet: #fff;
+    --toast: #fff;
+
+    /* Text, re-derived for white paper exactly as --text-2 was re-derived for
+       a dark canvas: same roles, contrast solved against the surface it now
+       actually lands on. */
+    --text: #000;
+    --text-2: #333;
+    --muted: #595959;
+
+    /* The brand green is a signal colour tuned for a near-black canvas and
+       measures 1.59:1 on white — it would print as a pale wash over the very
+       figures it is meant to emphasise. This is the same hue carried down
+       until it clears AA on paper. */
+    --accent: #056a48;
+    --accent-2: #045539;
+    --accent-ink: #fff;
+    --accent-dim: transparent;
+    --accent-glow: transparent;
+
+    /* Status colours, same treatment. They mean things — fundraising, coming
+       soon, a loss — so they have to stay distinguishable from body text and
+       from each other. */
+    --amber: #7a5b00;
+    --amber-dim: transparent;
+    --blue: #1f4f8f;
+    --blue-dim: transparent;
+    --red: #9a2b2b;
+    --red-dim: transparent;
+    --gray: #5c5c5c;
+    --chart-teal: #1f6f66;
+    --chart-periwinkle: #4a5f8f;
+
+    /* Hairlines that were white-on-dark have to become dark-on-white or they
+       vanish along with the fills. */
+    --border: #cfcfcf;
+    --border-2: #bdbdbd;
+    --border-control: #8a8a8a;
+    --hairline: #e2e2e2;
+  }
+
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* Chrome that means nothing on paper. Navigation cannot be followed, a
+     Connect button cannot be pressed, and both were printing. */
+  .nav,
+  .bottom-nav,
+  .tabbar,
+  .sc-bar,
+  .skip-link,
+  .back-link,
+  .ob-scrim,
+  .ob-sheet,
+  .toast,
+  .toast-wrap,
+  .modal-scrim,
+  .modal,
+  .sheet-panel,
+  .btn,
+  .connect-btn,
+  .cta-dock,
+  .sc-cta-dock {
+    display: none !important;
+  }
+
+  /* Sticky and fixed are viewport ideas. On paper they either pin to the first
+     page or overlap the flow; either way the layout stops being the one that
+     was measured. */
+  .nav,
+  .sc-bar,
+  .detail-side,
+  [style*="position: sticky"] {
+    position: static !important;
+  }
+  /* The tab bar is fixed and reserves space at the foot of every page for a
+     control that is now hidden; without this the last card prints above a band
+     of nothing. */
+  body { padding-bottom: 0 !important; }
+
+  /* The page's own top padding assumed a 58px bar that is no longer there. */
+  .page,
+  .sc-page {
+    padding-top: 8px;
+    max-width: none;
+  }
+
+  /* A card split across a page break loses the association between its heading
+     and its figures, which on a financial page is the whole content. */
+  .card,
+  .tile,
+  .panel,
+  .surface,
+  .sc-panel,
+  .v2-row,
+  .row {
+    break-inside: avoid;
+  }
+
+  /* Cards were told apart by fill; on paper they are told apart by edge. */
+  .card,
+  .tile,
+  .panel,
+  .sc-panel {
+    border: 1px solid var(--border);
+  }
+
+  /* Colour that IS the content, rather than decoration: a status dot, a
+     proportional bar, a legend swatch. These carry meaning no label repeats,
+     so they opt back into ink. Deliberately narrow — this overrides a reader's
+     "no background graphics" preference, which is only defensible for marks
+     whose colour is the data. */
+  .dot,
+  .segbar > span,
+  .alloc-bar span,
+  .alloc-group span,
+  .sc-band-chip,
+  .sc-bar-dot,
+  .badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* An address or a transaction that cannot be checked is not evidence. On
+     screen the href is a click; on paper it has to be the text. Scoped to
+     external links so internal navigation does not print a trail of URLs. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  /* Nothing to animate on paper, and a mid-transition frame is a rendering
+     accident rather than a design. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+  }
 }

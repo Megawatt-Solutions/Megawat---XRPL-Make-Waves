@@ -9,7 +9,7 @@ import { SiteChart } from "./SiteChart";
 import { ShieldIcon } from "./Icons";
 
 function fmtKwh(v: number): string {
-  return v >= 1000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1)} MWh` : `${fmtNum(v)} kWh`;
+  return v >= 1000 ? `${(v / 1000).toFixed(v >= 100000 ? 0 : 1)} MWh` : `${fmtNum(v)} kWh`;
 }
 
 export function SiteMonitor({ vault }: { vault: Vault }) {

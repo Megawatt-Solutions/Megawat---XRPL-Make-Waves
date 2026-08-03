@@ -378,6 +378,100 @@ for (const el of all) {
       detail: Math.round(textRight - box.right) + "px past its own box" });
 }
 
+// ── content that does not fit its box, where the box does not scroll ──────
+// The blind spot every rule above shares: they ask whether something overflows
+// the VIEWPORT or clips. A box can be smaller than its own contents in the
+// middle of a page that fits perfectly, and nothing here saw it.
+//
+// Two real defects had this exact shape and both were invisible to the whole
+// suite. The Connect button grew to 91.5px inside a bar declared "height: 58px"
+// — 17.3px cut off by the top of the window, 16.3px hanging over the page. And
+// the five nav links overflowed .nav-links by up to 300px, painting under the
+// chain chip and the Connect button, at every desktop width from 125% text up,
+// while "pages with horizontal overflow" read 0 for nearly all of it.
+//
+// Three exclusions, each one earned against a false positive:
+//
+//  - OUT-OF-FLOW children do not count. Tooltips, badges and sr-only text
+//    legitimately sit outside their parent.
+//  - NON-REPLACED INLINE boxes overflowing VERTICALLY do not count. An inline
+//    box's content area is the font's ascent + descent and routinely exceeds
+//    line-height: at 60px type a span measured 72px against a 66px line box,
+//    3px each side, painting nothing. Real vertical overflow comes from boxes.
+//  - CLIPPED descendants do not count, for the reason inScroller exists above.
+//
+// Canary it before trusting a zero. The first version reported 0 on routes with
+// a live defect, which is also what a broken check reports; it only became
+// worth anything once undoing the fix at runtime made it report .nav-links
+// overflowing by 216px.
+const scrollableAncestor = (el, axis) => {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const ov = axis === "X" ? getComputedStyle(p).overflowX : getComputedStyle(p).overflowY;
+    if (ov === "auto" || ov === "scroll" || ov === "hidden" || ov === "clip") return true;
+  }
+  return false;
+};
+const clippedByAncestor = (el, stop) => {
+  const r = el.getBoundingClientRect();
+  for (let p = el.parentElement; p && p !== stop && p !== document.body; p = p.parentElement) {
+    const pcs = getComputedStyle(p);
+    if (pcs.overflow === "visible" && pcs.clipPath === "none") continue;
+    if (pcs.clipPath !== "none") return true;
+    const pr = p.getBoundingClientRect();
+    if (r.right > pr.right + 0.5 || r.bottom > pr.bottom + 0.5 ||
+        r.left < pr.left - 0.5 || r.top < pr.top - 0.5) return true;
+  }
+  return false;
+};
+for (const el of all) {
+  const cs = getComputedStyle(el);
+  if (cs.display === "none" || cs.visibility === "hidden") continue;
+  const r = el.getBoundingClientRect();
+  if (r.width < 8 || r.height < 8) continue;
+
+  const overX = el.scrollWidth - el.clientWidth;
+  const overY = el.scrollHeight - el.clientHeight;
+  if (overX < 2 && overY < 2) continue;
+  // A scrollable box is not a defect: the content is reachable.
+  if (overX >= 2 && cs.overflowX !== "visible") continue;
+  if (overY >= 2 && cs.overflowY !== "visible") continue;
+  if (cs.overflowX !== "visible" && cs.overflowY !== "visible") continue;
+
+  // Reachable by scrolling an ancestor, or clipped by one: either way the
+  // content is not painting somewhere the reader cannot get to. The whole vault
+  // table is a deliberate side-scroller, and without this every group row in it
+  // reported 313px on five phone widths.
+  if (scrollableAncestor(el, overX >= 2 ? "X" : "Y")) continue;
+
+  const culprits = [...el.children].filter((c) => {
+    const ccs = getComputedStyle(c);
+    if (ccs.position === "absolute" || ccs.position === "fixed") return false;
+    if (ccs.display === "none") return false;
+    if (ccs.display === "inline" && overX < 2) return false;
+    if (clippedByAncestor(c, el)) return false;
+    // A negative margin is an author saying "overhang here on purpose". It is
+    // the padding/negative-margin trick this codebase uses to grow an inline
+    // tap target to 24px without disturbing the line: .sc-link-btn carries
+    // padding: 4px 2px; margin: -4px -2px, and reported 4px on six widths.
+    if (parseFloat(ccs.marginTop) < 0 || parseFloat(ccs.marginBottom) < 0 ||
+        parseFloat(ccs.marginLeft) < 0 || parseFloat(ccs.marginRight) < 0) return false;
+    const cr = c.getBoundingClientRect();
+    return cr.right > r.right + 1 || cr.bottom > r.bottom + 1 ||
+           cr.left < r.left - 1 || cr.top < r.top - 1;
+  });
+  if (!culprits.length) continue;
+  if (clippedByAncestor(el, null)) continue;
+
+  findings.push({
+    kind: "content-outgrows-box",
+    el: label(el),
+    detail: (overX >= 2 ? overX + "px wider" : "") +
+      (overX >= 2 && overY >= 2 ? " and " : "") +
+      (overY >= 2 ? overY + "px taller" : "") +
+      " than its own box, by " + label(culprits[0]),
+  });
+}
+
 // Measure — characters per line. Comfortable is 45-75; past roughly 90 the eye
 // starts losing its place on the return sweep to the next line. The Spreadcast
 // fine print sat at 140 and no check here could see it, because every other
@@ -646,7 +740,53 @@ const run = () => {
       }
     }
   }
-  return { overflow, tiny, spill, longline, stranded, svgOverlap };
+  // Content that outgrows its own box while the box does not scroll. Carries
+  // the same three exclusions as the real check, so the baseline it prints is
+  // the same number the sweep would report rather than a looser one.
+  let outgrows = 0;
+  const clippedBy = (el, stop) => {
+    const r0 = el.getBoundingClientRect();
+    for (let p = el.parentElement; p && p !== stop && p !== document.body; p = p.parentElement) {
+      const pc = getComputedStyle(p);
+      if (pc.overflow === "visible" && pc.clipPath === "none") continue;
+      if (pc.clipPath !== "none") return true;
+      const pr = p.getBoundingClientRect();
+      if (r0.right > pr.right + 0.5 || r0.bottom > pr.bottom + 0.5 ||
+          r0.left < pr.left - 0.5 || r0.top < pr.top - 0.5) return true;
+    }
+    return false;
+  };
+  const scrollableAnc = (el, axis) => {
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const ov = axis === "X" ? getComputedStyle(p).overflowX : getComputedStyle(p).overflowY;
+      if (ov === "auto" || ov === "scroll" || ov === "hidden" || ov === "clip") return true;
+    }
+    return false;
+  };
+  for (const el of [...document.querySelectorAll("body *")].filter(visible)) {
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8) continue;
+    const ox = el.scrollWidth - el.clientWidth, oy = el.scrollHeight - el.clientHeight;
+    if (ox < 2 && oy < 2) continue;
+    if (ox >= 2 && cs.overflowX !== "visible") continue;
+    if (oy >= 2 && cs.overflowY !== "visible") continue;
+    if (cs.overflowX !== "visible" && cs.overflowY !== "visible") continue;
+    if (scrollableAnc(el, ox >= 2 ? "X" : "Y")) continue;
+    const kids = [...el.children].filter((c) => {
+      const k = getComputedStyle(c);
+      if (k.position === "absolute" || k.position === "fixed" || k.display === "none") return false;
+      if (k.display === "inline" && ox < 2) return false;
+      if (clippedBy(c, el)) return false;
+      if (parseFloat(k.marginTop) < 0 || parseFloat(k.marginBottom) < 0 ||
+          parseFloat(k.marginLeft) < 0 || parseFloat(k.marginRight) < 0) return false;
+      const cr = c.getBoundingClientRect();
+      return cr.right > r.right + 1 || cr.bottom > r.bottom + 1 ||
+             cr.left < r.left - 1 || cr.top < r.top - 1;
+    });
+    if (kids.length && !clippedBy(el, null)) outgrows++;
+  }
+  return { overflow, tiny, spill, longline, stranded, svgOverlap, outgrows };
 };
 const baseline = run();
 const wide = document.createElement("div");
@@ -695,8 +835,21 @@ for (const label of ["AAAA", "BBBB"]) {
   badSvg.appendChild(tx);
 }
 document.body.appendChild(badSvg);
+// A box smaller than the in-flow child inside it, overflow left visible: the
+// shape of the Connect button inside a bar declared height:58px, and of the nav
+// links inside a container that had been allowed to shrink. Deliberately narrow
+// AND short so both axes are exercised, and its text is a single unbroken word
+// so it cannot also trip the stranded-last-line counter, which needs 2-8 words.
+const outgrown = document.createElement("div");
+outgrown.style.cssText = "width:60px;height:20px;overflow:visible";
+const outgrownKid = document.createElement("div");
+outgrownKid.style.cssText = "width:200px;height:44px";
+outgrownKid.textContent = "overflowingchild";
+outgrown.appendChild(outgrownKid);
+document.body.appendChild(outgrown);
 const defect = run();
 wide.remove(); small.remove(); spilled.remove(); longp.remove(); runt.remove(); badSvg.remove();
+outgrown.remove();
 const restored = run();
 return { baseline, defect, restored,
   overflowCheckFires: defect.overflow > baseline.overflow && restored.overflow === baseline.overflow,
@@ -704,7 +857,8 @@ return { baseline, defect, restored,
   spillCheckFires: defect.spill === baseline.spill + 1 && restored.spill === baseline.spill,
   measureCheckFires: defect.longline === baseline.longline + 1 && restored.longline === baseline.longline,
   strandedCheckFires: defect.stranded === baseline.stranded + 1 && restored.stranded === baseline.stranded,
-  svgOverlapCheckFires: defect.svgOverlap === baseline.svgOverlap + 1 && restored.svgOverlap === baseline.svgOverlap };
+  svgOverlapCheckFires: defect.svgOverlap === baseline.svgOverlap + 1 && restored.svgOverlap === baseline.svgOverlap,
+  outgrowsCheckFires: defect.outgrows > baseline.outgrows && restored.outgrows === baseline.outgrows };
 `;
 
 // ── minimal CDP client ───────────────────────────────────────────────────
@@ -833,7 +987,7 @@ try {
     await goto(BASE + withFlag("/dashboard-v2"));
     const c = await evaluate(CANARY);
     console.log(JSON.stringify(c, null, 2));
-    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires || !c.strandedCheckFires || !c.svgOverlapCheckFires) {
+    if (!c.overflowCheckFires || !c.tapCheckFires || !c.spillCheckFires || !c.measureCheckFires || !c.strandedCheckFires || !c.svgOverlapCheckFires || !c.outgrowsCheckFires) {
       console.error("\nCANARY FAILED — the checks do not detect a defect they are given.");
       exitCode = 1;
     } else {

@@ -552,19 +552,35 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
           {modeLabel(snap.mode)}
         </span>
       </div>
-      <div style={{ display: "flex", gap: 22, marginTop: 16, alignItems: "center" }}>
+      {/* Wraps, because this row is a rem-sized graphic beside rem-sized text
+          inside a card whose width is fixed in px. The battery grows from 86px
+          to 172px between normal text and 200% while the card stays 387px, so
+          the stats column was squeezed from 233px to 147px and the three rows
+          needed 245px: they painted 98px outside the card. Nothing else was
+          there to collide with, which is why no check had ever flagged it, but
+          numbers sitting outside their own card is wrong on its own.
+
+          Giving the stats a flex-basis in rem is what makes the wrap happen at
+          the right moment: the basis grows with the reader's text while the
+          card does not, so the row breaks exactly when the two stop fitting
+          side by side, with no breakpoint to guess. */}
+      <div style={{ display: "flex", gap: 22, marginTop: 16, alignItems: "center", flexWrap: "wrap" }}>
         <div className="battery">
           <div className="battery-fill" style={{ height: `calc(${snap.socPct}% - 0px)` }} />
           <div className="battery-pct num">{snap.socPct.toFixed(1)}%</div>
         </div>
-        <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>
+        {/* minmax(0, 1fr) because a grid column, like a flex child, defaults to
+            a floor of its own content and will not shrink below it. minWidth on
+            the grid alone was never enough: the box shrank to 147px while the
+            column inside it stayed 245px. */}
+        <div style={{ flex: "1 1 11rem", minWidth: 0, display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
           {/* Unit in the value, not the label. The third row of this same card
               is "Health / 98.9%" — unit in the value — so the card disagreed
               with itself, and the metrics card two columns right writes the
               identical numbers as "Energy charged / 361.40 MWh". Three
               spellings, one screen. */}
-          <Mini label="Charged" value={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
-          <Mini label="Discharged" value={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
+          <Mini label="Charged" value={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+          <Mini label="Discharged" value={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
           <Mini label="Health" value={`${snap.healthPct.toFixed(1)}%`} />
         </div>
       </div>
@@ -605,8 +621,8 @@ function LatestMetricsCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
             invite "which of these is right?". */}
         <Row k="Gross revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency, 0)} />
         <Row k="Net revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency, 0)} accent />
-        <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
-        <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
+        <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+        <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
         <Row k="Activation events" v={fmtNum(snap.activations)} />
         {/* Telemetry either way. This row used to read "XRPL Mainnet" whenever
             kind === "onchain", but look at what the card above it contains:

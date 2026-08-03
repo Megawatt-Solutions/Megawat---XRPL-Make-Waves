@@ -62,7 +62,13 @@ export function VaultsOverview() {
             </span>
           ))}
         </div>
-        <div className="muted" style={{ fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+        {/* No whiteSpace: nowrap. The legend around it already wraps, so the
+            only thing nowrap achieved was to stop this last item taking the
+            extra line that was available: at 320 and 200% text it ran 70px
+            past the legend's box. The figure itself cannot break either way -
+            .num values are protected by overflow-wrap: normal - so all nowrap
+            was preventing was a break between "Total:" and its value. */}
+        <div className="muted" style={{ fontSize: "0.8125rem" }}>
           Total: <span className="num" style={{ color: "var(--text)", fontWeight: 650 }}>{fmtCompact(alloc.total, ASSET_CURRENCY)}</span>
           <span className="section-count" style={{ marginLeft: 8 }}>{plural(totalCount, "vault")}</span>
         </div>

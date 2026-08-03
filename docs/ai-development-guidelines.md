@@ -6120,3 +6120,254 @@ defect — a hardcoded clearance for chrome that grows with text. It is not. Bot
 bars are fixed-height, so the chrome does not grow, and measured clearance after
 a skip-link jump is **72–82px positive at every width and text size tested**.
 Left alone.
+
+---
+
+## The check that found the rest of it (2026-08-03)
+
+Both header defects shared a shape no existing check could see: **content that
+does not fit its box, where the box does not scroll**. The page was fine in both
+cases — the overflow stayed inside the layout — so a viewport-level overflow
+check reported 0.
+
+Written as an invariant, that is one line:
+
+> `scrollWidth`/`scrollHeight` exceeds the client size while `overflow` is
+> `visible` → the content is painting outside its own box and the user has no
+> way to reach it.
+
+### Making it usable
+
+Raw, it is noisy. Three exclusions turned it into a check with real signal:
+
+1. **Absolutely positioned children don't count.** Tooltips, badges and
+   `sr-only` text legitimately sit outside their parent.
+2. **Non-replaced inline boxes overflowing vertically don't count.** An inline
+   box's content area is the font's ascent + descent, which routinely exceeds
+   `line-height`: at 60px type a `<span>` measured 72px against a 66px line box,
+   3px each side, painting nothing. Real vertical overflow comes from boxes, not
+   font metrics.
+3. **Clipping ancestors don't count.** `getBoundingClientRect` ignores an
+   ancestor's clip, so a full-size element inside an `sr-only` wrapper measures
+   large and paints nothing.
+
+**Canary it before believing a zero.** The first run reported 0 findings on
+routes I had just fixed, which is exactly what a broken check reports. Injecting
+CSS that undid the fix at runtime made it report `nav.nav-links` overflowing by
+216px via "Marketplace" — and only then was the 0 worth anything.
+
+The same mistake nearly shipped twice: a later version of the row-value check
+used `el.getClientRects().length > 1` to detect a value split across lines. It
+reported 0 both with and without the defect, because **a block element has one
+border box however many lines its text occupies**. Counting line boxes needs a
+`Range` over the element's contents.
+
+### What it found
+
+Across every route, connected and signed out, at 100% and 200%:
+
+- **The vault battery card, 98px outside its own card.** `.battery` is sized in
+  `rem` and grows 86px → 172px between normal text and 200%, while the card it
+  sits in is a fixed 387px. The stats column beside it was squeezed 233px → 147px
+  and its rows needed 245px. Fixed by letting the row wrap, with the stats given
+  a flex-basis in `rem`: the basis grows with the reader's text while the card
+  does not, so the row breaks exactly when the two stop fitting, with no
+  breakpoint to guess.
+- **A grid column that would not shrink.** The same card had `min-width: 0` on
+  the grid and still overflowed, because a grid column defaults to a floor of
+  its own content just as a flex child does. The box shrank to 147px; the column
+  inside it stayed 245px. `grid-template-columns: minmax(0, 1fr)` is the column
+  equivalent of `min-width: 0`.
+- **`.sc-link-btn`, correctly.** 4px of vertical overhang, which is the
+  deliberate `padding: 4px 2px; margin: -4px -2px` that grows an inline tap
+  target to 24px without changing line height. The invariant's other branch: a
+  deliberate overhang, documented where it lives.
+
+### And the thing the screenshot found next to it
+
+Fixing the battery card put the metrics card beside it on screen, which was
+rendering:
+
+```
+Gross revenue      €15,6
+(YTD)              20
+```
+
+`.row-val` carried `overflow-wrap: anywhere` — a break permitted at *any*
+character — directly under a comment describing the value as "an unbreakable
+currency or percentage token". The wrapping that was supposed to save the pair
+was scoped to `max-width: 560px`, so at 1280 with 200% text there was nothing to
+stop it. Measured with the old rules restored: **11 of 15 values on that page
+split across two lines**, including `€15,620`, `€12,950`, `138.30 €/MWh`.
+
+A number broken across two lines is a different number for as long as it takes
+to read the second half.
+
+The row wraps at every width now rather than under 560px, `.row-val` is
+`overflow-wrap: normal` plus `white-space: nowrap` so a quantity keeps its unit,
+and `anywhere` stays on the key, which is prose and may safely break as a last
+resort. `nowrap` is only safe here *because* the row can now give the value a
+line of its own — on its own it forbids breaking without providing anywhere else
+to go, which is how `.globe-tip` ended up 457px wide in a 390px viewport.
+
+> A rule can contradict the comment directly above it and nothing will complain.
+
+### Two wrong fixes before the right one, both caught by the audit in one run
+
+The instinct — "numbers must not break, so make them `nowrap`" — was wrong
+twice, and the second time was subtler than the first.
+
+**`white-space: nowrap` on every `.row-val`.** The same class carries "Site
+secured, permitting under way", which then ran 44px past its box at 320 and 360.
+`nowrap` forbids breaking without providing anywhere else to go — precisely the
+`.globe-tip` failure already recorded above, walked into again in the commit
+that quotes it.
+
+**Narrowing it to `.row-val.num`.** This looked principled and was not, because
+**`num` is a typographic class**: it buys `font-variant-numeric: tabular-nums`,
+and it sits on
+
+```
+"LFP + 250 kWp solar"   "mwBEL01 · XRPL MPT"   "350 kW / 550 kWh"
+"On-site telemetry"     "XRPL · Mainnet"       "€26.0K–€32.0K"
+```
+
+as readily as on a price. Eight of those ran up to 110px past their boxes on the
+phone widths.
+
+> A class that means "has digits in it" cannot answer "is this one atomic
+> quantity". Do not borrow a styling hook as a semantic one.
+
+**What was actually needed was already there.** `overflow-wrap: normal` is the
+whole fix: normal wrapping never breaks *inside* a word, so `€15,620` stays
+whole while the row still wraps between key and value. Keeping a value with its
+unit is a property of the *string*, not of a CSS class, so it belongs in the
+string — the five `${fmtNum(...)} MWh` call sites use ` `.
+
+Verified with a three-state canary: `overflow-wrap: anywhere` restored splits
+`€15,620` and `€12,950`; the fix reports zero. The first attempt at that canary
+wrote its injected file to `/tmp` **from Python**, which on Windows is not the
+`/tmp` Git Bash writes to, so the canary was never added and both states
+reported 0 — a passing three-state test that had only ever run one state.
+
+### Then it went in the suite
+
+`content-outgrows-box` is now the seventh check in `responsive-audit.mjs`, with
+a canary alongside the other six: a 60x20 box holding a 200x44 in-flow child,
+`overflow: visible`. Silent at baseline, fires on the forced defect, silent
+again — 0 → 1 → 0.
+
+Getting the noise out took two exclusions beyond the three above, and both were
+found by running it rather than by reasoning about it:
+
+- **A scrollable or clipping ancestor.** The vault table is a deliberate
+  side-scroller, and every group row inside it reported 313px on five phone
+  widths. Content you can scroll to is not content you cannot reach. Checked on
+  the axis that actually overflows, not both.
+- **A negative margin on the child.** That is an author saying "overhang here on
+  purpose": it is the padding/negative-margin trick this codebase uses to grow
+  an inline tap target to 24px without disturbing the line. `.sc-link-btn`
+  reported 4px on six widths.
+
+The exclusions are mirrored into the canary's own counter, not just the real
+check. The note on `inScroller` explains why: a canary whose baseline is
+computed more loosely than the check still asserts correctly, because the
+assertion is relative, **but the number printed beside it is a lie**.
+
+One more trap worth naming: the block was first written with backticks in its
+comment. That code is assembled into a template literal and sent to the browser,
+so the backticks closed the string and the whole audit died with
+`SyntaxError: Unexpected identifier 'height'`. The file already warns about this
+for backslashes, above `PLAYER_SEED`, and uses `String.raw` there for the same
+class of reason.
+
+---
+
+## What the page looks like on paper (2026-08-03)
+
+The app is a dark theme and had **no `@media print` rules at all**, which is not
+the same as printing like the screen. Browsers omit background graphics unless
+the reader ticks a box most readers never see, so the ink goes away and
+near-white text goes with it.
+
+Measured under print emulation, before any print rules existed:
+
+| route | text nodes | below 3:1 on paper |
+|---|---|---|
+| `/vault/bess-ljubljana-01` | 89 | **85** |
+| `/dashboard-v2` | 138 | **136** |
+
+The vault's own `<h1>` measured **contrast 1.00** — white on white. What did
+survive was "CONNECT WALLET" and the mobile tab bar.
+
+This matters more here than on most products: the way an institutional reader
+shares a page is to print it to PDF and put it in a memo.
+
+### The fix is a palette, not a restyle
+
+The block redefines the custom properties rather than the components, because
+the palette is where every colour in this app comes from — **including the ones
+set inline in JSX** as `style={{ color: "var(--muted)" }}`. One block reaches
+all of them; a component-by-component pass reaches whichever ones somebody
+remembered.
+
+Surfaces collapse to white, text is re-derived for paper exactly as `--text-2`
+was once re-derived for a dark canvas, and the brand green — 1.59:1 on white —
+is carried down to a shade that clears AA. Then: navigation and CTAs hidden,
+sticky positioning released, `break-inside: avoid` on cards so a heading never
+separates from its figures, external `href`s printed after their link text so an
+address on paper can still be checked, and `print-color-adjust: exact` on the
+narrow set of marks whose colour *is* the data (status dots, proportional bars,
+legend swatches).
+
+**After: 0 of 79 and 0 of 128 below 3:1.**
+
+### Method notes
+
+- **A screenshot cannot answer this question.** Screenshots paint backgrounds,
+  so a page that prints blank still looks fine in one. Either drive
+  `Page.printToPDF` with `printBackground: false` (Chrome's own default), or
+  simulate the printer by injecting `background: transparent` everywhere and
+  leaving the text colours alone. Both were used here.
+- **`--media-type` is a different CDP field from `--media`.** Passing `print` as
+  a media *feature* silently does nothing, which looks exactly like a page that
+  has no print styles — the same failure as the page being tested.
+- `.tabbar` was a guess and the tab bar is `.bottom-nav`, so the first version
+  hid nothing. Read the markup; do not pattern-match the class name.
+
+---
+
+## `white-space: nowrap` only ever applies in the case you did not want it to
+
+Four separate defects in one pass came from this single declaration, and the
+shape is always the same.
+
+`nowrap` does nothing whenever there is room — the text was going to sit on one
+line anyway. It takes effect **only** when the content no longer fits, which is
+precisely the moment you want a line break. So the declaration is inert in the
+good case and harmful in the bad one.
+
+| where | what happened at 200% text |
+|---|---|
+| `.row-val` (all) | a status sentence ran 44px past its box at 320 |
+| `.row-val.num` | eight phrases ran up to 110px past their boxes |
+| `.ribbon-item` | the ribbon ran 73px past its box at 320, on a bar that already had `flex-wrap: wrap` and was willing to give it another line |
+| `.badge` | "↓ Discharging" ran 8px past the card *after* `.card-title` was allowed to wrap — the pill could not use the width it had just been given |
+| `.alloc-legend > .muted` | 70px past the legend's box, again inside a container that wraps |
+
+The two legitimate uses that survive, both narrow and both local:
+
+- **`.connect-btn`** — keeping the label on one line is the *point*, because the
+  bar is a fixed 58px and a wrapped label grew the button to 91.5px. Paired with
+  a container query that shortens the label, so there is always somewhere for
+  the content to go.
+- **an inline fragment inside a longer string**, like `not investable` in the
+  vault table, where breaking at that one space reads as the opposite of what
+  the sentence says.
+
+> Before writing `nowrap`, answer: when this does not fit, where does it go? If
+> the answer is "nowhere", the declaration is a defect waiting for a viewport.
+
+`.globe-tip` recorded this in July — nowrap made it 457px wide in a 390px
+viewport — and the fix there was `width: max-content` plus a `max-width`, which
+is the same principle: say "one line if it fits" rather than "one line".

@@ -169,3 +169,53 @@ from assistive tech and exposes the real figure to it, the view tabs use
 that pattern implies, and the figures cohere — cumulative yield €328,793
 against Ljubljana + Metlika annual revenue of €324.3K is about one year, and
 13.5% of €2.44M matches the projected APY beside it.
+
+---
+
+## The header drops the "XRPL MAINNET" chip when the bar runs out of room
+
+This one is already shipped rather than pending, because leaving it as it was
+meant leaving something visibly wrong on screen. Flagging it because it changes
+what a visitor sees, and that is your call to reverse.
+
+The header carries the wordmark, five navigation links, the chain chip and
+Connect Wallet. Measured, that is more than fits from **125% text zoom upward at
+every desktop width, including 1920** — the links were running up to 300px past
+their container and painting under the chip and the button. The bar now sheds,
+cheapest thing first, and the chip is the cheapest: it is a static indicator on
+a single-chain app, not a control.
+
+So, by available width at the reader's text size:
+
+| | wordmark | nav labels | chip | button |
+|---|---|---|---|---|
+| roomy | MEGAWATT | words | XRPL MAINNET | CONNECT WALLET |
+| tight | MEGAWATT | words | XRPL | CONNECT WALLET |
+| tighter | mark only | words | — | CONNECT |
+| tightest | mark only | icons | — | CONNECT |
+
+Phones get the "tighter" treatment at normal text, because a 375px bar has 12px
+of slack and there is no room for the chip at all.
+
+**What is not lost:** every shed element keeps an `sr-only` label, so a screen
+reader still announces "XRPL Mainnet" and "Megawatt" at every size, and all five
+destinations keep their full names. Tabbing the most compact bar still gives
+skip link, MEGAWATT, OVERVIEW, VAULTS, SPREADCAST, PORTFOLIO, MARKETPLACE,
+CONNECT.
+
+**What is lost:** a sighted reader at 125% zoom or on a phone no longer sees the
+word "MAINNET" in the header. Network is still stated in the wallet modal and in
+the connected pill's own copy.
+
+**The question for you:** is the network indicator load-bearing for trust with
+an institutional audience — the kind of thing someone looks for before
+connecting a wallet — or is it decoration on a product that only ever talks to
+one chain? If it is the former, the honest fix is to make room for it by moving
+something else out of the bar rather than by shrinking type, and the candidate
+is the five-link row: a product with five top-level destinations and a persistent
+account control is asking a 58px bar to do a lot.
+
+One thing deliberately **not** done, and worth knowing why: shrinking the chip to
+its mark alone. The XRPL mark is a stylised X on a dark roundel, and at 16px
+beside a green Connect button it reads as a close button — wrong, and alarming
+next to the primary account control. It either keeps a word or it goes.
