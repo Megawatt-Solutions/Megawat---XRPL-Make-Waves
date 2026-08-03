@@ -5122,6 +5122,20 @@ h1,
     --hairline: #e2e2e2;
   }
 
+  /* The five Spreadcast band colours are declared on .sc, not on :root, so the
+     palette above never reached them and they printed as pale washes: Calm at
+     2.47, Steady 2.41, Lively 1.99 against paper. Same hues in the same order —
+     the sequence blue, teal, amber, orange, red is what makes a band chip
+     readable as a position on a scale — carried down until each clears AA.
+     Measured after: 0 of 63 on /spreadcast, 0 of 74 on /spreadcast/log. */
+  .sc {
+    --sc-b0: #1f4f8f;
+    --sc-b1: #146b57;
+    --sc-b2: #7a5b00;
+    --sc-b3: #8a4a10;
+    --sc-b4: #9a2b2b;
+  }
+
   html,
   body {
     background: #fff;

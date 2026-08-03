@@ -6334,6 +6334,15 @@ legend swatches).
   has no print styles — the same failure as the page being tested.
 - `.tabbar` was a guess and the tab bar is `.bottom-nav`, so the first version
   hid nothing. Read the markup; do not pattern-match the class name.
+- **A palette swap only reaches the variables it can see.** The five Spreadcast
+  band colours are declared on `.sc`, not on `:root`, so the print block missed
+  them entirely and they went to paper as pale washes — Calm 2.47, Steady 2.41,
+  Lively 1.99. Overriding `:root` is not the same as overriding "the palette";
+  grep for every selector that declares a custom property, not just the one that
+  declares most of them.
+
+Final sweep, all twelve routes under print emulation: **0 text nodes below 3:1
+on any of them.**
 
 ---
 
