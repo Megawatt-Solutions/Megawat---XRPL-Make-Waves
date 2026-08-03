@@ -5089,6 +5089,13 @@ The fix is to clip rather than remove (`position: absolute; clip-path:
 inset(50%)` — the `.sr-only` declarations). The name survives at every width
 and nothing changes visually; `.chain-btn` measures 37×44 before and after.
 
+**Superseded (2026-08-03), and the clipping principle is why.** Shedding only
+the label leaves the mark alone, and the XRPL mark is a stylised X on a dark
+roundel: at 16px beside a green "CONNECT WALLET" it reads as a close button.
+Below 640px the **whole chip** is clipped now, not just its label — still
+clipped rather than `display: none`, so the network is still announced, which
+is exactly the point this entry was making.
+
 General rule: **when a responsive rule hides text that was serving as a
 label, clip it, don't `display: none` it.** And treat `title` as decoration —
 never as the only thing naming a control.
@@ -5153,8 +5160,16 @@ beside them reported the scaled one. It reproduced on a production build, so it
 was not dev-server staleness. The elements were rendering correctly the whole
 time — `.connect-btn`'s box grew 38px→56px and `.vault-card`'s 197px→855px.
 **Box geometry was the trustworthy signal; the computed-style reading was not.**
-The one leaf that genuinely never scaled, `.chain-btn-name`, is `display: none`
+The one leaf that genuinely never scaled, `.chain-btn-name`, was `display: none`
 at that width, and a hidden element does not get restyled.
+
+**Stale as written, and the document contradicted itself.** `.chain-btn-name`
+has not been `display: none` since the pass recorded further up this file, which
+changed it to clipping precisely so the name survives in the accessibility tree
+— and as of 2026-08-03 the whole chip is clipped below 640px rather than just
+its label. A clipped element **is** still rendered and does get restyled, so the
+explanation above no longer explains anything. The measurement it supports still
+stands; the mechanism cited for it does not.
 
 `auditTextScale` now runs inside `runAudit()` on the first three routes.
 
@@ -5358,9 +5373,13 @@ With the real dock in its real position, across 320×568, 360×640, 390×844,
 - **It never collides with the tab bar.** At every viewport and scroll
   position the CTA either clears `.bottom-nav` or is off-screen. The
   `bottom: var(--nav-h-safe)` choice over `bottom: 0` holds up.
-- `--nav-h-safe` is 74px against a `.bottom-nav` measuring 74.54px (74px + a
-  0.67px top border). A 0.54px shortfall — under one device pixel at DPR 1.5.
-  Left alone; recorded so it is not rediscovered as a finding.
+- `--nav-h-safe` was 74px against a `.bottom-nav` measuring 74.54px — a 0.54px
+  shortfall, under one device pixel at DPR 1.5, and left alone.
+  **Superseded (2026-08-02).** A constant could not stay true: the bar's height
+  is a function of text size, and at 150% and 200% it measured 74.9px to
+  92.8px, so the toast sat up to 7px inside it. It is
+  `calc(57px + 1.125rem + env(safe-area-inset-bottom))` now, fitted to within
+  0.3px across five text scales. Do not "restore" the 74px.
 - **The sticky rule is a no-op at most phone sizes.** `.sc-panel` measures
   ~529px at 390×844 and ~468px at 768×1024 — shorter than the viewport, so
   there is nothing to scroll and the dock never leaves its natural position.
@@ -6102,13 +6121,25 @@ is left as its mark alone and measured **23x24px** — one pixel under WCAG 2.5.
 — on all twelve routes at 1024px and wider.
 
 The mark's own aspect ratio set that number. Nothing chose it. `.nav-brand`
-already carried `min-height: 24px` for exactly this reason in the other axis;
-it now carries `min-width` too.
+already carried `min-height: 24px` for exactly this reason in the other axis,
+so a matching `min-width` looked like the obvious answer.
 
 That fix needed `.nav-brand` added to the `min-width: 0` exclusion list beside
 `.nav-link` and `.connect-btn`, because the floor rule outranks a plain
 `.nav-brand` selector on specificity and would have discarded the minimum
 silently. Which is the same trap again, in a fourth place.
+
+**Corrected within the hour, and the correction is the more useful half.**
+Putting `min-width` on the BASE rule was itself a defect: an explicit min-width
+replaces the flex default of `auto`, and `auto` is the only thing stopping a
+flex item shrinking below its own contents. With it there, the brand collapsed
+whenever the bar got tight and "MEGAWATT" printed 106px outside its own box on
+twelve routes at 390–768 with 200% text. The floor now sits only where the
+wordmark is actually gone — 24px in the compact bar's step two, and 44px under
+380px where the wordmark is `font-size: 0`.
+
+> A minimum written to guarantee a floor can remove the floor that was already
+> there.
 
 > **When a responsive step removes part of a control, re-measure the control.**
 > What is left is often sized by whatever happens to remain, not by a decision.
@@ -6586,3 +6617,51 @@ nudging one tile's `padding-top` by 2px, which the check reports as
 So the sprawl is real in the source and produces nothing a reader can see. That
 is a much better answer than the argument alone, and it is the reason to leave
 651 declarations alone rather than a reason to go and change them.
+
+---
+
+## Documentation drift is a defect class (2026-08-03)
+
+This file is load-bearing. It is read before work starts, and a passage that has
+quietly stopped being true does more damage than no passage at all, because it
+is trusted. Four entries had gone stale, three of them from changes made in the
+same session that wrote them.
+
+| entry | said | actually |
+|---|---|---|
+| `--nav-h-safe` | "is 74px … left alone" | `calc(57px + 1.125rem + env(safe-area-inset-bottom))` since the constant was measured wrong at 150% and 200% |
+| chain chip below 640px | "sheds its **XRPL** label" | sheds the **whole chip**, because the mark alone reads as a close button |
+| `.nav-brand` | "now carries `min-width` too" | the base rule carries none; putting it there let the wordmark print 106px outside its own box |
+| `.chain-btn-name` | "**is** `display: none`" | clipped, and has been since an earlier pass recorded further **up this same file** |
+
+That last one is the sharpest: the document **contradicted itself**. One section
+records changing `display: none` to clipping and explains why; another, later in
+the file, still cites `display: none` as the mechanism behind a measurement.
+
+Both failure directions are now on the record for this session:
+
+- **Not reading the docs** cost a whole pass re-deriving the spacing decision,
+  which was written down in the very block being measured.
+- **Reading the docs** would have handed back a 74px constant that had already
+  been measured wrong, and a `display: none` that no longer exists.
+
+### How to check it, rather than hoping
+
+Two of the four were found by grepping, and both greps are cheap enough to
+repeat:
+
+- **Custom-property claims.** Extract every `` `--token` … is Npx `` assertion
+  and compare against the token's declared value. Currently 0 mismatches.
+- **Present-tense selector claims.** Extract `` `.sel` … carries/has/is
+  `prop: value` `` and check the property against that selector's rule block.
+  Three hits, two of them regex false positives (a claim about `.overlay`
+  attributed to `.modal`, and a two-declaration match) and one real.
+
+Neither is worth wiring into the audit — the false-positive rate is high and the
+judgement is human. They are worth running at the end of a long session, which
+is when the drift is created.
+
+**Corrections are marked "Superseded" in place rather than deleted.** The
+reasoning in the original entries is still why the current code looks the way it
+does, and the wrong turn is often the more useful half — `.nav-brand` is a
+better warning as "this obvious fix was itself the defect" than as a tidy rule.
