@@ -120,9 +120,15 @@ const CASES = [
   // with a precondition string that sent the reader to look at vault status
   // instead of at the selector. A skip reason is an explanation, and a wrong
   // explanation is worse than none: it costs the next person the same hour.
-  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".detail-side .btn-ghost.btn-block", expect: "[role=dialog], .sheet, .overlay",
+  //
+  // And then it happened a second time, in both halves at once. The trigger was
+  // "corrected" to .btn-ghost.btn-block, which is the DISABLED branch's link to
+  // the operating site — it navigates, it does not open a dialog — and the
+  // precondition named status "active", which renders ClaimCard and has no
+  // deposit control at all. Both now describe what the component actually does.
+  { name: "vault:deposit",     route: "/vault/bess-belgrade-01", open: ".detail-main .btn-accent.btn-block", expect: "[role=dialog], .sheet, .overlay",
     expectText: "deposit", needsConnected: true,
-    precondition: "needs a vault with status active AND a POSITIONS entry — the action footer renders only when one of deposit/claim applies" },
+    precondition: "no vault has status \"fundraising\" — the deposit CTA renders only for that status. \"operational\" gives RevenueCard, \"active\" gives ClaimCard, and \"coming_soon\" gives a disabled branch whose only block-level control is a link to the operating site. Reproduce by setting one pipeline vault to \"fundraising\" in lib/vaults.ts. The control is in .detail-main, not .detail-side — the side column carries the secondary copy of it" },
   { name: "wallet:sheet",      route: "/",               open: ".wallet-pill",     expect: ".sheet-panel, [role=dialog]", needsConnected: true },
 ];
 

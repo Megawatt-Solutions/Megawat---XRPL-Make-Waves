@@ -6380,3 +6380,110 @@ The two legitimate uses that survive, both narrow and both local:
 `.globe-tip` recorded this in July — nowrap made it 457px wide in a 390px
 viewport — and the fix there was `width: max-content` plus a `max-width`, which
 is the same principle: say "one line if it fits" rather than "one line".
+
+---
+
+## The dialog that handles money had never been audited (2026-08-03)
+
+`vault:deposit` had been in the overlay audit's case list for as long as the
+audit has existed and had **never run once**, at any width, in any mode. Two
+reasons, and the second one had already been "fixed".
+
+### The skip reason was wrong, in both halves
+
+An earlier pass caught this exact class of bug and wrote it up: *"a wrong skip
+reason is worse than none: it costs the next person the same hour."* Then the
+correction reintroduced it.
+
+| | was | is |
+|---|---|---|
+| trigger | `.detail-side .btn-ghost.btn-block` | `.detail-main .btn-accent.btn-block` |
+| precondition | "needs a vault with status active AND a POSITIONS entry" | "no vault has status `fundraising` — the deposit CTA renders only for that status" |
+
+Both halves were wrong and both pointed away from the cause. `.btn-ghost.btn-block`
+is the **disabled** branch's link to the operating site — it navigates, it does
+not open a dialog — and status `active` renders `ClaimCard`, which has no
+deposit control at all. The control is in `.detail-main`; `.detail-side` carries
+a secondary copy.
+
+**Reading the component beats correcting the selector from the outside.** Both
+wrong answers came from inspecting rendered pages in states where the control
+did not exist.
+
+### What it found once it ran
+
+Reproduced by setting one pipeline vault to `fundraising` in `lib/vaults.ts`,
+then reverted by explicit path.
+
+- **The dialog contract passes**: focus enters and stays (0 escapes in 6 tabs),
+  Escape closes, focus returns to the trigger, at 320 and 390. First time it has
+  ever been checked.
+- **At 200% text it opens with both its actions off-screen.** 1126px of dialog
+  in an 844px viewport, "Cancel" and "Confirm deposit" at y=1082.
+- **At 320 with 200% text the two buttons were 60px wider than the dialog.**
+
+### Reachable is not the same as unreachable — check before claiming either
+
+My first reading was that the controls were stranded, because the panel does not
+scroll and the body is locked. That was wrong, and the thing that settled it was
+a **trusted wheel event**: overlay `scrollTop` went 39 → 322, "Confirm deposit"
+moved from y=1082 to y=799, and the background correctly did not move. The
+scroll lock is right and the content is reachable.
+
+So the finding is milder than it first looked, and still worth fixing: a money
+dialog that opens with its confirm *and* its cancel out of sight is asking the
+reader to go looking for the way out. `.modal-footer` had no CSS rule at all —
+three inline properties that could not express "wrap when narrow" or "stay
+visible while the dialog scrolls". It is `position: sticky` now, spanning the
+modal's padding box, and wraps. `pastFold` is empty at every width and text size
+measured.
+
+### And one more flex row with no gap
+
+The screenshot of the fix showed **"AmountBalance: $0.00 RLUSD"**. `.field-label`
+is `justify-content: space-between` with no `gap` and no `flex-wrap`, and
+space-between distributes what is *left over* — so when two children exactly fill
+the row it distributes nothing and they touch. A `column-gap` is a floor
+space-between cannot spend.
+
+> Every `justify-content: space-between` row wants a `gap` as well. The
+> justification is what to do with spare room; the gap is what to do when there
+> is none.
+
+### Then the same shape, everywhere else
+
+`.field-label` was not alone. Asking the browser — rather than grepping, because
+most of these rows are inline styles in JSX that never appear in the stylesheet
+— for every `space-between` row with no `column-gap`, and measuring the actual
+distance between adjacent children at 200% text:
+
+| route | rows touching |
+|---|---|
+| `/vault/bess-ljubljana-01` | 8 |
+| `/spreadcast` | 3 |
+| `/` | 2 |
+
+Reading, at 0px apart: `Net yieldYield paid to depositors8.5`, `Charged` against
+`361.40 MWh`, `Steady` against `141 - 165 EUR/MWh`, and `Live performance`
+flush against the chevron that opens it.
+
+Seven places, three in CSS (`.legend-row`, `.section-head`, `.perf-toggle`) and
+four inline. All 13 rows now report a gap; every route is clean.
+
+`.section-head` was not among the ones caught touching. It got the gap anyway,
+because it is the same shape sitting beside `.legend-row` with a right-hand slot
+that grows with its contents — cheaper now than in a later sweep.
+
+
+### Checked and left alone: the vault heading stranding "01"
+
+`stranded-last-line` still reports `h1 "BESS Ljubljana 01"` with "01" alone at
+23% over three lines, at 320 with 200% text. `text-wrap: balance` is **already
+applied** to it — measured, computed value `balance` — and changes nothing,
+because at that size "Ljubljana" alone is about 200px of a 224px box, so the
+break points are forced. Joining "Ljubljana 01" with a non-breaking space would
+overflow rather than wrap.
+
+Same conclusion the `.vault-name` note reaches for the card variant: balance
+cannot balance a box that narrow. Three lines is the least-bad rendering
+available, not a defect waiting for a fix.

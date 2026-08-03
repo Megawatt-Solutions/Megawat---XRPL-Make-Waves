@@ -115,7 +115,7 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <BoltIcon size={13} /> Opens for fundraising next quarter
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
           {/* Solid dot, not `pulse`. This card has no useEffect, no interval
               and never calls simulate() — socPct and healthPct are read
               straight off the static vaults.ts constants. Measured on the

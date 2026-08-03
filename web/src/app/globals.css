@@ -809,6 +809,13 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  /* space-between distributes what is LEFT OVER, so a row whose children
+     exactly fill it distributes nothing and they touch. Measured at 200% text:
+     all four rows here ran their label straight into their figure, reading
+     "Net yieldYield paid to depositors8.5" with no space anywhere in it.
+     A column-gap is a floor space-between cannot spend. */
+  flex-wrap: wrap;
+  gap: 2px 14px;
   padding: 13px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -909,6 +916,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Not caught touching, but the same shape as .legend-row and with a
+     right-hand slot that grows with whatever it holds. Cheaper to give it the
+     floor now than to find it in a later sweep. */
+  flex-wrap: wrap;
+  gap: 4px 14px;
   margin: 34px 0 16px;
 }
 /* <h2>. Screen readers navigate by heading, and on the vaults side there was
@@ -1057,6 +1069,42 @@ button {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
   animation: popIn 0.22s var(--ease);
 }
+/* The dialog's action row.
+   -------------------------------------------------------------------
+   Two things it has to do that inline styles could not say.
+
+   STAY VISIBLE. The overlay is the scrollport, not the modal, so a tall dialog
+   simply extends past the fold: measured at 200% text the deposit dialog is
+   1126px in an 844px viewport, and "Cancel" and "Confirm deposit" sat at 1082 -
+   off-screen on open. They were reachable (a trusted wheel took the overlay
+   from scrollTop 39 to 322 and brought the buttons to 799, with the background
+   correctly staying put) so nothing was stranded; but a money dialog that opens
+   with its confirm and its cancel both out of sight is asking the reader to go
+   looking for the way out. Sticky pins them to the bottom of the scrollport
+   while the body scrolls underneath.
+
+   WRAP. At 320 with 200% text the two buttons side by side were 60px wider than
+   the dialog. They stack now instead, which is also the better shape for a
+   thumb.
+
+   The negative margins let the row span the modal's 24px padding box so the
+   background and rule read as a footer rather than a floating strip, and
+   bottom: -24px cancels that same padding so it pins flush. */
+.modal-footer {
+  position: sticky;
+  bottom: -24px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px -24px -24px;
+  padding: 14px 24px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.modal-footer > .btn {
+  flex: 1 1 10rem;
+}
 .modal-title {
   font-size: 1.0625rem;
   font-weight: 660;
@@ -1073,6 +1121,14 @@ button {
   margin-bottom: 7px;
   display: flex;
   justify-content: space-between;
+  /* space-between distributes whatever is LEFT OVER, so when the two children
+     exactly fill the row it distributes nothing and they touch. At 200% text
+     the deposit dialog's amount field read "AmountBalance: $0.00 RLUSD" as one
+     run of words — a field label welded to the balance it is not part of.
+     A column-gap is a floor that space-between cannot spend, and wrap gives
+     them separate lines once even that will not fit. */
+  flex-wrap: wrap;
+  gap: 2px 12px;
 }
 .input {
   width: 100%;
@@ -1763,6 +1819,9 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* "Live performance" sat flush against the chevron that opens it at 200%
+     text - the label and the affordance reading as one smudge. */
+  gap: 12px;
   padding: 15px 22px;
   background: var(--card);
   /* --border-control, not --border. This is an operable control, and --border

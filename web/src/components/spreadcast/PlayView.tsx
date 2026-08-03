@@ -1072,7 +1072,7 @@ export function PlayView() {
               const label = i === 0 ? `< ${b[0]}` : i === 4 ? `≥ ${b[3]}` : `${b[i - 1]} – ${b[i]}`;
               const names = ["Calm", "Steady", "Lively", "Swingy", "Wild"];
               return (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: "0.8125rem" }}>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "5px 0", fontSize: "0.8125rem" }}>
                   <span style={{ color: `var(${BAND_VARS[i]})`, fontWeight: 700 }}>{names[i]}</span>
                   <span className="sc-mono muted">{label} €/MWh</span>
                 </div>

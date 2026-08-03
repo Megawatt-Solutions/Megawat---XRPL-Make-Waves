@@ -585,7 +585,7 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
         </div>
       </div>
       <div className="divider" />
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div>
           <div className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{(snap.roundTripEff * 100).toFixed(1)}%</div>
           <div className="muted" style={{ fontSize: "0.75rem" }}>Round-trip efficiency</div>
@@ -601,7 +601,7 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
       <span className="muted" style={{ fontSize: "0.8125rem" }}>{label}</span>
       <span className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{value}</span>
     </div>
@@ -1025,9 +1025,15 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
           {kycOk ? "KYC verified, eligible to deposit" : "KYC verification required to deposit"}
         </div>
 
-        <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-accent" style={{ flex: 1 }} disabled={!valid} onClick={submit}>
+        {/* Layout moved out of here and onto .modal-footer in globals.css. It
+            had no rule at all, so the two controls that complete or abandon a
+            money transfer were laid out by three inline properties that could
+            not express "wrap when narrow" or "stay visible while the dialog
+            scrolls" — and at 320 with 200% text they were 60px wider than the
+            dialog containing them. */}
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-accent" disabled={!valid} onClick={submit}>
             {tooMuch ? "Insufficient RLUSD" : overCap ? "Exceeds vault capacity" : "Confirm deposit"}
           </button>
         </div>
