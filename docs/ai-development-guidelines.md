@@ -6541,3 +6541,48 @@ same as fixing the sentence that describes it.**
 
 All four now say "select", which is device-neutral and covers the keyboard path
 those rows gained. "Drag to rotate" stays: dragging is the same gesture on both.
+
+---
+
+## Re-deriving a settled question, and the one part that was new (2026-08-03)
+
+Measured the spacing system: 34 distinct pixel values across 651
+padding/gap/margin declarations, 51% of them on the seven-rung scale the
+stylesheet declares.
+
+**That analysis already existed.** The `--sp-*` block carries a note from an
+earlier pass with the same measurement (29 values, 808 declarations — different
+counting method, same picture) and the same conclusion: do not migrate, because
+there is no dominant rung to fold outliers into and rewriting hundreds of
+declarations would be a redesign with no defect to fix.
+
+Worth saying plainly: **this pass re-derived a decision that was already made and
+already written down, in the file being measured.** The lesson is to read the
+tokens' own comment before measuring the tokens.
+
+Two things were genuinely new.
+
+### The rule set by that note has not held
+
+The tokens are referenced **zero** times, in the stylesheet and in every
+component. "New work uses these tokens" was the whole mechanism for stopping the
+drift, and the count has gone from 29 distinct values to 34 since. Recorded
+rather than enforced: a lint rule rejecting raw px would fire on hundreds of
+existing lines and on every measured one-off that has a comment beside it saying
+why it is exactly that number.
+
+### The half of "looks slightly off" that is measurable
+
+The old note said the audit "can catch overflow but not *looks slightly off*".
+Part of it can be caught. Repeated siblings — cards in a grid, tiles in a row —
+either share their internal padding or their contents stop lining up across the
+row, and that is a comparison, not a judgement.
+
+Grouping siblings by parent and first class and comparing computed padding
+across each group: **every group consistent on all six routes.** Canaried by
+nudging one tile's `padding-top` by 2px, which the check reports as
+`div.tile: 20px/20px/18px/20px x1 vs 18px/20px/18px/20px x3`.
+
+So the sprawl is real in the source and produces nothing a reader can see. That
+is a much better answer than the argument alone, and it is the reason to leave
+651 declarations alone rather than a reason to go and change them.

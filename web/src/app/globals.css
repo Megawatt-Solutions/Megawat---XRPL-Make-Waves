@@ -198,7 +198,26 @@
 
      So: existing values stay. NEW work uses these tokens, which are the
      seven rungs already doing the work. That stops the drift without
-     paying for a rewrite nobody asked for. */
+     paying for a rewrite nobody asked for.
+
+     Follow-up, 2026-08-03. Two things measured since:
+
+     The tokens are still referenced ZERO times, in this file and in every
+     component. "New work uses these tokens" has not held once, so the
+     drift it was meant to stop has not been stopped - the count is 34
+     distinct values across 651 declarations now. Recorded rather than
+     enforced: a lint rule that rejects a raw px value would fire on
+     hundreds of existing lines and on every measured one-off that has a
+     comment beside it explaining why it is exactly that number.
+
+     The conclusion above still holds, and now has evidence rather than
+     only an argument. This note said "the audit can catch overflow but
+     not 'looks slightly off'". The visible half of that IS checkable:
+     repeated siblings - cards in a grid, tiles in a row - either share
+     their internal padding or their contents stop lining up across the
+     row. Measured on six routes, every group consistent, with a canary
+     that catches a 2px nudge on one tile. The sprawl is real in the
+     source and produces nothing a reader can see. */
   --sp-1: 6px;
   --sp-2: 8px;
   --sp-3: 10px;
