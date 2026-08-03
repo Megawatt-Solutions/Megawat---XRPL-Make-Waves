@@ -31,7 +31,11 @@ export function NetworkPanel() {
     <div className="net-grid">
       <div className="net-globe">
         <BessGlobe focusId={selected} onSelect={setSelected} />
-        <div className="net-hint caps">Drag to rotate · click a site to focus</div>
+        {/* "select", not "click". This hint and the two chart readouts in PlayView
+            were addressed to opposite devices - "click a site" here, "tap a bar"
+            there - so each was wrong for half the people reading it. Drag is
+            device-neutral already; the verb for the discrete action was not. */}
+        <div className="net-hint caps">Drag to rotate · select a site to focus</div>
       </div>
       <div className="net-side">
         <div className="site-rows">

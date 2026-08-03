@@ -92,7 +92,7 @@ export function ArchiveView() {
     <>
       <h1>Results</h1>
       <p className="sc-sub">
-        Every round is decided by the official European electricity market prices, never by us. Click a day for
+        Every round is decided by the official European electricity market prices, never by us. Select a day for
         the full price curve and everyone&apos;s revealed predictions.
       </p>
 
@@ -288,7 +288,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
           interaction and it costs nothing. But a <tr onClick> is not reachable
           any other way: no tabindex, no role, so the ▸ marker advertised a
           disclosure only a mouse could open, and the page's own instruction
-          ("click a day for the full price curve and everyone's revealed
+          ("select a day for the full price curve and everyone's revealed
           predictions") was addressed to half the audience.
 
           Unlike the bar strips, this detail is not duplicated on the page, so

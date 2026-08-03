@@ -843,7 +843,7 @@ export function PlayView() {
                 ))}
               </div>
               <div className="sc-readout" role="status" aria-live="polite">
-                {tip ?? `Last ${history.length} days · tap a bar for the day`}
+                {tip ?? `Last ${history.length} days · select a bar for the day`}
               </div>
               <div className="sc-hist-stats">
                 <span className="sc-mono muted">avg {histAvg.toFixed(0)} €/MWh</span>
@@ -915,7 +915,7 @@ export function PlayView() {
                 })}
               </div>
               <div className="sc-readout" role="status" aria-live="polite">
-                {hourTip ?? "Hourly prices, 00–23 · tap a bar for the hour"}
+                {hourTip ?? "Hourly prices, 00–23 · select a bar for the hour"}
               </div>
               <p className="muted" style={{ fontSize: "0.6875rem", marginTop: 6 }}>
                 blue = price went negative · full details under Results

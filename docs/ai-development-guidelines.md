@@ -6487,3 +6487,57 @@ overflow rather than wrap.
 Same conclusion the `.vault-name` note reaches for the card variant: balance
 cannot balance a box that narrow. Three lines is the least-bad rendering
 available, not a defect waiting for a fix.
+
+---
+
+## What the app announces, and which device it thinks you have (2026-08-03)
+
+Two checks on the same theme: things a screen reader or a different input device
+experiences, which no geometry check and no screenshot can see.
+
+### Live regions: clean, and measured rather than assumed
+
+A polite live region is re-announced every time its content changes, so a
+countdown inside one is announced **once a second, forever**, and the reader can
+do nothing else while it happens. This app has clocks ticking at 1000ms in
+`DailySpread` and `RoundContext` and a dozen live regions, which is exactly the
+combination that produces it.
+
+Snapshotting every `[aria-live]`, `role=status`, `role=alert`, `role=log` and
+`role=timer` and comparing after 3.2 seconds: **nothing ticks.** The countdowns
+are outside the live regions.
+
+That zero is only worth something because of the canary: injecting a
+`role=status` div that rewrites itself every 500ms makes the probe report
+`div.canary-clock`, and removing it takes the count back to 0.
+
+Also checked, because a live region that never announces looks identical to one
+that works:
+
+- **None is `display: none`.** A region hidden that way is not announced at all;
+  the `.sr-only` ones here use the clip technique and stay in the tree.
+- **Two are empty at mount** (`p.sc-notice`). That is correct: the element has to
+  exist *before* the content arrives, or the change is never a change.
+
+### Interaction hints addressed to opposite devices
+
+The app told you to use two different input devices depending on which page you
+were on:
+
+| | said |
+|---|---|
+| `NetworkPanel` | "Drag to rotate · **click** a site to focus" |
+| `ArchiveView` | "**Click** a day for the full price curve" |
+| `PlayView` history chart | "Last 30 days · **tap** a bar for the day" |
+| `PlayView` hourly chart | "Hourly prices, 00–23 · **tap** a bar for the hour" |
+
+Each is wrong for half the people reading it, and the two halves are wrong in
+opposite directions in the same product.
+
+`ArchiveView` had already noticed: its own comment says the instruction *"was
+addressed to half the audience"* — and then fixed the keyboard reachability of
+the row and left the sentence saying "Click". **Fixing the mechanism is not the
+same as fixing the sentence that describes it.**
+
+All four now say "select", which is device-neutral and covers the keyboard path
+those rows gained. "Drag to rotate" stays: dragging is the same gesture on both.
