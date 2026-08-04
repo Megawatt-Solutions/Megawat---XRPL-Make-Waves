@@ -39,6 +39,48 @@ export function buildCommitTx(playerAddress: string, day: string, hash: string) 
   };
 }
 
+/** The memo a commit for `day`/`hash` must carry, in the hex the ledger
+ * stores. Both the builder above and the check below read it from here, so
+ * the thing we ask to be signed and the thing we accept cannot drift. */
+export function commitMemoData(day: string, hash: string): string {
+  return hex(`${day}:${hash}`);
+}
+
+/** True when a Xaman payload is *this* pick's commit: a Payment to the anchor
+ * carrying this day's hash as its memo.
+ *
+ * Xaman only returns payloads this app created, so the payload is always one
+ * of ours — the question is which one. Without this, any signed payload the
+ * player could name stood in for any other: yesterday's commit, replayed
+ * against today's uuid, marked today's pick locked on-chain while the only
+ * transaction on the ledger committed to yesterday's forecast. The memo is
+ * the commitment, so the memo is what decides.
+ *
+ * Read from Xaman's own parsed fields where it offers them, and from the
+ * signed txjson for the memo. Deliberately silent about Amount and SourceTag:
+ * they are what makes the commit cheap and attributable, not what makes it
+ * true, and asserting fields Xaman may normalise would reject honest commits. */
+export function isCommitPayload(
+  payload: { tx_type: string; tx_destination: string; request_json: Record<string, unknown> },
+  day: string,
+  hash: string
+): boolean {
+  if (!ANCHOR_ADDRESS) return false;
+  if (payload.tx_type !== "Payment") return false;
+  if (payload.tx_destination !== ANCHOR_ADDRESS) return false;
+  const memos = payload.request_json?.Memos;
+  if (!Array.isArray(memos) || memos.length === 0) return false;
+  const want = commitMemoData(day, hash);
+  // Hex, where case carries no meaning.
+  return memos.some((m) => {
+    const memo = (m as { Memo?: Record<string, unknown> })?.Memo;
+    return (
+      String(memo?.MemoType ?? "").toUpperCase() === hex("spreadcast/commit") &&
+      String(memo?.MemoData ?? "").toUpperCase() === want
+    );
+  });
+}
+
 export interface AnchorResult {
   simulated: boolean;
   txHash: string;
@@ -81,24 +123,10 @@ export async function submitWeeklyAnchor(week: string, root: string): Promise<An
   }
 }
 
-/** Verify a claimed commit tx exists on ledger with the expected memo.
- * Demo mode (no ws reachable / demo hashes) returns "unverified". */
-export async function lookupCommitTx(txHash: string): Promise<"found" | "missing" | "unverified"> {
-  if (txHash.startsWith("SIMULATED-")) return "unverified";
-  try {
-    const { Client } = await import("xrpl");
-    const client = new Client(XRPL_WSS);
-    await client.connect();
-    try {
-      const res = await client.request({ command: "tx", transaction: txHash });
-      return res.result ? "found" : "missing";
-    } finally {
-      await client.disconnect();
-    }
-  } catch {
-    return "unverified";
-  }
-}
+// lookupCommitTx lived here: it said it verified a claimed commit "with the
+// expected memo" and only asked the ledger whether the hash existed, which
+// any transaction satisfies. Nothing called it. isCommitPayload above is the
+// check it described, made before the hash is ever stored.
 
 /** Sunday 15:00 local of the ISO week a day belongs to — when the weekly
  * anchor job runs. Exposed for the jobs route. */
