@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { StatTile } from "@/components/StatTile";
 import { GrowthChart } from "@/components/GrowthChart";
 import { useWallet, useToast } from "@/lib/wallet";
@@ -19,6 +20,16 @@ export default function PortfolioPage() {
   const m = portfolioMetrics();
   const growth = growthSeries();
   const totalClaimable = m.totalClaimable;
+
+  const claimAll = () => {
+    if (totalClaimable <= 0) return;
+    posthog.capture("portfolio_yield_claimed", {
+      yield_amount: totalClaimable,
+      currency: "EUR",
+      position_count: m.positionsCount,
+    });
+    notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success");
+  };
 
   if (!connected) {
     return (
@@ -75,7 +86,7 @@ export default function PortfolioPage() {
       {/* Positions */}
       <div className="section-head">
         <div className="section-title">Your Positions <span className="section-count">{POSITIONS.length}</span></div>
-        <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
+        <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={claimAll}>
           Claim all
         </button>
       </div>

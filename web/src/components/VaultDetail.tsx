@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import type { Vault } from "@/lib/types";
 import {
   fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
@@ -60,6 +61,12 @@ export function VaultDetail({ vault }: { vault: Vault }) {
   const onClaim = () => {
     if (!connected) return connect();
     if (claimable <= 0) return;
+    posthog.capture("vault_yield_claimed", {
+      vault_id: vault.id,
+      vault_status: vault.status,
+      yield_amount: claimable,
+      currency: vault.currency,
+    });
     notify(`Claimed ${fmtMoney(claimable, vault.currency)} yield`, "success");
   };
 
@@ -230,6 +237,12 @@ export function VaultDetail({ vault }: { vault: Vault }) {
           kycOk={(profile?.kycLevel ?? 0) >= 1}
           onClose={() => setShowDeposit(false)}
           onMockDone={(amt) => {
+            posthog.capture("vault_deposit_confirmed", {
+              vault_id: vault.id,
+              vault_status: vault.status,
+              deposit_amount: amt,
+              currency: "RLUSD",
+            });
             notify(`Deposited ${fmtMoney(amt, "USD")} RLUSD — received ${fmtNum(amt)} ${vault.symbol}`, "success");
             setShowDeposit(false);
           }}

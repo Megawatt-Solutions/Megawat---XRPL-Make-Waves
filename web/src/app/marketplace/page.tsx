@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import posthog from "posthog-js";
 import { StatTile } from "@/components/StatTile";
 import { useWallet, useToast } from "@/lib/wallet";
 import { listingViews, marketplaceMetrics } from "@/lib/marketplace";
@@ -26,6 +27,12 @@ export default function MarketplacePage() {
 
   const buy = (lv: ListingView) => {
     if (!connected) return connect();
+    posthog.capture("marketplace_listing_purchased", {
+      vault_id: lv.vault.id,
+      shares: lv.listing.shares,
+      purchase_amount: lv.askTotal,
+      currency: "USDC",
+    });
     notify(`Bought ${fmtNum(lv.listing.shares)} ${lv.vault.symbol} for ${fmtMoney(lv.askTotal, "USD")}`, "success");
   };
 
@@ -94,12 +101,19 @@ export default function MarketplacePage() {
         ))}
       </div>
 
-      {showSell && <SellModal onClose={() => setShowSell(false)} onDone={(msg) => { notify(msg, "success"); setShowSell(false); }} />}
+      {showSell && <SellModal onClose={() => setShowSell(false)} onDone={(listing) => {
+        posthog.capture("marketplace_position_listed", listing);
+        notify(`Listed ${fmtNum(listing.shares)} ${listing.vault_symbol} at ${fmtMoney(listing.price_per_share, "USD")}/share (${premiumStr(listing.premium_bps)})`, "success");
+        setShowSell(false);
+      }} />}
     </main>
   );
 }
 
-function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: string) => void }) {
+function SellModal({ onClose, onDone }: {
+  onClose: () => void;
+  onDone: (listing: { vault_id: string; vault_symbol: string; shares: number; price_per_share: number; premium_bps: number }) => void;
+}) {
   const sellable = POSITIONS.filter((p) => p.shares > 0);
   const [vaultId, setVaultId] = useState(sellable[0]?.vaultId ?? "");
   const pos = sellable.find((p) => p.vaultId === vaultId);
@@ -174,7 +188,13 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
         <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-accent" style={{ flex: 1 }} disabled={!valid}
-            onClick={() => onDone(`Listed ${fmtNum(shares)} ${vault!.symbol} at ${fmtMoney(price, "USD")}/share (${premiumStr(premiumBps)})`)}>
+            onClick={() => onDone({
+              vault_id: vault!.id,
+              vault_symbol: vault!.symbol,
+              shares,
+              price_per_share: price,
+              premium_bps: premiumBps,
+            })}>
             List position
           </button>
         </div>
