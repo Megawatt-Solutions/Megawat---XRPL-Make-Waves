@@ -1,0 +1,1083 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>responsive audit (throwaway)</title>
+<style>
+  body { margin:0; background:#111; color:#ccc; font:12px/1.5 system-ui; }
+  #stage { border:1px solid #444; background:#000; display:block; }
+  #hud { padding:8px; font-family:ui-monospace,monospace; }
+</style>
+<div id="hud">idle</div>
+<iframe id="stage" src="about:blank" width="360" height="760"></iframe>
+<script>
+// Statistically common viewport widths (2026 global mix): Android baseline,
+// the iPhone cluster, tablets in both orientations, and the laptop/desktop
+// modes that dominate desktop traffic.
+const WIDTHS = [320, 360, 390, 414, 430, 768, 820, 1024, 1280, 1440, 1920];
+const HEIGHTS = { 320:658, 360:800, 390:844, 414:896, 430:932, 768:1024, 820:1180, 1024:768, 1280:800, 1440:900, 1920:1080 };
+const ROUTES = [
+  "/", "/dashboard-v2", "/portfolio", "/marketplace",
+  "/vault/bess-ljubljana-01",
+  "/spreadcast", "/spreadcast/board", "/spreadcast/log", "/spreadcast/how",
+];
+
+const stage = document.getElementById("stage");
+const hud = document.getElementById("hud");
+
+function load(url, w, h) {
+  return new Promise((resolve) => {
+    stage.width = w; stage.height = h;
+    stage.onload = () => setTimeout(resolve, 850); // let data land + layout settle
+    stage.src = url;
+  });
+}
+
+// ── Overlays ────────────────────────────────────────────────────────────
+// Every check here used to run against a route with everything closed, so
+// sheets, modals and the onboarding flow were never audited at all — and one
+// of them was carrying a live contrast failure the whole time. --sheet and
+// --toast are the two lightest surfaces in the app and neither is reachable
+// without opening something.
+//
+// Each entry names a control to click and what should appear. Missing controls
+// are skipped silently: they are state-dependent (the connect modal only
+// exists when no wallet is attached) and a hard failure would make the audit
+// depend on demo data.
+const OVERLAYS = [
+  { route: "/spreadcast", open: ".sc-commit-why", expect: "[role=dialog]", name: "sheet:provably-fair" },
+  { route: "/?onboarding=1", open: null, expect: ".ob-sheet", name: "onboarding" },
+  { route: "/", open: ".wallet-pill", expect: "[role=dialog], .overlay", name: "wallet" },
+  { route: "/marketplace", open: ".btn-accent", expect: "[role=dialog], .overlay", name: "sell" },
+  // Signed out, so the connect dialog is reached every run rather than only
+  // when the stored wallet happens to be the wrong kind. This is the one that
+  // contains the 189x31 "Use a watch-only address instead" button.
+  { route: "/", open: ".connect-btn", expect: "[role=dialog], .overlay",
+    name: "connect, signed out", signedOut: true },
+];
+
+// ── User font-size preference ────────────────────────────────────────────
+// Browser zoom scales everything including px, so a px-only stylesheet still
+// "works" under zoom. What it ignores is the OTHER control: a raised default
+// font size, which only rem/em type responds to. Users who need larger text
+// and reach for that setting rather than zoom get nothing at all.
+//
+// Two things are checked, because a migration to rem can fail in both
+// directions: type that still does not respond, and type that responds so
+// enthusiastically it overflows a fixed-height box.
+async function auditTextScale(routes, width) {
+  const findings = [];
+  for (const route of routes) {
+    await load("http://localhost:3000" + route, width, 900);
+    const d = stage.contentDocument, win = stage.contentWindow;
+    const sample = () => [...d.querySelectorAll("p, h1, h2, .btn, .page-sub, .tile-sub, .bottom-nav-item")]
+      .slice(0, 25).map((el) => parseFloat(win.getComputedStyle(el).fontSize));
+    const before = sample();
+
+    d.documentElement.style.fontSize = "24px"; // a common large-text setting
+    await new Promise((r) => setTimeout(r, 350));
+    const after = sample();
+    const responded = after.filter((v, i) => v > before[i] + 0.5).length;
+
+    // Text that the larger size pushes out of a box that actually CLIPS.
+    //
+    // The first version of this filtered FOR overflow:visible, which is exactly
+    // where content does not get clipped — it just paints outside its box. It
+    // duly reported two elements that render perfectly well. Clipping needs
+    // hidden/clip/scroll/auto; visible is the one value that cannot clip.
+    //
+    // Compared against the same measurement at the default root size, so
+    // pre-existing overflow is not attributed to the text scale.
+    const clipsNow = () => new Set(
+      [...d.querySelectorAll("body *")].filter((el) => {
+        const s = win.getComputedStyle(el);
+        const clips = /hidden|clip|scroll|auto/.test(s.overflowY) || /hidden|clip/.test(s.overflow);
+        return clips && el.clientHeight > 0 && el.scrollHeight > el.clientHeight + 2;
+      }).map(describe)
+    );
+    const clippedScaled = clipsNow();
+    const docOverflow = d.documentElement.scrollWidth > win.innerWidth + 1;
+
+    d.documentElement.style.fontSize = "";
+    await new Promise((r) => setTimeout(r, 250));
+    const clippedBase = clipsNow();
+
+    if (before.length && responded === 0) {
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "text-ignores-user-font-size",
+        detail: `0 of ${before.length} sampled elements responded to a 24px root` });
+    }
+    for (const el of clippedScaled) {
+      if (clippedBase.has(el)) continue; // already clipped before scaling; not this check's finding
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "fixed-box-clips-scaled-text", el });
+    }
+    if (docOverflow) {
+      findings.push({ route: `${route} (text scale)`, w: width, kind: "scaled-text-overflows-page",
+        detail: `${d.documentElement.scrollWidth} > ${win.innerWidth}` });
+    }
+  }
+  return findings;
+}
+
+// Cards sharing a row must share a height.
+//
+// Grid stretches its items by default, so this passes today — the point is
+// that it stops passing the moment someone sets align-items: start on a card
+// grid, which is an easy and very visible mistake.
+//
+// Deliberately per-ROW, not per-grid. At 390px the cards are a single-column
+// stack with gaps between them, and differing heights there are invisible and
+// entirely normal — "BESS Bucharest 01" wraps to two lines and its card is 47px
+// taller than its siblings, which nobody can perceive in a vertical list.
+// Raggedness only exists where cards sit side by side.
+function auditCardRows(w) {
+  const d = stage.contentDocument;
+  const out = [];
+  for (const grid of d.querySelectorAll(".vault-grid, .tile-grid")) {
+    const rows = new Map();
+    for (const card of grid.children) {
+      const r = card.getBoundingClientRect();
+      if (r.height <= 0) continue;
+      const key = Math.round(r.top);
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push(Math.round(r.height));
+    }
+    for (const [, heights] of rows) {
+      if (heights.length < 2) continue; // one card is not a row
+      const spread = Math.max(...heights) - Math.min(...heights);
+      if (spread > 2) {
+        out.push({ kind: "ragged-card-row", el: describe(grid),
+          detail: `${spread}px between ${Math.min(...heights)} and ${Math.max(...heights)}` });
+      }
+    }
+  }
+  return out;
+}
+
+// ── Scrolled state ───────────────────────────────────────────────────────
+// Every other check in this file runs at scrollY 0. That was harmless while
+// `overflow-x: hidden` on html/body silently broke position:sticky, because
+// nothing stayed put and scrolling changed nothing. Now that sticky works, a
+// whole class of bug exists that a top-of-page sweep cannot see.
+//
+// Deliberately narrow. Content scrolling BEHIND a sticky header is correct and
+// flagging it would bury the output in noise. What is never correct is two
+// pieces of pinned chrome occupying the same pixels — a sticky bar landing on
+// another sticky bar, or a docked CTA sitting on the tab bar. That is precise,
+// has no legitimate case, and is exactly what the sticky fix put at risk.
+async function auditScrolled(routes, width, height) {
+  const findings = [];
+  for (const route of routes) {
+    await load("http://localhost:3000" + route, width, height);
+    const d = stage.contentDocument, win = stage.contentWindow;
+    if (!d || !d.body) continue;
+
+    const pinned = () => [...d.querySelectorAll("body *")].filter((el) => {
+      const p = win.getComputedStyle(el).position;
+      if (p !== "fixed" && p !== "sticky") return false;
+      const r = el.getBoundingClientRect();
+      // On screen and big enough to be chrome rather than a decorative pip.
+      return r.height > 12 && r.width > 40 && r.bottom > 0 && r.top < win.innerHeight;
+    });
+
+    const max = Math.max(0, d.documentElement.scrollHeight - win.innerHeight);
+    for (const frac of [0.25, 0.5, 0.9]) {
+      win.scrollTo(0, Math.round(max * frac));
+      await new Promise((r) => setTimeout(r, 260));
+      const els = pinned();
+      for (let i = 0; i < els.length; i++) {
+        for (let j = i + 1; j < els.length; j++) {
+          const a = els[i].getBoundingClientRect(), b = els[j].getBoundingClientRect();
+          if (els[i].contains(els[j]) || els[j].contains(els[i])) continue; // nesting is not overlap
+          const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          if (overlapY > 2 && overlapX > 2) {
+            findings.push({ route: `${route} (scrolled ${Math.round(frac * 100)}%)`, w: width,
+              kind: "pinned-chrome-overlap",
+              el: `${describe(els[i])} × ${describe(els[j])}`,
+              detail: `${Math.round(overlapY)}px vertical` });
+          }
+        }
+      }
+    }
+    win.scrollTo(0, 0);
+  }
+  // One finding per pair is enough; the same collision repeats at every offset.
+  const seen = new Set();
+  return findings.filter((f) => { const k = f.el; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+// ── Short viewports ──────────────────────────────────────────────────────
+// Every width in WIDTHS is audited at 800–900px tall, so a rotated phone —
+// about 390px — was never seen. That is where fixed chrome stops being a
+// detail: nav + section bar + tab bar took 45% of the screen on /spreadcast
+// before this was measured.
+const LANDSCAPE = [
+  [844, 390, "iPhone landscape"],
+  [740, 360, "small Android landscape"],
+];
+
+async function auditShortViewports(routes) {
+  const findings = [];
+  for (const [w, h, name] of LANDSCAPE) {
+    for (const route of routes) {
+      await load("http://localhost:3000" + route, w, h);
+      const d = stage.contentDocument, win = stage.contentWindow;
+      const tag = (f) => findings.push({ route: `${route} (${name})`, w, ...f });
+      try { for (const f of audit(w)) tag(f); } catch (e) { /* keep going */ }
+
+      // Chrome that never scrolls away. Anything past a third of a short
+      // screen means the page is being read through a letterbox.
+      const box = (sel) => {
+        const el = d.querySelector(sel);
+        if (!el) return 0;
+        const pos = win.getComputedStyle(el).position;
+        if (pos !== "fixed" && pos !== "sticky") return 0;
+        return el.getBoundingClientRect().height;
+      };
+      const chrome = box(".nav") + box(".sc-bar") + box(".bottom-nav");
+      const pct = Math.round((chrome / win.innerHeight) * 100);
+      if (pct > 33) {
+        tag({ kind: "chrome-eats-short-viewport", el: "nav+bar+tabs",
+              detail: `${Math.round(chrome)}px of ${win.innerHeight} = ${pct}%` });
+      }
+    }
+  }
+  return findings;
+}
+
+// The wallet keys the app persists. Cleared to reach signed-out overlays, and
+// always restored — this is the developer's own origin, not a fixture.
+const WALLET_KEYS = ["mw.xrplAddress", "mw.xrplVia"];
+
+// Poll for the overlay rather than waiting a fixed beat.
+//
+// A flat 700ms was enough when the pass ran alone and NOT enough at the end of
+// a 77-combination sweep, when the dev server is busy — so the same check found
+// the 189x31 button standalone and missed it inside runAudit(). A check whose
+// answer depends on how much ran before it is not a check.
+// The OPENER needs polling too, not just the overlay. load() resolves 850ms
+// after onload, which is enough when idle and not enough mid-sweep for a
+// client component to hydrate. Querying the button once and finding nothing
+// made the whole entry return silently — no finding, no error, a clean zero
+// for a check that never ran. That is precisely the failure this entry exists
+// to prevent, reproduced one level up.
+/**
+ * Content cut off by a clipping ANCESTOR — not just by the element itself.
+ *
+ * The pre-existing `clipped-content` rule only looked at an element's own
+ * `overflow-x`. That misses the commonest shape by far: a block whose inline
+ * content overflows, clipped by a `overflow: hidden` parent several levels up.
+ * The Spreadcast profile panel truncated the user's display name that way for
+ * months while every document-level sweep reported the page clean, because the
+ * panel absorbed the overflow and the document never scrolled sideways.
+ *
+ * TWO TRAPS, both hit while writing this:
+ *
+ *  1. Comparing border boxes does not work. A block element whose inline
+ *     content overflows keeps its own width — getBoundingClientRect() is blind
+ *     to it. The content edge is `rect.left + el.scrollWidth`.
+ *  2. A first version of this returned zero across 27 route/width pairs and
+ *     looked like a pass. It was measuring nothing. ALWAYS canary it: force a
+ *     long unbroken string into a clipped box, confirm the check fires, then
+ *     confirm it goes quiet again when the fix is applied. Three states, not
+ *     one.
+ *
+ * Elements inside a scrollable ancestor are skipped: the content is reachable,
+ * so that is a scroller, not a defect.
+ */
+function auditClipping(d, win) {
+  const clips = (cs) => /hidden|clip/.test(cs.overflowX) || /hidden|clip/.test(cs.overflow);
+  const scrolls = (cs) => /auto|scroll/.test(cs.overflowX) || /auto|scroll/.test(cs.overflow);
+  const out = [];
+  for (const el of d.querySelectorAll("body *")) {
+    if (el.getClientRects().length === 0) continue;      // display:none subtree
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (!(el.textContent || "").trim()) continue;
+    if (scrolls(win.getComputedStyle(el))) continue;
+    let node = el, clipper = null;
+    while (node && node !== d.documentElement) {
+      const ncs = win.getComputedStyle(node);
+      if (scrolls(ncs)) { clipper = null; break; }
+      if (clips(ncs)) { clipper = node; break; }
+      node = node.parentElement;
+    }
+    if (!clipper) continue;
+    const cut = Math.round((r.left + el.scrollWidth) - clipper.getBoundingClientRect().right);
+    if (cut > 1) out.push({ kind: "content-cut-off-by-ancestor", cutBy: cut,
+      el: describe(el), clipper: describe(clipper),
+      text: (el.textContent || "").trim().slice(0, 34) });
+  }
+  const seen = new Set(), uniq = [];
+  for (const o of out) { const k = o.el + "|" + o.clipper; if (!seen.has(k)) { seen.add(k); uniq.push(o); } }
+  return uniq;
+}
+
+/**
+ * The vertical half of auditClipping: text cut off at the BOTTOM of a
+ * fixed-height box. Same shape, same traps, same three-state canary
+ * requirement — see auditClipping above.
+ *
+ * SUPPRESSION: .odo-* is excluded. The odometer is a digit reel, and clipping
+ * IS its mechanism: each position holds the full "0..9,0" strip inside a 1em
+ * window and slides it with a transform. It reports ~300px of "cut" content on
+ * every run and always will. A suppression with a stated reason is honest; a
+ * check that cries wolf every run gets ignored, which costs more than the
+ * false negative. Elements with -webkit-line-clamp are skipped for the same
+ * reason: that truncation is deliberate.
+ *
+ * (Auditing the odometer for this DID surface a real bug, just not a visual
+ * one — with the whole strip in the DOM and no aria, a screen reader read the
+ * entire reel. It is aria-hidden now with the value stated in text.)
+ */
+function auditClippingVertical(d, win) {
+  const clipsY = (cs) => /hidden|clip/.test(cs.overflowY) || /hidden|clip/.test(cs.overflow);
+  const scrollsY = (cs) => /auto|scroll/.test(cs.overflowY) || /auto|scroll/.test(cs.overflow);
+  // No regex on purpose: this file has already had a word-boundary escape
+  // silently become a literal backspace (0x08) on its way through a
+  // generator, which left the test matching nothing and the suppression
+  // doing nothing at all. String.includes cannot be mangled that way.
+  const suppressed = (el) => (el.className || "").toString().includes("odo-");
+  const out = [];
+  for (const el of d.querySelectorAll("body *")) {
+    if (el.getClientRects().length === 0) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (!(el.textContent || "").trim()) continue;
+    if (suppressed(el)) continue;
+    const cs = win.getComputedStyle(el);
+    if (scrollsY(cs)) continue;
+    if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") continue;
+    let node = el, clipper = null;
+    while (node && node !== d.documentElement) {
+      const ncs = win.getComputedStyle(node);
+      if (scrollsY(ncs)) { clipper = null; break; }
+      if (clipsY(ncs)) { clipper = node; break; }
+      node = node.parentElement;
+    }
+    if (!clipper || suppressed(clipper)) continue;
+    const cut = Math.round((r.top + el.scrollHeight) - clipper.getBoundingClientRect().bottom);
+    if (cut > 1) out.push({ kind: "content-cut-off-vertically", cutBy: cut,
+      el: describe(el), clipper: describe(clipper),
+      text: (el.textContent || "").trim().slice(0, 34) });
+  }
+  const seen = new Set(), uniq = [];
+  for (const o of out) { const k = o.el + "|" + o.clipper; if (!seen.has(k)) { seen.add(k); uniq.push(o); } }
+  return uniq;
+}
+
+/**
+ * WCAG 2.5.3 Label in Name, plus an information-parity note.
+ *
+ * aria-label REPLACES the content name, so a well-meant description can
+ * silently break "click Buy" for anyone driving the page by voice. Several
+ * aria-labels were added to this app by hand; nothing was guarding them.
+ *
+ * Two severities, because conflating them makes the check useless:
+ *
+ *   FAIL  label-not-in-name        The control's PRIMARY visible label is
+ *                                  absent from the accessible name. A speech
+ *                                  user says what they see and nothing fires.
+ *   INFO  name-omits-visible-text  The name covers the label but drops other
+ *                                  visible strings. NOT a 2.5.3 violation —
+ *                                  2.5.3 is about the label, not every string
+ *                                  inside the control — but often a real
+ *                                  parity gap worth a look.
+ *
+ * The first version reported only the strict form and flagged five entirely
+ * compliant band cards. A check that cries wolf gets switched off, so the
+ * distinction matters more than the extra code.
+ *
+ * It still earned its keep: the band cards' names omitted the "23% of last
+ * 30d" frequency hint, which is how a sighted player judges a safe pick from
+ * a long shot. That is in the name now.
+ *
+ * Known INFO that is correct behaviour: the band names say "euro per megawatt
+ * hour" where the screen shows "EUR/MWh". Spelling the unit out is better for
+ * speech, so the omission is deliberate.
+ */
+function auditLabelInName(d, win) {
+  const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const SEL = "button, a[href], [role=button], input[type=submit], input[type=button], summary";
+  const out = [];
+  for (const el of d.querySelectorAll(SEL)) {
+    if (el.getClientRects().length === 0) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") continue;
+    const parts = [];
+    const walk = (n) => {
+      if (n.nodeType === 3) { const t = n.nodeValue.trim(); if (t) parts.push(t); return; }
+      if (n.nodeType !== 1) return;
+      if (n.getAttribute("aria-hidden") === "true") return;
+      const s2 = win.getComputedStyle(n);
+      if (s2.display === "none" || s2.visibility === "hidden") return;
+      const r = n.getBoundingClientRect();
+      if (r.width <= 2 && r.height <= 2) return;   // clipped .sr-only is not visible
+      for (const c of n.childNodes) walk(c);
+    };
+    for (const c of el.childNodes) walk(c);
+    if (!parts.length) continue;                    // icon-only: 2.5.3 does not apply
+    const primary = norm(parts[0]);
+    const all = norm(parts.join(" "));
+    const lb = el.getAttribute("aria-labelledby");
+    const acc = el.getAttribute("aria-label") ||
+      (lb ? lb.split(" ").filter(Boolean).map((id) => {
+        const e = d.getElementById(id); return e ? e.textContent : "";
+      }).join(" ") : null);
+    if (!acc) continue;                             // name from content: compliant by construction
+    const na = norm(acc);
+    if (primary && !na.includes(primary)) {
+      out.push({ kind: "label-not-in-name", severity: "FAIL", el: describe(el),
+        label: primary.slice(0, 40), accessibleName: acc.slice(0, 70) });
+    } else if (all && !na.includes(all)) {
+      const omitted = all.split(" ").filter((w) => !na.includes(w)).join(" ");
+      if (omitted) out.push({ kind: "name-omits-visible-text", severity: "INFO", el: describe(el),
+        omitted: omitted.slice(0, 40), accessibleName: acc.slice(0, 70) });
+    }
+  }
+  return out;
+}
+
+/**
+ * Interactive controls with NO accessible name at all.
+ *
+ * auditLabelInName() is the complement of this and only looks at controls that
+ * HAVE visible text — it cannot see a control with nothing to compare. The gap
+ * matters here because Icons.tsx sets aria-hidden on every icon it produces
+ * (correctly: they are decorative). That means an icon-only button has nothing
+ * left to name it, and the failure is silent — the control renders perfectly
+ * and simply announces as "button".
+ *
+ * Name resolution deliberately walks the subtree skipping aria-hidden branches,
+ * rather than using textContent, because textContent counts the icon and would
+ * report a name that assistive tech never receives.
+ *
+ * Ran clean the first time across eight routes plus the onboarding overlay, so
+ * this exists to keep it that way rather than because it found something.
+ * Canary it the same way as the others: append a button whose only child is an
+ * aria-hidden svg, confirm it is reported, then give it an aria-label and
+ * confirm it goes quiet.
+ */
+function auditControlNames(d, win) {
+  const nameOf = (el) => {
+    const al = el.getAttribute("aria-label");
+    if (al && al.trim()) return al.trim();
+    const lb = el.getAttribute("aria-labelledby");
+    if (lb) {
+      const t = lb.split(" ").filter(Boolean)
+        .map((id) => { const e = d.getElementById(id); return e ? e.textContent : ""; })
+        .join(" ").trim();
+      if (t) return t;
+    }
+    let txt = "";
+    const walk = (n) => {
+      if (n.nodeType === 3) { txt += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      const ah = n.getAttribute("aria-hidden");
+      if (ah === "true" || ah === "") return;
+      for (const c of n.childNodes) walk(c);
+    };
+    for (const c of el.childNodes) walk(c);
+    if (txt.trim()) return txt.trim();
+    const ti = el.getAttribute("title");
+    if (ti && ti.trim()) return ti.trim();
+    if (el.tagName === "INPUT" && el.id) {
+      const l = d.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      if (l && l.textContent.trim()) return l.textContent.trim();
+    }
+    return null;
+  };
+  const SEL = "button, a[href], input:not([type=hidden]), select, textarea, [role=button]";
+  const out = [];
+  for (const el of d.querySelectorAll(SEL)) {
+    if (el.getClientRects().length === 0) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.visibility === "hidden") continue;
+    if (!nameOf(el)) out.push({ kind: "control-has-no-accessible-name", el: describe(el) });
+  }
+  return out;
+}
+
+async function waitFor(selector, timeout = 5000) {
+  const d = stage.contentDocument;
+  for (let waited = 0; waited < timeout; waited += 150) {
+    const el = d.querySelector(selector);
+    if (el) return el;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+/**
+ * Jump every running animation in the frame to its end state.
+ *
+ * CALL THIS BEFORE MEASURING ANYTHING THAT ANIMATES IN. This tab is always
+ * `document.visibilityState === "hidden"` — nobody is looking at it — and
+ * Chrome does not advance CSS animations in a hidden tab. They report
+ * `playState: "running"` with `currentTime: 0`, forever. So an element with an
+ * entry animation is measured at its FIRST keyframe, not its resting position.
+ *
+ * That has now produced false alarms three separate times, most expensively as
+ * "the onboarding sheet overflows the viewport on every phone size" across 40
+ * readings — the sheet was sitting at `transform: translateY(100%)`, the `from`
+ * frame of obSheetIn, exactly its own height below the fold. Nothing was wrong
+ * with it. Waiting longer never helps; a hidden tab's clock does not run.
+ *
+ * `.finish()` throws on infinite animations, hence the try/catch — a spinner
+ * somewhere must not take the whole sweep down.
+ */
+function settleAnimations(doc) {
+  const d = doc || stage.contentDocument;
+  for (const el of d.querySelectorAll("*")) {
+    for (const a of el.getAnimations()) {
+      try { a.finish(); } catch { /* infinite / unresolved — leave it */ }
+    }
+  }
+}
+
+async function waitForOverlay(selector, timeout = 5000) {
+  const d = stage.contentDocument;
+  for (let waited = 0; waited < timeout; waited += 150) {
+    const el = d.querySelector(selector);
+    // Present AND laid out — a dialog can exist in the DOM a frame before it
+    // has any size, and measuring it then reports nonsense.
+    if (el && el.getBoundingClientRect().height > 0) {
+      settleAnimations(d); // otherwise every offset read is a keyframe, not a position
+      return el;
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+// Each load needs a DISTINCT url. Assigning iframe.src its current value does
+// not reliably fire onload, so load() never resolves and the whole sweep hangs
+// with no error — which is exactly what the first version of this did. The
+// counter guarantees the second load of the same route is a different URL.
+let signOutSeq = 0;
+async function withSignedOut(route, width, fn) {
+  const bust = () => `http://localhost:3000${route}${route.includes("?") ? "&" : "?"}so=${++signOutSeq}`;
+  await load(bust(), width, 844);
+  const store = stage.contentWindow.localStorage;
+  const saved = WALLET_KEYS.map((k) => [k, store.getItem(k)]);
+  try {
+    for (const k of WALLET_KEYS) store.removeItem(k);
+    await load(bust(), width, 844); // reload so the app boots without a wallet
+    return await fn();
+  } finally {
+    // Same origin, so this restores the developer's own session either way.
+    const s = stage.contentWindow.localStorage;
+    for (const [k, v] of saved) if (v != null) s.setItem(k, v);
+  }
+}
+
+async function auditOverlays(width) {
+  const findings = [];
+  for (const o of OVERLAYS) {
+    // signedOut entries clear the wallet first, because WHICH modal an opener
+    // produces depends on wallet state. /marketplace's primary button opens the
+    // Sell form with a signing wallet attached and the connect dialog without
+    // one — and only the second contains the control this was missing. Leaving
+    // it to chance meant the finding appeared in some runs and not others,
+    // which is worse than never appearing: it makes a zero look earned.
+    if (o.signedOut) {
+      const got = await withSignedOut(o.route, width, async () => {
+        const btn = o.open ? await waitFor(o.open) : null;
+        if (o.open && !btn) return [];
+        if (btn) btn.click();
+        if (!(await waitForOverlay(o.expect))) return [];
+        const out = [];
+        const tag = (f) => out.push({ route: `${o.route} (${o.name})`, w: width, ...f });
+        try { for (const f of contrast()) tag(f); } catch (e) { /* keep going */ }
+        try { for (const f of audit(width)) tag(f); } catch (e) { /* keep going */ }
+        try {
+          for (const f of await semantics()) {
+            if (f.kind === "no-h1" || f.kind === "heading-level-skipped" || f.kind === "no-skip-link") continue;
+            tag(f);
+          }
+        } catch (e) { /* keep going */ }
+        return out;
+      });
+      for (const f of got) findings.push(f);
+      continue;
+    }
+
+    await load("http://localhost:3000" + o.route, width, 844);
+    const d = stage.contentDocument;
+    if (o.open) {
+      const btn = await waitFor(o.open);
+      if (!btn) continue; // genuinely state-dependent, not a slow hydrate
+      btn.click();
+    }
+    if (!(await waitForOverlay(o.expect))) continue;
+    const tag = (f) => findings.push({ route: `${o.route} (${o.name})`, w: width, ...f });
+    try { for (const f of contrast()) tag(f); } catch (e) { /* keep going */ }
+    try { for (const f of audit(width)) tag(f); } catch (e) { /* keep going */ }
+    // Semantics too: an overlay is exactly where an unlabelled icon button or
+    // an unlabelled field hides, and it is also where getting it wrong costs
+    // most — a dialog you cannot name is a dialog you cannot leave.
+    try {
+      for (const f of await semantics()) {
+        if (f.kind === "no-h1" || f.kind === "heading-level-skipped") continue; // page-level, not the overlay's
+        tag(f);
+      }
+    } catch (e) { /* keep going */ }
+    // An overlay that reaches past the viewport bottom cannot be finished.
+    const panel = d.querySelector(o.expect);
+    const r = panel.getBoundingClientRect();
+    if (r.height > stage.contentWindow.innerHeight + 1) {
+      tag({ kind: "overlay-taller-than-viewport", el: o.name,
+            detail: `${Math.round(r.height)} > ${stage.contentWindow.innerHeight}` });
+    }
+  }
+  return findings;
+}
+
+// True when some ancestor is an intentional horizontal scroller. Content
+// inside one is *supposed* to exceed the viewport, so flagging it is noise.
+function inScroller(el, root) {
+  for (let p = el.parentElement; p && p !== root; p = p.parentElement) {
+    const ox = getComputedStyle(p).overflowX;
+    if (ox === "auto" || ox === "scroll") return true;
+  }
+  return false;
+}
+
+function describe(el) {
+  const c = typeof el.className === "string" ? el.className.trim().split(/\s+/).slice(0,2).join(".") : "";
+  return (c ? "." + c : el.tagName.toLowerCase()) + (el.id ? "#" + el.id : "");
+}
+
+// One viewport's worth of checks.
+function audit(w) {
+  const d = stage.contentDocument, win = stage.contentWindow;
+  const out = [];
+  const de = d && d.documentElement;
+  // A load that timed out, or a frame caught mid-navigation, leaves no
+  // documentElement — and reading .scrollWidth off null threw a TypeError that
+  // surfaced as `audit-error`, indistinguishable at a glance from a real page
+  // defect. Say what it actually is: the page was not there to measure.
+  if (!de || !d.body) {
+    out.push({ kind: "page-not-loaded", detail: "no document to measure — load timed out or was interrupted" });
+    return out;
+  }
+
+  // 1. Technical: does the page scroll sideways at all?
+  if (de.scrollWidth > de.clientWidth + 1)
+    out.push({ kind: "doc-overflow-x", detail: de.scrollWidth + ">" + de.clientWidth });
+
+  const vw = de.clientWidth;
+  for (const el of d.querySelectorAll("body *")) {
+    const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden" || s.opacity === "0") continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+
+    const scrolled = inScroller(el, d.body);
+
+    // 2. Technical: content that is genuinely CUT OFF and unreachable.
+    //
+    // This rule was inverted. It excluded overflow-x: hidden — the one value
+    // that actually clips — and fired on `visible`, where content merely
+    // paints outside its box and remains perfectly readable. It duly reported
+    // the dashboard odometer, whose digit reel sits 6px proud of its container
+    // by design and is not cut off at all.
+    //
+    // Clipping needs hidden or clip. `auto`/`scroll` can be scrolled, and
+    // `visible` overflows harmlessly — where that overflow reaches the viewport
+    // edge it is caught by the past-right-edge check below, which is the case
+    // that actually hurts.
+    //
+    // Visually-hidden text is exempt. The .sr-only pattern IS a 1px box with
+    // overflow:hidden wrapped around a sentence — clipping is the mechanism,
+    // not a defect. Detected by shape rather than class name, so any
+    // equivalent utility is covered: nothing legitimately visible is 2px wide.
+    const visuallyHidden = el.clientWidth <= 2 || el.clientHeight <= 2;
+    if (!scrolled && !visuallyHidden && el.scrollWidth > el.clientWidth + 1 && /hidden|clip/.test(s.overflowX))
+      out.push({ kind: "clipped-content", el: describe(el), detail: el.scrollWidth + ">" + el.clientWidth });
+
+    // 3. Visual: anything sticking out past the right edge of the viewport.
+    // Skipped inside a horizontal scroller — that overflow is deliberate.
+    if (!scrolled && r.right > vw + 1 && s.position !== "fixed")
+      out.push({ kind: "past-right-edge", el: describe(el), detail: Math.round(r.right) + ">" + vw });
+
+    // 4. Visual: sub-44px touch targets on touch-sized viewports.
+    if (w <= 820 && (el.tagName === "BUTTON" || el.tagName === "A" || el.getAttribute("role") === "button")) {
+      const isInline = s.display.includes("inline") && !s.display.includes("flex") && !s.display.includes("grid");
+      // The inline exemption exists so a link inside a sentence is not flagged
+      // for having the line's height — that is prose, not a tap target, and
+      // flagging every one of them would be noise.
+      //
+      // But it was skipping STANDALONE controls that merely happen to be
+      // display:inline: it let a 189x31 "Use a watch-only address" button pass
+      // as clean. A control is only really inline if its parent has other text
+      // around it; on its own it is a button that happens to be styled inline,
+      // and a thumb does not care about the display property.
+      const parent = el.parentElement;
+      const siblingText = parent
+        ? [...parent.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length > 1)
+        : false;
+      const standalone = !isInline || !siblingText;
+      if (standalone && (r.height < 36 || r.width < 24) && el.innerText.trim())
+        out.push({ kind: "small-tap-target", el: describe(el), detail: Math.round(r.width) + "x" + Math.round(r.height) });
+    }
+
+    // 5. Visual: text too small to read on a phone.
+    const fs = parseFloat(s.fontSize);
+    if (w <= 430 && fs > 0 && fs < 9 && el.innerText && el.innerText.trim().length > 1 && el.children.length === 0)
+      out.push({ kind: "tiny-text", el: describe(el), detail: fs + "px" });
+  }
+
+  // 6. Visual: fixed bottom chrome covering page content.
+  const nav = d.querySelector(".bottom-nav");
+  if (nav && getComputedStyle(nav).display !== "none") {
+    const navTop = nav.getBoundingClientRect().top;
+    const page = d.querySelector(".page");
+    if (page) {
+      const pb = parseFloat(getComputedStyle(page).paddingBottom);
+      const navH = win.innerHeight - navTop;
+      if (pb < navH) out.push({ kind: "nav-covers-content", detail: "pad " + Math.round(pb) + " < nav " + Math.round(navH) });
+    }
+  }
+
+  // Collapse duplicates (a repeated row shouldn't report 40 times).
+  const seen = new Map();
+  for (const v of out) {
+    const k = v.kind + "|" + (v.el || "");
+    if (!seen.has(k)) seen.set(k, { ...v, count: 1 });
+    else seen.get(k).count++;
+  }
+  return [...seen.values()];
+}
+
+// ── Document semantics ───────────────────────────────────────────────────
+// Added after a scan found four routes — /, /portfolio, /marketplace and
+// /dashboard-v2 — with ZERO headings of any level. Everything that looked like
+// a heading was a styled div, so a screen reader had no outline to navigate
+// and the page announced as one undifferentiated run of text.
+//
+// Heading presence is checked with a retry, because a heading rendered after a
+// fetch resolves is absent at first paint and reporting that is a lie about
+// the markup. /spreadcast tripped exactly this during development.
+async function semantics() {
+  const doc = stage.contentDocument, win = stage.contentWindow;
+  const out = [];
+  const vis = (el) => {
+    const cs = win.getComputedStyle(el), r = el.getBoundingClientRect();
+    return cs.display !== "none" && cs.visibility !== "hidden" && r.width > 0 && r.height > 0;
+  };
+  const headings = () => [...doc.querySelectorAll("h1,h2,h3,h4,h5,h6")].filter(vis);
+  // Poll rather than wait a fixed beat. A single 1200ms retry was enough when
+  // run alone and NOT enough during a 70-load sweep against a dev server that
+  // compiles on demand — so it reported no-h1 for a page whose h1 was there.
+  // An intermittently wrong check is worse than no check: it teaches you to
+  // dismiss the finding, which is exactly what you must not do to a real one.
+  let hs = headings();
+  for (let waited = 0; waited < 5000 && !hs.some((h) => h.tagName === "H1"); waited += 250) {
+    await new Promise((r) => setTimeout(r, 250));
+    hs = headings();
+  }
+  const levels = hs.map((h) => +h.tagName[1]);
+  const h1s = levels.filter((l) => l === 1).length;
+  if (h1s === 0) out.push({ kind: "no-h1" });
+  if (h1s > 1) out.push({ kind: "multiple-h1", detail: String(h1s) });
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] - levels[i - 1] > 1) {
+      out.push({ kind: "heading-level-skipped",
+        detail: `h${levels[i - 1]} -> h${levels[i]} at "${hs[i].textContent.trim().slice(0, 26)}"` });
+    }
+  }
+  if (!doc.querySelector("main")) out.push({ kind: "no-main-landmark" });
+
+  // WCAG 2.4.1 Bypass Blocks, Level A. The nav repeats on every route, so
+  // without this a keyboard user tabs the same 7–11 links before reaching page
+  // content, on every single navigation.
+  //
+  // Checked structurally rather than by focusing it: an unfocused document
+  // never matches :focus, so a visibility test here would always fail and
+  // would be measuring the harness rather than the page.
+  const skip = doc.querySelector('a[href^="#"]');
+  if (!skip) {
+    out.push({ kind: "no-skip-link" });
+  } else {
+    const target = doc.querySelector(skip.getAttribute("href"));
+    if (!target) {
+      out.push({ kind: "skip-link-target-missing", detail: skip.getAttribute("href") });
+    } else if (!target.hasAttribute("tabindex") && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) {
+      // Without tabindex the jump moves the scroll position but not focus, so
+      // the next Tab continues from the nav — the link appears to do nothing.
+      out.push({ kind: "skip-link-target-not-focusable", el: describe(target) });
+    }
+  }
+  if (!doc.documentElement.getAttribute("lang")) out.push({ kind: "no-lang" });
+  // Several nav landmarks coexist here (main bar, mobile tabs, section bar).
+  // Unlabelled they all announce as "navigation" and cannot be told apart.
+  const navs = [...doc.querySelectorAll("nav")].filter(vis);
+  if (navs.length > 1 && navs.some((n) => !n.getAttribute("aria-label"))) {
+    out.push({ kind: "nav-landmark-unlabelled", detail: `${navs.length} <nav>` });
+  }
+  for (const el of doc.querySelectorAll("input,select,textarea")) {
+    if (!vis(el)) continue;
+    const lab = el.id ? doc.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
+    if (!(lab || el.closest("label") || el.getAttribute("aria-label") ||
+          el.getAttribute("aria-labelledby") || el.getAttribute("placeholder"))) {
+      out.push({ kind: "control-no-label", el: describe(el) });
+    }
+  }
+  for (const el of doc.querySelectorAll("button,a[href],[role=button]")) {
+    if (!vis(el)) continue;
+    const n = (el.getAttribute("aria-label") || el.getAttribute("title") ||
+      el.getAttribute("aria-labelledby") || el.textContent || "").trim();
+    if (!n) out.push({ kind: "no-accessible-name", el: describe(el) });
+  }
+  // Non-text content (WCAG 1.1.1). A canvas has no intrinsic alternative, and
+  // react-chartjs-2 hands it role="img" with no name — an accessibility-tree
+  // entry that announces "image" and says nothing, which is worse than no role
+  // at all. Every graphic must be named or explicitly hidden; there is no
+  // third correct state.
+  for (const el of doc.querySelectorAll("canvas, svg")) {
+    if (!vis(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (el.tagName === "svg" && r.width < 60) continue; // icons are handled by their control's label
+    const named = el.getAttribute("aria-label") || el.getAttribute("aria-labelledby") ||
+                  el.querySelector(":scope > title");
+    if (!named && el.getAttribute("aria-hidden") !== "true") {
+      out.push({ kind: "graphic-without-text-alternative", el: describe(el),
+        detail: `${el.tagName} ${Math.round(r.width)}x${Math.round(r.height)} — name it or aria-hidden it` });
+    }
+  }
+
+  for (const t of doc.querySelectorAll("table")) {
+    if (!vis(t)) continue;
+    const ths = [...t.querySelectorAll("th")];
+    if (!ths.length) out.push({ kind: "table-no-th", el: describe(t) });
+    else if (ths.some((th) => !th.getAttribute("scope"))) out.push({ kind: "th-no-scope", el: describe(t) });
+  }
+  const ids = {};
+  for (const el of doc.querySelectorAll("[id]")) ids[el.id] = (ids[el.id] || 0) + 1;
+  for (const k in ids) if (ids[k] > 1) out.push({ kind: "duplicate-id", detail: k });
+  const seen = new Map();
+  for (const v of out) { const k = v.kind + "|" + (v.el || v.detail || ""); if (!seen.has(k)) seen.set(k, v); }
+  return [...seen.values()];
+}
+
+// ── Text contrast (WCAG 2.2 AA, 1.4.3) ──────────────────────────────────
+// Added after a scan found 238 failing pieces of text across nine routes —
+// every eyebrow, tile subtitle, table header and timestamp in the app — all
+// of it invisible to the four "0 findings" audits that ran before this check
+// existed. Layout being correct says nothing about whether it can be read.
+//
+// Resolves the real backdrop by walking ancestors and compositing any
+// translucent layers, because almost nothing here sets its own opaque
+// background; measuring against the element's own transparent one would score
+// every element against black and pass everything.
+function contrast() {
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const parse = (s) => {
+    const m = (s || "").match(/rgba?\(([^)]+)\)/); if (!m) return null;
+    const p = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);
+    return { c: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+  };
+  const over = (f, b) => f.c.map((v, i) => v * f.a + b[i] * (1 - f.a));
+  const win = stage.contentWindow, doc = stage.contentDocument;
+  const backdrop = (el) => {
+    let n = el, acc = null;
+    while (n && n.nodeType === 1) {
+      const b = parse(win.getComputedStyle(n).backgroundColor);
+      if (b && b.a > 0) {
+        if (b.a >= 1) return acc ? over(acc, b.c) : b.c;
+        if (!acc) acc = b; else acc = { c: over(acc, b.c), a: Math.min(1, acc.a + b.a) };
+      }
+      n = n.parentElement;
+    }
+    return [3, 9, 7]; // --mw-carbon, the page's floor
+  };
+  const ratio = (a, b) => {
+    const l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+  const out = [];
+  for (const el of doc.querySelectorAll("body *")) {
+    // Own text only — otherwise a wrapper is credited with its children's text.
+    const text = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
+      .map((n) => n.textContent.trim()).join(" ");
+    if (!text) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.visibility === "hidden" || cs.display === "none" || +cs.opacity === 0) continue;
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const fg = parse(cs.color); if (!fg) continue;
+    const bg = backdrop(el);
+    const cr = ratio(fg.a < 1 ? over(fg, bg) : fg.c, bg);
+    const fs = parseFloat(cs.fontSize), fw = +cs.fontWeight || 400;
+    const need = fs >= 24 || (fs >= 18.66 && fw >= 700) ? 3 : 4.5; // AA large-text carve-out
+    if (cr < need) {
+      out.push({ kind: "contrast-below-aa", el: describe(el),
+        detail: `${cr.toFixed(2)}:1 needs ${need} — ${fs}px/${fw} "${text.slice(0, 30)}"` });
+    }
+  }
+  const seen = new Map();
+  for (const v of out) if (!seen.has(v.el)) seen.set(v.el, v);
+  return [...seen.values()];
+}
+
+window.runAudit = async function (routes, widths) {
+  routes = routes || ROUTES; widths = widths || WIDTHS;
+  const findings = [];
+  let n = 0, total = routes.length * widths.length;
+  for (const route of routes) {
+    for (const w of widths) {
+      hud.textContent = `auditing ${++n}/${total}  ${route} @ ${w}`;
+      await load(route, w, HEIGHTS[w] || 800);
+      let res = [];
+      try { res = audit(w); } catch (e) { res = [{ kind: "audit-error", detail: String(e).slice(0, 90) }]; }
+      for (const r of res) findings.push({ route, w, ...r });
+      try { for (const r of auditCardRows(w)) findings.push({ route, w, ...r }); } catch (e) { /* keep going */ }
+      // Contrast only needs measuring once per route — it does not vary with
+      // width — so run it on the first pass and skip the other six.
+      if (w === widths[0]) {
+        let cr = [];
+        try { cr = contrast(); } catch (e) { cr = [{ kind: "contrast-error", detail: String(e).slice(0, 90) }]; }
+        for (const r of cr) findings.push({ route, w, ...r });
+        let sem = [];
+        try { sem = await semantics(); } catch (e) { sem = [{ kind: "semantics-error", detail: String(e).slice(0, 90) }]; }
+        for (const r of sem) findings.push({ route, w, ...r });
+      }
+    }
+  }
+  // Scrolled, which a top-of-page sweep cannot reach.
+  hud.textContent = "auditing scrolled state…";
+  try {
+    for (const f of await auditScrolled(routes.slice(0, 6), 390, 844)) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(scrolled)", w: 390, kind: "scrolled-audit-error", detail: String(e).slice(0, 90) });
+  }
+
+  // A rotated phone, which no width-keyed sweep can reach.
+  hud.textContent = "auditing short viewports…";
+  try {
+    for (const f of await auditShortViewports(routes.slice(0, 6))) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(landscape)", w: 0, kind: "short-viewport-audit-error", detail: String(e).slice(0, 90) });
+  }
+
+  // Per-element clipping. Cheap (no reload), so it runs on every route/width
+  // the main loop already visited — see the note on auditClipping for why the
+  // older overflow-x-only rule could not see this class of bug.
+  hud.textContent = "auditing clipped content…";
+  try {
+    for (const f of auditClipping(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditClippingVertical(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditLabelInName(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+    for (const f of auditControlNames(stage.contentDocument, stage.contentWindow)) findings.push({ route: "(last route)", w: 0, ...f });
+  } catch (e) {
+    findings.push({ route: "(clipping)", w: 0, kind: "clipping-audit-error", detail: String(e).slice(0, 90) });
+  }
+
+  // Text scaling (WCAG 1.4.4). This function existed, fully written, for
+  // several passes and was never wired in — so it was never once run, and the
+  // thing it would have caught immediately (every font size in the app was px,
+  // so a larger browser default font did nothing at all) went unnoticed the
+  // whole time. A check nobody calls is not a check.
+  //
+  // Kept to three routes: it reloads each one twice and the dev server slows
+  // badly under sustained sweeps.
+  hud.textContent = "auditing text scale…";
+  try {
+    for (const f of await auditTextScale(routes.slice(0, 3), 390)) findings.push(f);
+  } catch (e) {
+    findings.push({ route: "(text scale)", w: 390, kind: "text-scale-audit-error", detail: String(e).slice(0, 90) });
+  }
+
+  // Overlays are NOT run from here — call auditOverlays(390) yourself.
+  //
+  // Embedded in this sweep it was both slow (minutes, sometimes not finishing)
+  // and wrong: every entry logged that it had opened its dialog, then reported
+  // zero, while the identical call standalone finds the 189x31 button every
+  // time. Four attempts at the cause — polling the opener, polling the overlay,
+  // an error being swallowed, a stale document from a reused URL — and none of
+  // them was it. See the UNRESOLVED note in docs/ai-development-guidelines.md.
+  //
+  // A check that silently reports clean is worse than one that is absent,
+  // because absence is visible. So it is absent, loudly, and the summary says
+  // so on every run.
+  findings.push({ route: "(overlays)", w: 390, kind: "overlays-not-audited-here",
+    detail: "run auditOverlays(390) separately — it is reliable standalone" });
+
+  // Run the value check as part of every audit, so it cannot be forgotten.
+  hud.textContent = "validating CSS values…";
+  let css = { checked: 0, invalid: 0, samples: [] };
+  try { css = await window.validateCss(); } catch (e) { css.samples = [String(e).slice(0, 80)]; }
+  for (const s of css.samples) findings.push({ route: "(stylesheet)", w: 0, kind: "invalid-css-value", detail: s });
+  // "0 invalid of 0 checked" is not a pass, it is a check that did not run —
+  // which is exactly what a silent instrument failure looks like. Called on
+  // its own before any route has loaded, validateCss finds no stylesheets and
+  // reports a clean zero. Say so out loud instead.
+  if (!css.checked) {
+    findings.push({ route: "(stylesheet)", w: 0, kind: "css-check-did-not-run",
+      detail: "0 declarations reachable — load a route first, then re-run" });
+  }
+
+  hud.textContent = `done — ${findings.length} findings (${css.checked} css decls checked)`;
+  window.LAST = findings; // stored in the page's own scope so it survives
+  window.LAST_CSS = css;
+  return findings;
+};
+
+// ── CSS value validity ───────────────────────────────────────────────────
+// A declaration with an invalid VALUE is not a syntax error — the browser
+// silently drops it and the element falls back to its inherited style. Nothing
+// else here catches that: the build does not validate values, and an element
+// inheriting a larger size rarely overflows. This is exactly how 40 corrupted
+// font-size rules survived three clean audit runs.
+//
+// Fetches the real stylesheets the app loaded and asks CSS.supports() about
+// every declaration.
+window.validateCss = async function () {
+  const doc = stage.contentDocument;
+  const hrefs = [...doc.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.href);
+  const bad = [];
+  let checked = 0;
+
+  for (const href of hrefs) {
+    let text = "";
+    try { text = await fetch(href).then((r) => r.text()); } catch { continue; }
+    // @font-face carries DESCRIPTORS (unicode-range, font-display, and a
+    // variable-font "font-weight: 100 900" range) that CSS.supports() rejects
+    // because they are not properties. Strip those blocks or they drown the
+    // real findings — 40 false positives on this app alone.
+    const clean = text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/@font-face\s*\{[^}]*\}/g, "")
+      .replace(/@(counter-style|property|font-feature-values)[^{]*\{[^}]*\}/g, "");
+    for (const m of clean.matchAll(/([-a-zA-Z]+)\s*:\s*([^;{}]+)(?=[;}])/g)) {
+      const prop = m[1].trim();
+      // CSS.supports() takes a property and a value — not a priority — so the
+      // !important suffix has to come off or every guarded rule reads invalid.
+      const val = m[2].trim().replace(/\s*!\s*important$/i, "");
+      if (!prop || !val) continue;
+      if (prop.startsWith("--")) continue;           // custom props accept anything
+      if (prop.startsWith("-")) continue;            // vendor prefixes are normalised away
+      if (/^(from|to|src)$/.test(prop)) continue;    // keyframe selectors / font-face
+      checked++;
+      let ok = false;
+      try { ok = CSS.supports(prop, val); } catch { ok = true; }
+      if (!ok && bad.length < 40) bad.push(`${prop}: ${val}`);
+    }
+  }
+  return { checked, invalid: bad.length, samples: bad };
+};
+
+// Compact report: unique issue per (kind, element, route), with the widths it
+// appeared at. Called separately once runAudit has finished.
+window.report = function () {
+  const f = window.LAST || [];
+  const byKind = {};
+  const uniq = new Map();
+  for (const x of f) {
+    byKind[x.kind] = (byKind[x.kind] || 0) + 1;
+    const k = x.kind + "|" + (x.el || "") + "|" + x.route;
+    if (!uniq.has(k)) uniq.set(k, { kind: x.kind, el: x.el, route: x.route, detail: x.detail, w: [x.w] });
+    else uniq.get(k).w.push(x.w);
+  }
+  return { total: f.length, unique: uniq.size, byKind, issues: [...uniq.values()] };
+};
+</script>

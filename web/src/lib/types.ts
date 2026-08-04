@@ -1,8 +1,15 @@
 // ─────────────────────────────────────────────────────────────
 // Domain types — shaped to mirror the eventual on-chain data so
 // swapping the mock data layer for live contract reads is a clean
-// drop-in. Amounts are in human-readable major units (USDC dollars,
+// drop-in. Amounts are in human-readable major units (currency amounts,
 // shares, MWh); the on-chain adapter will convert from base units.
+//
+// Two currencies, and they are not interchangeable. ASSET-SIDE figures — a
+// vault's capex, raised, annualRevenue, sinkingFundBalance — are in that
+// vault's `currency`, which is EUR for all six European sites. DEPOSIT-SIDE
+// figures are RLUSD, the stablecoin the protocol settles in. These comments
+// used to say "USDC" throughout, which is a third thing that is neither, and
+// the marketplace had shipped "Settled in USDC" to users off the back of it.
 // ─────────────────────────────────────────────────────────────
 
 export type Currency = "EUR" | "USD";
@@ -20,7 +27,7 @@ export type MarketMode = "charging" | "discharging" | "idle";
 export interface YieldSplit {
   depositorBps: number; // paid out to vault depositors (headline APY)
   protocolFeeBps: number; // operations & protocol treasury
-  sinkingFundBps: number; // "replacement fund" — refresh batteries/gear
+  sinkingFundBps: number; // "replacement fund" - refresh batteries/gear
   reserveBps: number; // operational buffer for downtime
 }
 
@@ -64,12 +71,26 @@ export interface Vault {
   flag: string; // emoji
   currency: Currency; // revenue / yield denomination
   symbol: string; // receipt-token symbol, e.g. "mwMET01"
-  apyBps: number; // headline depositor APY
+  // AMBIGUOUS — do not trust this comment's former claim of "headline depositor
+  // APY". Measured against annualRevenue / capex, five of six vaults store the
+  // GROSS yield here (apyBps === split.depositor + protocolFee + sinkingFund +
+  // reserve === revenue/capex). bess-belgrade-01 alone stores the depositor
+  // share (apyBps === split.depositorBps, half its 26% gross).
+  //
+  // The visible consequence: VaultDetail's "Project details" row labelled
+  // "Depositor APY" renders this field, so BESS Leipzig 01 shows "Depositor
+  // APY 12.4%" there while its own Yield breakdown card, reading
+  // split.depositorBps, shows 8.8% — same label, same page, two numbers.
+  //
+  // Not resolved here: picking a meaning changes headline yield figures across
+  // the cards, the vault header and the marketplace, which is a founder call.
+  // split.* is the field to trust meanwhile.
+  apyBps: number;
   split: YieldSplit;
   spec: BessSpec;
   metrics: BaselineMetrics;
 
-  capex: number; // fundraising target / face value (USDC)
+  capex: number; // fundraising target / face value (this vault's `currency`)
   raised: number; // deposited so far (== capex when active)
   totalShares: number; // outstanding receipt-token shares
   sinkingFundBalance: number; // accumulated replacement fund
@@ -92,7 +113,7 @@ export interface Vault {
 export interface Position {
   vaultId: string;
   shares: number; // receipt-token balance
-  deposited: number; // principal (USDC)
+  deposited: number; // principal (RLUSD)
   claimable: number; // claimable yield (vault currency)
   claimed: number; // lifetime claimed
   sharePct: number; // 0..100
@@ -105,7 +126,7 @@ export interface MarketListing {
   vaultId: string;
   seller: string; // address
   shares: number;
-  pricePerShare: number; // USDC (face = 1.00)
+  pricePerShare: number; // RLUSD (face = 1.00)
   listedAtDaysAgo: number;
   estApyBps: number; // effective APY to buyer at this price
 }
@@ -119,6 +140,10 @@ export interface UserProfile {
   rlusdBalance: number; // RLUSD via trustline (0 when no trustline)
   rlusdTrustline: boolean;
   funded: boolean; // account exists on ledger (meets base reserve)
+  /** False when the ledger read failed and the balances above are not reads
+   *  but placeholders. Anything rendering a balance must say so rather than
+   *  print a zero that looks like an answer. */
+  balancesKnown: boolean;
   via: "xaman" | "watch"; // xaman = ownership proven by SignIn signature
 }
 

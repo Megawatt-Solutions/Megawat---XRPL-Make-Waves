@@ -1,13 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import posthog from "posthog-js";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { Vault } from "@/lib/types";
+import { useDialog, scrimDismiss } from "./useDialog";
 import {
-  fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
-  fmtDuration, fmtAgo, fmtDate, fmtAddress,
+  CCY_SYMBOL, fmtMoney, fmtCompact, fmtPct, fmtNum, bpsToPct, fmtPower, fmtEnergy,
+  fmtDuration, fmtDate, fmtAddress,
 } from "@/lib/format";
-import { raiseProgress, grossYieldBps } from "@/lib/vaults";
+import { raiseProgress, grossYieldBps, apyBpsIsGross } from "@/lib/vaults";
 import { simulate, nextDistributionSec } from "@/lib/bess";
 import { POSITIONS } from "@/lib/portfolio";
 import { useWallet, useToast } from "@/lib/wallet";
@@ -15,14 +16,17 @@ import { explorerAccount } from "@/lib/xrpl";
 import { Donut } from "./Donut";
 import { SiteMonitor } from "./SiteMonitor";
 import {
-  ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, CubeIcon, VerifiedIcon,
-  ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon,
+  ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, VerifiedIcon,
+  ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon, WalletIcon,
 } from "./Icons";
+import { Flag } from "./Flag";
+import { VaultSpreadLine } from "./spreadcast/DailySpread";
 
+// Operational reads green like every other live signal — see NetworkPanel.
 const STATUS_DOT: Record<Vault["status"], string> = {
   active: "var(--accent)",
   fundraising: "var(--amber)",
-  operational: "var(--blue)",
+  operational: "var(--accent)",
   coming_soon: "var(--gray)",
 };
 
@@ -37,6 +41,9 @@ export function VaultDetail({ vault }: { vault: Vault }) {
   const isActive = vault.status === "active";
   const isFundraising = vault.status === "fundraising";
   const isComing = vault.status === "coming_soon";
+  // Whether the headline figure is a gross yield or a depositor APY is a
+  // property of the DATA, not of `kind` — see apyBpsIsGross().
+  const isGrossHeadline = apyBpsIsGross(vault);
   const hasTelemetry = isActive || isShowcase;
 
   // Live simulation (client-only motion; SSR renders t=0 deterministically).
@@ -61,10 +68,10 @@ export function VaultDetail({ vault }: { vault: Vault }) {
   const onClaim = () => {
     if (!connected) return connect();
     if (claimable <= 0) return;
-    posthog.capture("vault_yield_claimed", {
+    posthog.capture("yield_claimed", {
       vault_id: vault.id,
-      vault_status: vault.status,
-      yield_amount: claimable,
+      vault_name: vault.name,
+      amount: claimable,
       currency: vault.currency,
     });
     notify(`Claimed ${fmtMoney(claimable, vault.currency)} yield`, "success");
@@ -81,17 +88,38 @@ export function VaultDetail({ vault }: { vault: Vault }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h1 style={{ fontSize: 25, fontWeight: 690, letterSpacing: "-0.025em" }}>{vault.name}</h1>
+              <h1 style={{ fontSize: "1.5rem", fontWeight: 690, letterSpacing: "-0.025em" }}>{vault.name}</h1>
               <span className="dot" style={{ background: STATUS_DOT[vault.status], boxShadow: `0 0 8px ${STATUS_DOT[vault.status]}` }} />
             </div>
-            <div className="muted" style={{ fontSize: 14, marginTop: 3 }}>
-              {vault.flag} {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isShowcase ? "gross" : "APY"}
+            <div className="muted" style={{ fontSize: "0.875rem", marginTop: 3 }}>
+              <Flag code={vault.flag} size={13} /> {vault.location} · {fmtEnergy(vault.spec.energyKwh)} · {fmtPct(bpsToPct(vault.apyBps))} {isGrossHeadline ? "gross" : "APY"}
             </div>
           </div>
 
           {isShowcase ? (
+            /* This used to read "Operated by Megawatt", which says who runs the
+               site but not the thing a visitor most needs to know: that none of
+               the numbers below are buyable. That fact lived only in the last
+               card of the sidebar — which on mobile stacks below everything, so
+               it sat 3.7 phone screens under the 12.2% headline it qualifies.
+
+               A financial page must not put its most important qualifier last.
+               The operator line is still in Site overview; what belongs up here
+               beside the yield is what the yield does NOT entitle you to.
+
+               A `title` used to hang here carrying the reason — "A live site we
+               operate, published for transparency. Not open for deposits." It
+               is gone. A title is reachable by hovering a mouse and by nothing
+               else: no touch, no keyboard (this is a span), and unreliably by
+               screen readers — the same objection globals.css already records
+               against `title` twice. It was also a duplicate: Site overview
+               says it at more length and better ("Off-chain showcase — one of
+               our operational sites, published so the performance behind
+               Megawatt's numbers can be checked"). A tooltip that repeats
+               visible copy buys mouse users nothing and suggests to everyone
+               else that something is being withheld. */
             <span className="wallet-pill" style={{ cursor: "default" }}>
-              <span className="dot" style={{ background: "var(--blue)" }} /> Operated by Megawatt
+              <span className="dot" style={{ background: "var(--blue)" }} /> Showcase site · not investable
             </span>
           ) : vault.addresses ? (
             <a className="wallet-pill" href={explorerAccount(vault.addresses.vault)} target="_blank" rel="noreferrer">
@@ -103,45 +131,60 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 
         {/* Tiles */}
         <div className="detail-tiles" style={{ marginTop: 22 }}>
+          {/* label and sub key on the SAME predicate. They did not: the label
+                moved to apyBpsIsGross() when the kind-based guess was found
+                wrong for Leipzig — on-chain, but its apyBps really is a gross
+                yield — and this sub was left on `kind`. Measured:
+
+                  Ljubljana  GROSS YIELD  12.2%  "On capex / yr"
+                  Leipzig    GROSS YIELD  12.4%  "Per annum"
+
+                Two tiles reading GROSS YIELD, disagreeing about what the
+                number is a yield ON. The sub is the part carrying the
+                denominator, and on capex per year is exactly what makes a
+                figure gross rather than a depositor APY — so the one vault
+                that most needed the qualifier was the one missing it.
+
+                Same fix as the label, applied to the other half of the tile. */}
           <Tile
-            label={isShowcase ? "Gross yield" : "APY"}
+            label={isGrossHeadline ? "Gross yield" : "APY"}
             value={<span className="accent">{fmtPct(bpsToPct(vault.apyBps))}</span>}
-            sub={isShowcase ? "On capex / yr" : "Per annum"}
-            icon={<BoltIcon size={17} />}
+            sub={isGrossHeadline ? "On capex / yr" : "Per annum"}
           />
           {hasTelemetry ? (
             <Tile
-              label={snap.mode}
+              label={modeLabel(snap.mode)}
               value={`${snap.socPct.toFixed(1)}%`}
               sub="State of charge"
-              icon={<BoltIcon size={17} />}
             />
           ) : (
+            // A pipeline site has not failed to raise — it has not started.
+            // "Raised 0%" contradicts the Pipeline card directly below it.
             <Tile
-              label="Raised"
-              value={`${Math.round(progress * 100)}%`}
-              sub={`${fmtCompact(liveRaised, liveCurrency)} / ${fmtCompact(liveTarget, liveCurrency)}`}
+              label={isComing ? "Target raise" : "Raised"}
+              value={isComing ? fmtCompact(liveTarget, liveCurrency) : `${Math.round(progress * 100)}%`}
+              sub={
+                isComing
+                  ? "Opens next quarter"
+                  : `${fmtCompact(liveRaised, liveCurrency)} / ${fmtCompact(liveTarget, liveCurrency)}`
+              }
             />
           )}
-          <div className="tile">
-            <div style={{ display: "flex", gap: 28 }}>
-              <div>
-                <div className="caps">Capacity</div>
-                <div className="tile-value sm num">{fmtEnergy(vault.spec.energyKwh)}</div>
-                <div className="tile-sub">{fmtPower(vault.spec.powerKw)} · installed</div>
-              </div>
-              <div>
-                <div className="caps">{hasTelemetry ? "Battery health" : "Chemistry"}</div>
-                <div className="tile-value sm num">
-                  {hasTelemetry ? `${snap.healthPct.toFixed(1)}%` : vault.spec.chemistry}
-                </div>
-                <div className="tile-sub">{hasTelemetry ? "State of health" : vault.spec.hasSolar ? "+ solar" : "battery"}</div>
-              </div>
-            </div>
-          </div>
-          <div className="brand-panel">
-            <span style={{ position: "relative", zIndex: 1 }}><CubeIcon size={54} /></span>
-          </div>
+          {/* Capacity and battery health are two readings and get two tiles.
+              They used to share one double-width box, which made the row read
+              as three things when it is four, and set them in .tile-value sm
+              — smaller than the two figures beside them, for no reason other
+              than that two had been packed into one box. */}
+          <Tile
+            label="Capacity"
+            value={fmtEnergy(vault.spec.energyKwh)}
+            sub={`${fmtPower(vault.spec.powerKw)} · installed`}
+          />
+          <Tile
+            label={hasTelemetry ? "Battery health" : "Chemistry"}
+            value={hasTelemetry ? `${snap.healthPct.toFixed(1)}%` : vault.spec.chemistry}
+            sub={hasTelemetry ? "State of health" : vault.spec.hasSolar ? "+ solar" : "battery"}
+          />
         </div>
 
         {/* Body */}
@@ -167,12 +210,19 @@ export function VaultDetail({ vault }: { vault: Vault }) {
                 target={liveTarget}
                 currency={liveCurrency}
                 disabled={isComing}
-                onDeposit={() => (connected ? setShowDeposit(true) : connect())}
+                onDeposit={() => {
+                  if (connected) {
+                    posthog.capture("deposit_initiated", { vault_id: vault.id, vault_name: vault.name, vault_status: vault.status });
+                    setShowDeposit(true);
+                  } else {
+                    connect();
+                  }
+                }}
               />
             )}
 
             {/* Right-top */}
-            <YieldBreakdownCard vault={vault} updatedAgo={snap.updatedAgoSec} />
+            <YieldBreakdownCard vault={vault} />
 
             {/* Left-bottom & right-bottom */}
             {hasTelemetry ? (
@@ -203,7 +253,14 @@ export function VaultDetail({ vault }: { vault: Vault }) {
                 showClaim={isActive}
                 depositDisabled={isComing}
                 connected={connected}
-                onDeposit={() => (connected ? setShowDeposit(true) : connect())}
+                onDeposit={() => {
+                  if (connected) {
+                    posthog.capture("deposit_initiated", { vault_id: vault.id, vault_name: vault.name, vault_status: vault.status });
+                    setShowDeposit(true);
+                  } else {
+                    connect();
+                  }
+                }}
                 onClaim={onClaim}
               />
             )}
@@ -213,7 +270,27 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 
       {hasTelemetry && (
         <div className="perf-section">
-          <button className="perf-toggle" onClick={() => setShowPerf((v) => !v)}>
+          {/* The app's other disclosure — the archive day row — already does
+              this, comment and all: aria-expanded always, aria-controls only
+              while the panel exists, because the panel is rendered lazily and a
+              dangling reference promises the accessibility tree a relationship
+              it cannot follow. This one, the only other disclosure in the app,
+              had none of it. A screen reader was told "button, Live performance
+              & energy flow" with no indication it opens anything, or that it
+              was already open.
+
+              Sighted users were unaffected — the chevron rotates — which is
+              exactly why it lasted. The state sweep also reached this panel by
+              other means, so nothing here was hiding behind the missing
+              attribute; it was simply a promise the accessibility tree was
+              never told about. */}
+          <button
+            type="button"
+            className="perf-toggle"
+            aria-expanded={showPerf}
+            aria-controls={showPerf ? `perf-panel-${vault.id}` : undefined}
+            onClick={() => setShowPerf((v) => !v)}
+          >
             <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <BoltIcon size={16} /> Live performance &amp; energy flow
             </span>
@@ -222,7 +299,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
             </span>
           </button>
           {showPerf && (
-            <div className="surface perf-panel">
+            <div className="surface perf-panel" id={`perf-panel-${vault.id}`}>
               <SiteMonitor vault={vault} />
             </div>
           )}
@@ -237,13 +314,7 @@ export function VaultDetail({ vault }: { vault: Vault }) {
           kycOk={(profile?.kycLevel ?? 0) >= 1}
           onClose={() => setShowDeposit(false)}
           onMockDone={(amt) => {
-            posthog.capture("vault_deposit_confirmed", {
-              vault_id: vault.id,
-              vault_status: vault.status,
-              deposit_amount: amt,
-              currency: "RLUSD",
-            });
-            notify(`Deposited ${fmtMoney(amt, "USD")} RLUSD — received ${fmtNum(amt)} ${vault.symbol}`, "success");
+            notify(`Deposited ${fmtMoney(amt, "USD")} RLUSD - received ${fmtNum(amt)} ${vault.symbol}`, "success");
             setShowDeposit(false);
           }}
         />
@@ -253,10 +324,30 @@ export function VaultDetail({ vault }: { vault: Vault }) {
 }
 
 // ─── Tiles ────────────────────────────────────────────────────
-function Tile({ label, value, sub, icon }: { label: string; value: React.ReactNode; sub?: string; icon?: React.ReactNode }) {
+/** One mapping for MarketMode, because there were two.
+ *
+ *  The hero tile rendered `label={snap.mode}` — the stored enum straight to
+ *  screen, showing CHARGING via .caps — while the State of charge card 370
+ *  lines below formatted the same field as "↑ Charging" / "Idle" /
+ *  "↓ Discharging". Same value, same page, two spellings, and the arrow that
+ *  tells you which way the energy is flowing appeared on only one of them.
+ *
+ *  The arrows are the point: charge direction is the single most useful thing
+ *  about this field, so the tile is the surface that most needed them.
+ */
+function modeLabel(mode: string): string {
+  if (mode === "charging") return "↑ Charging";
+  if (mode === "idle") return "Idle";
+  return "↓ Discharging";
+}
+
+// No icon slot. Two of these tiles carried the same bolt, which is the one
+// thing an icon must not do — it distinguished nothing between them and
+// nothing from the two tiles that never had one. The label already says what
+// the number is.
+function Tile({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
   return (
     <div className="tile">
-      {icon && <span className="tile-icon">{icon}</span>}
       <div className="caps">{label}</div>
       <div className="tile-value num">{value}</div>
       {sub && <div className="tile-sub">{sub}</div>}
@@ -274,17 +365,17 @@ function ClaimCard({ vault, claimable, distributed, claimed, currency, onClaim }
         <VerifiedIcon size={13} style={{ color: "var(--accent)" }} /> Yield Distributed
         <span className="dot pulse" style={{ background: "var(--accent)" }} />
       </div>
-      <div className="num" style={{ fontSize: 40, fontWeight: 690, letterSpacing: "-0.03em", marginTop: 14 }}>
+      <div className="num card-hero-num">
         {fmtMoney(distributed, currency)}
       </div>
-      <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+      <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 4 }}>
         Total claimed: {fmtMoney(claimed, currency)}
       </div>
       <button className="btn btn-accent btn-block" style={{ marginTop: 18 }} onClick={onClaim} disabled={claimable <= 0}>
         {claimable > 0 ? `Claim ${fmtMoney(claimable, currency)}` : "No yield to claim"}
       </button>
       <div className="divider" />
-      <div className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+      <div className="muted" style={{ fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
         <ClockIcon size={14} /> Next distribution in{" "}
         <strong style={{ color: "var(--text)" }}>{fmtDuration(nextDistributionSec(vault))}</strong>
       </div>
@@ -299,15 +390,24 @@ function RevenueCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof si
       <div className="card-title">
         Revenue <span className="live"><span className="dot pulse" style={{ background: "var(--accent)" }} /> live</span>
       </div>
-      <div className="num" style={{ fontSize: 34, fontWeight: 690, letterSpacing: "-0.03em", marginTop: 14 }}>
+      <div className="num card-hero-num">
         {fmtMoney(snap.grossYtd, vault.currency, 0)}
       </div>
-      <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>Gross revenue · year to date</div>
+      <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>Gross revenue · year to date</div>
+      {/* The thesis, in one row: this revenue comes from the day-ahead spread,
+          which is the exact number Spreadcast asks you to predict. */}
+      <VaultSpreadLine />
       <div className="divider" />
       <div className="rows">
         <div className="row"><span className="row-key">Net revenue (YTD)</span><span className="row-val accent num">{fmtMoney(snap.netYtd, vault.currency, 0)}</span></div>
         <div className="row"><span className="row-key">Annual run-rate</span><span className="row-val num">{fmtCompact(vault.annualRevenue, vault.currency)}</span></div>
-        <div className="row"><span className="row-key">Current price</span><span className="row-val num">{fmtMoney(snap.pricePerMwh, vault.currency)}/MWh</span></div>
+        {/* "196.76 €/MWh" three rows above this one, and "€138.30/MWh" here —
+            the same quantity written two ways inside 200px. The app writes this
+            unit as a suffix everywhere else: the Spreadcast bands, the results
+            table, the daily-spread line directly above. fmtMoney puts the
+            symbol in front of the number, which is right for a sum of money and
+            wrong for a price per unit. */}
+        <div className="row"><span className="row-key">Current price</span><span className="row-val num">{fmtNum(snap.pricePerMwh, 2)} {CCY_SYMBOL[vault.currency]}/MWh</span></div>
       </div>
     </div>
   );
@@ -319,28 +419,62 @@ function FundraisingCard({ progress, deposited, raised, target, currency, disabl
 }) {
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-      <div className="card-title">Fundraising <span className="badge badge-fundraising">{Math.round(progress * 100)}% funded</span></div>
-      <div className="num" style={{ fontSize: 32, fontWeight: 690, letterSpacing: "-0.03em", marginTop: 14 }}>
-        {fmtCompact(raised, currency)}
-      </div>
-      <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>raised of {fmtCompact(target, currency)} target</div>
-      <div className="progress" style={{ marginTop: 16 }}>
-        <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
-      </div>
-      <div className="divider" />
-      <div className="rows">
-        <div className="row"><span className="row-key">Your deposit</span><span className="row-val num">{fmtMoney(deposited, "USD")}</span></div>
-        <div className="row"><span className="row-key">Remaining</span><span className="row-val num">{fmtCompact(Math.max(0, target - raised), currency)}</span></div>
-      </div>
-      <button className="btn btn-accent btn-block" style={{ marginTop: 16 }} onClick={onDeposit} disabled={disabled}>
-        {disabled ? "Fundraising opens soon" : "Deposit into Vault"}
-      </button>
+      {/* A pipeline site is not a failed raise. "0% funded" over an empty
+          progress bar frames a plan as an emptiness; state the size of the
+          project instead, and give the visitor somewhere live to go rather
+          than a disabled button as the only outcome. */}
+      {disabled ? (
+        <>
+          <div className="card-title">
+            Pipeline <span className="badge badge-soon">Not yet open</span>
+          </div>
+          <div className="num card-hero-num">{fmtCompact(target, currency)}</div>
+          <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>
+            target raise · opens for fundraising next quarter
+          </div>
+          <div className="divider" />
+          <div className="rows">
+            <div className="row">
+              <span className="row-key">Status</span>
+              <span className="row-val">Site secured, permitting under way</span>
+            </div>
+            <div className="row">
+              <span className="row-key">Deposits</span>
+              <span className="row-val muted">Not open yet</span>
+            </div>
+          </div>
+          <Link className="btn btn-ghost btn-block" href="/vault/bess-ljubljana-01" style={{ marginTop: 16 }}>
+            See a vault that&apos;s already running
+          </Link>
+        </>
+      ) : (
+        <>
+          <div className="card-title">
+            Fundraising <span className="badge badge-fundraising">{Math.round(progress * 100)}% funded</span>
+          </div>
+          <div className="num card-hero-num">{fmtCompact(raised, currency)}</div>
+          <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 3 }}>
+            raised of {fmtCompact(target, currency)} target
+          </div>
+          <div className="progress" style={{ marginTop: 16 }}>
+            <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
+          </div>
+          <div className="divider" />
+          <div className="rows">
+            <div className="row"><span className="row-key">Your deposit</span><span className="row-val num">{fmtMoney(deposited, "USD")}</span></div>
+            <div className="row"><span className="row-key">Remaining</span><span className="row-val num">{fmtCompact(Math.max(0, target - raised), currency)}</span></div>
+          </div>
+          <button className="btn btn-accent btn-block" style={{ marginTop: 16 }} onClick={onDeposit}>
+            Deposit into Vault
+          </button>
+        </>
+      )}
     </div>
   );
 }
 
 // ─── Yield breakdown ──────────────────────────────────────────
-function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: number }) {
+function YieldBreakdownCard({ vault }: { vault: Vault }) {
   const s = vault.split;
   const items = [
     { label: vault.kind === "showcase" ? "Net yield" : "Depositor APY", bps: s.depositorBps, color: "var(--accent)", desc: "Yield paid out to vault depositors" },
@@ -352,15 +486,37 @@ function YieldBreakdownCard({ vault, updatedAgo }: { vault: Vault; updatedAgo: n
   return (
     <div className="card">
       <div className="card-title">
-        Yield Breakdown
-        <span className="muted" style={{ fontSize: 11.5, display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
-          <ClockIcon size={12} /> Updated {fmtAgo(updatedAgo)}
+        Yield breakdown
+        <span className="muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 5, fontWeight: 400 }}>
+          {/* Not "Updated Ns ago". Nothing in this card updates: the four
+              figures are grossYieldBps(vault) and its fixed split, static
+              constants in vaults.ts. Measured over 30s — the body and the bar
+              widths are byte-identical throughout.
+
+              The number was manufactured. bess.ts computes it as
+              (t % 6) * 2 + 1, so sampled every 3s it reads
+              1, 5, 7, 11, 1, 3, 7, 9, 11, 3 — it counts DOWN as often as up.
+              A real "N seconds ago" only rises until a refresh resets it, so
+              this was not merely decorative, it was self-contradicting.
+
+              dashboard-v2 already made exactly this correction for exactly this
+              reason: its "Updated per block" became "Across the operating
+              sites", with a note that a freshness claim beside a Mainnet ribbon
+              reads as provenance. Same fix here — say what the card contains.
+              The four values are shares of gross yield and sum to it (8.5 + 1.6
+              + 1.4 + 0.7 = 12.2%, Ljubljana's gross). */}
+          Share of gross yield
         </span>
       </div>
+      {/* The `bps / total > 0.12` guard is gone: it asked whether a segment was
+          a big enough SHARE, which is not the same question as whether the
+          label fits, and the three .segbar call sites answered it three
+          different ways (> 0.12, >= 12, >= 10). A container query in
+          globals.css now asks the segment its actual width. */}
       <div className="segbar" style={{ marginTop: 16 }}>
         {items.map((it) => (
           <span key={it.label} style={{ width: `${(it.bps / total) * 100}%`, background: it.color }}>
-            {it.bps / total > 0.12 ? fmtPct(bpsToPct(it.bps)) : ""}
+            <span className="seg-label">{fmtPct(bpsToPct(it.bps))}</span>
           </span>
         ))}
       </div>
@@ -388,31 +544,52 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
   return (
     <div className="card">
       <div className="card-title">
-        State of Charge
+        State of charge
         <span className={`badge ${charging ? "badge-active" : "badge-fundraising"}`}>
-          {charging ? "↑ Charging" : snap.mode === "idle" ? "Idle" : "↓ Discharging"}
+          {modeLabel(snap.mode)}
         </span>
       </div>
-      <div style={{ display: "flex", gap: 22, marginTop: 16, alignItems: "center" }}>
+      {/* Wraps, because this row is a rem-sized graphic beside rem-sized text
+          inside a card whose width is fixed in px. The battery grows from 86px
+          to 172px between normal text and 200% while the card stays 387px, so
+          the stats column was squeezed from 233px to 147px and the three rows
+          needed 245px: they painted 98px outside the card. Nothing else was
+          there to collide with, which is why no check had ever flagged it, but
+          numbers sitting outside their own card is wrong on its own.
+
+          Giving the stats a flex-basis in rem is what makes the wrap happen at
+          the right moment: the basis grows with the reader's text while the
+          card does not, so the row breaks exactly when the two stop fitting
+          side by side, with no breakpoint to guess. */}
+      <div style={{ display: "flex", gap: 22, marginTop: 16, alignItems: "center", flexWrap: "wrap" }}>
         <div className="battery">
           <div className="battery-fill" style={{ height: `calc(${snap.socPct}% - 0px)` }} />
           <div className="battery-pct num">{snap.socPct.toFixed(1)}%</div>
         </div>
-        <div style={{ flex: 1, display: "grid", gap: 12 }}>
-          <Mini label="MWh charged" value={fmtNum(snap.chargedMwh, 2)} />
-          <Mini label="MWh discharged" value={fmtNum(snap.dischargedMwh, 2)} />
+        {/* minmax(0, 1fr) because a grid column, like a flex child, defaults to
+            a floor of its own content and will not shrink below it. minWidth on
+            the grid alone was never enough: the box shrank to 147px while the
+            column inside it stayed 245px. */}
+        <div style={{ flex: "1 1 11rem", minWidth: 0, display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
+          {/* Unit in the value, not the label. The third row of this same card
+              is "Health / 98.9%" — unit in the value — so the card disagreed
+              with itself, and the metrics card two columns right writes the
+              identical numbers as "Energy charged / 361.40 MWh". Three
+              spellings, one screen. */}
+          <Mini label="Charged" value={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+          <Mini label="Discharged" value={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
           <Mini label="Health" value={`${snap.healthPct.toFixed(1)}%`} />
         </div>
       </div>
       <div className="divider" />
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div>
-          <div className="num" style={{ fontWeight: 650, fontSize: 15 }}>{(snap.roundTripEff * 100).toFixed(1)}%</div>
-          <div className="muted" style={{ fontSize: 11.5 }}>Round-trip efficiency</div>
+          <div className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{(snap.roundTripEff * 100).toFixed(1)}%</div>
+          <div className="muted" style={{ fontSize: "0.75rem" }}>Round-trip efficiency</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div className="num" style={{ fontWeight: 650, fontSize: 15 }}>{fmtNum(snap.cycles)}</div>
-          <div className="muted" style={{ fontSize: 11.5 }}>Lifetime cycles</div>
+          <div className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{fmtNum(snap.cycles)}</div>
+          <div className="muted" style={{ fontSize: "0.75rem" }}>Lifetime cycles</div>
         </div>
       </div>
     </div>
@@ -421,9 +598,9 @@ function StateOfChargeCard({ vault, snap }: { vault: Vault; snap: ReturnType<typ
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-      <span className="muted" style={{ fontSize: 12.5 }}>{label}</span>
-      <span className="num" style={{ fontWeight: 650, fontSize: 15 }}>{value}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <span className="muted" style={{ fontSize: "0.8125rem" }}>{label}</span>
+      <span className="num" style={{ fontWeight: 650, fontSize: "0.9375rem" }}>{value}</span>
     </div>
   );
 }
@@ -432,14 +609,37 @@ function Mini({ label, value }: { label: string; value: string }) {
 function LatestMetricsCard({ vault, snap }: { vault: Vault; snap: ReturnType<typeof simulate> }) {
   return (
     <div className="card">
-      <div className="card-title">Latest BESS Metrics</div>
+      <div className="card-title">Latest BESS metrics</div>
       <div className="rows" style={{ marginTop: 6 }}>
-        <Row k="Gross Revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency)} />
-        <Row k="Net Revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency)} accent />
-        <Row k="Energy Charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
-        <Row k="Energy Discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
-        <Row k="Activation Events" v={fmtNum(snap.activations)} />
-        <Row k="Data Source" v={vault.kind === "onchain" ? "XRPL Mainnet" : "On-site telemetry"} />
+        {/* Same two values the Revenue card shows, and at 1440 both cards are
+            on screen together — it read "€15,620" there against "€15,620.00"
+            here. The zero decimals were added at those call sites and not at
+            these; cents on a €15,620 YTD figure carry no information and only
+            invite "which of these is right?". */}
+        <Row k="Gross revenue (YTD)" v={fmtMoney(snap.grossYtd, vault.currency, 0)} />
+        <Row k="Net revenue (YTD)" v={fmtMoney(snap.netYtd, vault.currency, 0)} accent />
+        <Row k="Energy charged" v={`${fmtNum(snap.chargedMwh, 2)} MWh`} />
+        <Row k="Energy discharged" v={`${fmtNum(snap.dischargedMwh, 2)} MWh`} />
+        <Row k="Activation events" v={fmtNum(snap.activations)} />
+        {/* Telemetry either way. This row used to read "XRPL Mainnet" whenever
+            kind === "onchain", but look at what the card above it contains:
+            energy charged, energy discharged and activation events. A ledger
+            does not measure MWh or count battery cycles — every value here
+            comes from simulate(vault, t) seeded by vault.metrics, which is the
+            site's own instrumentation, on-chain vault or not.
+
+            `kind` says where the receipt token lives, not where the numbers
+            were measured. That is the same conflation the kind-decides-yield-
+            label rule already exists for: a property of the DATA keyed on a
+            property of the wrapper.
+
+            Dormant today — the card needs isActive || isShowcase and no vault
+            is active — but it would have started asserting the wrong
+            provenance on the day the first vault tokenizes, which is the one
+            day everybody looks. Where settlement happens is stated in the
+            footer and the deposit rows; it does not belong in a measurement
+            source. */}
+        <Row k="Data source" v="On-site telemetry" />
       </div>
     </div>
   );
@@ -464,10 +664,10 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
   ];
   return (
     <div className="card">
-      <div className="card-title">Use of Funds</div>
+      <div className="card-title">Use of funds</div>
       <div className="segbar" style={{ marginTop: 16 }}>
         {items.map((it) => (
-          <span key={it.label} style={{ width: `${it.pct}%`, background: it.color }}>{it.pct >= 12 ? `${it.pct}%` : ""}</span>
+          <span key={it.label} style={{ width: `${it.pct}%`, background: it.color }}><span className="seg-label">{it.pct}%</span></span>
         ))}
       </div>
       <div style={{ marginTop: 8 }}>
@@ -486,14 +686,22 @@ function UseOfFundsCard({ vault }: { vault: Vault }) {
 
 // ─── Site details (fundraising) ───────────────────────────────
 function SiteDetailsCard({ vault }: { vault: Vault }) {
+  const isGrossHeadline = apyBpsIsGross(vault);
   return (
     <div className="card">
-      <div className="card-title">Project Details</div>
+      <div className="card-title">Project details</div>
       <div className="rows" style={{ marginTop: 6 }}>
         <Row k="Power / Energy" v={`${fmtPower(vault.spec.powerKw)} / ${fmtEnergy(vault.spec.energyKwh)}`} />
         <Row k="Chemistry" v={vault.spec.chemistry} />
         <Row k="Projected annual revenue" v={fmtCompact(vault.annualRevenue, vault.currency)} />
-        <Row k="Depositor APY" v={fmtPct(bpsToPct(vault.apyBps))} accent />
+        {/* Renders apyBps, which for five of six vaults is the GROSS yield —
+            it sits directly under "Projected annual revenue" and is exactly
+            that revenue over capex. Labelled "Depositor APY" it contradicted
+            the Yield breakdown card on the same page, which reads
+            split.depositorBps: Leipzig showed "Depositor APY 12.4%" here and
+            "Depositor APY 8.8%" there. The label now says which number this
+            is; deciding which number BELONGS here is a founder call. */}
+        <Row k={isGrossHeadline ? "Gross yield on capex" : "Depositor APY"} v={fmtPct(bpsToPct(vault.apyBps))} accent />
         <Row k="Receipt token" v={`${vault.symbol} · XRPL MPT`} />
         <Row k="Network" v="XRPL · Mainnet" />
       </div>
@@ -505,7 +713,7 @@ function SiteDetailsCard({ vault }: { vault: Vault }) {
 function SiteOverviewCard({ vault }: { vault: Vault }) {
   return (
     <div className="card">
-      <div className="card-title">Site Overview</div>
+      <div className="card-title">Site overview</div>
       <div className="rows" style={{ marginTop: 6 }}>
         <Row k="CapEx" v={fmtCompact(vault.capex, vault.currency)} />
         <Row k="Annual revenue" v={vault.annualRevenueRange ? `${fmtCompact(vault.annualRevenueRange[0], vault.currency)}–${fmtCompact(vault.annualRevenueRange[1], vault.currency)}` : fmtCompact(vault.annualRevenue, vault.currency)} accent />
@@ -515,10 +723,15 @@ function SiteOverviewCard({ vault }: { vault: Vault }) {
         <Row k="Operator" v="Megawatt" />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 16 }}>
-        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid rgba(107,140,255,0.2)" }}>
+        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: "var(--r-row)", background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
           <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={17} /></span>
-          <div style={{ fontSize: 12, color: "var(--text-2)" }}>
-            Off-chain showcase — one of our operational sites, shown for transparency. Not an investable vault.
+          <div style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>
+            {/* The header pill now carries "not investable" so it is read
+                before the numbers rather than after them. This keeps the
+                explanation — why the site is here at all — without repeating
+                the headline verdict twice on one page. */}
+            Off-chain showcase - one of our operational sites, published so the performance behind Megawatt&apos;s
+            numbers can be checked. Operated by Megawatt; deposits happen in the on-chain vaults.
           </div>
         </div>
       </div>
@@ -535,52 +748,114 @@ function PositionCard(props: {
   const { vault, claimable, deposited, sharePct, raised, rlusdBalance, showClaim, depositDisabled, connected, onDeposit, onClaim } = props;
   const others = Math.max(0, raised - deposited);
   const othersPct = Math.max(0, 100 - sharePct);
+  // Nothing has been deposited by anyone, so there is no distribution to draw.
+  // othersPct is `100 - sharePct`, which returns a confident 100 when the
+  // denominator is zero, and the card rendered a full grey ring labelled
+  // "100.00%" against a legend reading "Others · $0.00" — a party holding all
+  // of nothing. Today that is not an edge case but the ONLY state this card
+  // has: POSITIONS is empty and every vault open to deposits has raised: 0.
+  const noDistribution = raised <= 0;
 
   if (!connected) {
     return (
-      <div className="card" style={{ justifyContent: "center", textAlign: "center" }}>
-        <div className="card-title" style={{ justifyContent: "center" }}>Your Position</div>
-        <div className="empty" style={{ padding: "30px 8px" }}>Connect your wallet to deposit and track your position.</div>
-        <button className="btn btn-accent btn-block" onClick={onDeposit}>Connect Wallet</button>
+      <div className="card">
+        <div className="card-title">Your position</div>
+        <div className="empty-state">
+          <WalletIcon size={26} />
+          <p className="empty-state-body" style={{ marginTop: 2 }}>
+            Connect a wallet to deposit into this vault and track what it earns. Everything on this page is readable
+            without one.
+          </p>
+          <button className="btn btn-accent btn-sm" onClick={onDeposit}>
+            Connect wallet
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <div className="card-title">Your Position</div>
+      <div className="card-title">Your position</div>
+      {noDistribution ? (
+        <div className="empty-state">
+          <WalletIcon size={26} />
+          <p className="empty-state-body" style={{ marginTop: 2 }}>
+            {depositDisabled
+              ? `No deposits yet. This vault opens when the ${fmtCompact(vault.capex, vault.currency)} raise goes live. Your wallet is connected and ready.`
+              : `No deposits yet. The first ${fmtCompact(vault.capex, vault.currency)} of this raise is still open.`}
+          </p>
+        </div>
+      ) : (
       <div style={{ display: "flex", gap: 16, alignItems: "center", margin: "16px 0 6px" }}>
+        {/* centerLabel was sharePct.toFixed(0). One value, three presentations,
+            all three on screen together in this card: the donut centre rounded
+            to whole percent, the legend item 40px to its right printed
+            toFixed(2), and the "Your share" row below already used
+            fmtPct(sharePct, 2). Rounding also destroyed the number it was
+            displaying — a depositor holding 0.4% of the vault read "0%" in the
+            largest text on their own position card, beside a legend saying
+            "0.40%". */}
         <Donut
           size={112}
           segments={[
             { value: Math.max(sharePct, 0.001), color: "var(--accent)" },
             { value: othersPct, color: "rgba(255,255,255,0.08)" },
           ]}
-          centerLabel={`${sharePct.toFixed(0)}%`}
+          centerLabel={fmtPct(sharePct, 2)}
           centerSub="Your share"
         />
-        <div style={{ flex: 1, display: "grid", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 12 }}>
           <LegendItem color="var(--accent)" name="You" value={fmtMoney(deposited, "USD")} pct={sharePct} />
           <LegendItem color="rgba(255,255,255,0.18)" name="Others" value={fmtMoney(others, "USD")} pct={othersPct} />
         </div>
       </div>
+      )}
       <div className="divider" />
       <div className="rows">
         <Row k="Your RLUSD" v={fmtMoney(rlusdBalance, "USD")} />
-        <Row k="Your Deposit" v={fmtMoney(deposited, "USD")} />
-        <Row k="Your Share" v={fmtPct(sharePct, 2)} />
-        <Row k="Claimable Yield" v={fmtMoney(claimable, "USD")} accent />
+        {/* Every row below is trivially zero until someone deposits, and three
+            rows of "$0.00 / 0.00% / €0.00" read as a broken feed rather than an
+            empty one. "Your RLUSD" stays in both states — it is the one figure
+            that is true and useful before a deposit exists.
+            "Your share" is also the donut's own centre label, so it appeared
+            twice, 100px apart, whenever the donut was drawn. */}
+        {!noDistribution && <Row k="Your deposit" v={fmtMoney(deposited, "USD")} />}
+        {/* vault.currency, not "USD". The two rows above are genuinely RLUSD —
+            an RLUSD balance and an RLUSD principal — but claimable is typed
+            "claimable yield (vault currency)", and every other place that draws
+            it agrees: the claim toast, ClaimCard's hero and button, and both
+            portfolio call sites all pass the vault currency. These two lines
+            were the only ones hardcoding a symbol.
+
+            Visible today, one nav click apart: this card read "Claimable yield
+            $0.00" while the portfolio tile for the same field read "€0.00".
+            Worse once a vault goes active, because ClaimCard and this card
+            render together — two Claim buttons, one number, two symbols. */}
+        {!noDistribution && <Row k="Claimable yield" v={fmtMoney(claimable, vault.currency)} accent />}
       </div>
+      {/* Rendered only when it will hold something. On a coming_soon vault both
+          conditions below are false, so this was an empty grid contributing
+          18px of padding and an auto top margin that pushed itself to the
+          bottom of a 792px card — reserving a footer for actions that never
+          arrive. */}
+      {(!depositDisabled || showClaim) && (
       <div style={{ marginTop: "auto", paddingTop: 18, display: "grid", gap: 10 }}>
-        <button className="btn btn-ghost btn-block" onClick={onDeposit} disabled={depositDisabled}>
-          {depositDisabled ? "Fundraising opens soon" : "Deposit into Vault"}
-        </button>
+        {/* On a pipeline vault this was a second, identical disabled button
+            saying the same thing as the one in the Fundraising card. Two dead
+            controls do not communicate twice as clearly. */}
+        {!depositDisabled && (
+          <button className="btn btn-ghost btn-block" onClick={onDeposit}>
+            Deposit into Vault
+          </button>
+        )}
         {showClaim && (
           <button className="btn btn-accent btn-block" onClick={onClaim} disabled={claimable <= 0}>
-            {claimable > 0 ? `Claim ${fmtMoney(claimable, "USD")}` : "Nothing to claim"}
+            {claimable > 0 ? `Claim ${fmtMoney(claimable, vault.currency)}` : "Nothing to claim"}
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -590,8 +865,8 @@ function LegendItem({ color, name, value, pct }: { color: string; name: string; 
     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
       <span className="dot" style={{ background: color, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{name} · <span className="num">{value}</span></div>
-        <div className="muted num" style={{ fontSize: 11.5 }}>{pct.toFixed(2)}%</div>
+        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{name} · <span className="num">{value}</span></div>
+        <div className="muted num" style={{ fontSize: "0.75rem" }}>{pct.toFixed(2)}%</div>
       </div>
     </div>
   );
@@ -608,6 +883,12 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   onClose: () => void;
   onMockDone: (amt: number) => void;
 }) {
+  const isGrossHeadline = apyBpsIsGross(vault);
+  // Focus trap, Escape, scroll lock and focus restore. This dialog takes a
+  // deposit amount and had none of them — Tab left the modal on the very first
+  // field, and the page behind scrolled under it. See ./useDialog.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialog(true, onClose, panelRef);
   const [amount, setAmount] = useState("");
   const amt = parseFloat(amount) || 0;
   const tooMuch = amt > rlusdBalance;
@@ -615,45 +896,141 @@ function DepositModal({ vault, rlusdBalance, remaining, kycOk, onClose, onMockDo
   const valid = amt > 0 && !tooMuch && !overCap && kycOk;
   const maxAmt = Math.min(rlusdBalance, remaining);
 
-  const submit = () => onMockDone(amt);
+  // A disabled button with no stated reason is a dead end: the user types an
+  // amount, the CTA greys out, and nothing says which of four conditions
+  // failed. Name the blocker, and only once they've typed something.
+  const blocker = !kycOk
+    ? "Complete KYC verification to deposit."
+    : tooMuch
+    ? `That's more than your balance of ${fmtMoney(rlusdBalance, "USD")} RLUSD.`
+    : overCap
+    // vault.currency, not "USD". `remaining` is capex minus raised — both
+    // asset-side, both EUR — and the tile at the top of this page calls that
+    // quantity "Target raise €3.20M". The balance line directly above is RLUSD
+    // and correctly stays USD; the vault's room is not the same currency.
+    ? `This vault has ${fmtMoney(remaining, vault.currency)} of room left.`
+    : null;
+  const showBlocker = amount.trim() !== "" && !!blocker;
+
+  const submit = () => {
+    posthog.capture("deposit_completed", {
+      vault_id: vault.id,
+      vault_name: vault.name,
+      amount_rlusd: amt,
+      shares_received: amt,
+      vault_symbol: vault.symbol,
+    });
+    onMockDone(amt);
+  };
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="overlay" onMouseDown={scrimDismiss(onClose)}>
+      <div
+        ref={panelRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deposit-modal-title"
+        tabIndex={-1}
+      >
         <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Deposit into {vault.shortName}</span>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}><XIcon size={18} /></button>
+          <span id="deposit-modal-title">Deposit into {vault.shortName}</span>
+          {/* .modal-x, like every other close in the app. This one carried its
+              own inline styles with no padding, so it measured 18x28 — under
+              the 24px target minimum on its narrow axis — while the shared
+              class is 44x44. It went unnoticed because no audit could open this
+              modal: the overlay case needs an active vault AND a position, and
+              the data has neither. */}
+          <button type="button" className="modal-x" onClick={onClose} aria-label="Close"><XIcon size={18} /></button>
         </div>
 
         <div className="field" style={{ marginTop: 18 }}>
+          {/* This is the field that moves money, and it had no accessible name
+              at all — it already carried aria-invalid and aria-describedby, so
+              it announced "edit, invalid" without ever saying what it was for.
+              The balance is a description rather than part of the name, so the
+              name stays "Amount" and the balance is still read after it. */}
           <div className="field-label">
-            <span>Amount</span>
-            <span className="muted num">Balance: {fmtMoney(rlusdBalance, "USD")} RLUSD</span>
+            <label htmlFor="deposit-amount">Amount</label>
+            <span className="muted num" id="deposit-balance">Balance: {fmtMoney(rlusdBalance, "USD")} RLUSD</span>
           </div>
           <div className="input-suffix">
-            <input className="input" inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingRight: 92 }} />
+            <input
+              id="deposit-amount"
+              className={`input${showBlocker ? " invalid" : ""}`}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              aria-invalid={showBlocker}
+              aria-describedby={showBlocker ? "deposit-blocker deposit-balance" : "deposit-balance"}
+              // The "RLUSD + MAX" suffix overlays the input's right edge, so
+              // that width has to be reserved or a long amount slides under it.
+              // 92px was already 15px short before MAX was grown; measured at
+              // 121px now, rounded up for the widest balance.
+              style={{ paddingRight: 128 }}
+            />
             <span className="suffix">
               RLUSD{" "}
-              <button onClick={() => setAmount(String(maxAmt))} style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "none", padding: "3px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginLeft: 4 }}>MAX</button>
+              {/* Without type="button" this submits any ancestor form. */}
+              {/* Was 43x24 — scraping the 24px WCAG 2.5.8 floor, on the control
+                  that fills in the amount of money being deposited, while the
+                  equivalent "Max" in the sell modal is 38px. Grown to 34px and
+                  given a radius; it still clears the 50px input it sits in. */}
+              <button
+                type="button"
+                aria-label={`MAX - fill in ${fmtMoney(maxAmt, "USD")} RLUSD`}
+                onClick={() => setAmount(String(maxAmt))}
+                style={{
+                  display: "inline-flex", alignItems: "center", minHeight: 34,
+                  background: "var(--accent-dim)", color: "var(--accent)", border: "none",
+                  borderRadius: "var(--r-control)", padding: "0 11px",
+                  fontSize: "0.6875rem", fontWeight: 700, cursor: "pointer", marginLeft: 6,
+                }}
+              >
+                MAX
+              </button>
             </span>
           </div>
+          {/* Always mounted, empty when there is nothing to say. Two reasons:
+              a role="alert" inserted into the DOM *with* its text already in
+              place is announced unreliably — several screen readers only pick
+              up a change to a region that was already there; and rendering it
+              conditionally resized the dialog. This modal is centred, so
+              appearing text pushed it up by half and the confirm button down
+              by the other half, 13px on desktop and 22px at 390px, while the
+              user was mid-keystroke on an amount of money.
+              .field-error:empty reserves one line and drops the "!" badge. */}
+          <p className="field-error" id="deposit-blocker" role="alert">
+            {showBlocker ? blocker : ""}
+          </p>
         </div>
 
         <div className="rows" style={{ marginBottom: 4 }}>
           <Row k="You receive" v={`${fmtNum(amt)} ${vault.symbol}`} />
-          <Row k="Vault remaining" v={fmtMoney(remaining, "USD")} />
+          <Row k="Vault remaining" v={fmtMoney(remaining, vault.currency)} />
           <Row k="Receipt token" v="XRPL MPT share · tradeable" />
-          <Row k="Projected APY" v={fmtPct(bpsToPct(vault.apyBps))} accent />
+          {/* Same field, and this is the panel where it matters most: what a
+              depositor is about to commit to. When apyBps is gross, the
+              depositor's own share is split.depositorBps and lower. Labelled
+              accurately here; swapping the figure is the founder call. */}
+          <Row k={isGrossHeadline ? "Projected gross yield" : "Projected APY"} v={fmtPct(bpsToPct(vault.apyBps))} accent />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.75rem", color: kycOk ? "var(--accent)" : "var(--amber)", margin: "10px 0 4px" }}>
           {kycOk ? <CheckIcon size={14} /> : <ShieldIcon size={14} />}
-          {kycOk ? "KYC verified — eligible to deposit" : "KYC verification required to deposit"}
+          {kycOk ? "KYC verified, eligible to deposit" : "KYC verification required to deposit"}
         </div>
 
-        <div className="modal-footer" style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-accent" style={{ flex: 1 }} disabled={!valid} onClick={submit}>
+        {/* Layout moved out of here and onto .modal-footer in globals.css. It
+            had no rule at all, so the two controls that complete or abandon a
+            money transfer were laid out by three inline properties that could
+            not express "wrap when narrow" or "stay visible while the dialog
+            scrolls" — and at 320 with 200% text they were 60px wider than the
+            dialog containing them. */}
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-accent" disabled={!valid} onClick={submit}>
             {tooMuch ? "Insufficient RLUSD" : overCap ? "Exceeds vault capacity" : "Confirm deposit"}
           </button>
         </div>

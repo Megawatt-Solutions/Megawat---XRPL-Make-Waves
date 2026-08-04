@@ -9,10 +9,8 @@
 
 export interface User {
   id: string;
-  email: string;
-  name: string;
-  wallet: string | null;
-  verified: boolean;
+  name: string | null; // null until the nickname prompt after first sign-in
+  wallet: string;
   demo?: boolean;
 }
 
@@ -62,7 +60,6 @@ export interface RoundState {
 export interface LeaderRow {
   rank: number;
   name: string;
-  verified: boolean;
   wallet: string | null;
   points: number;
   played: number;
@@ -70,6 +67,8 @@ export interface LeaderRow {
   streak: number;
   absError: number | null;
   isDemo: boolean;
+  pending?: boolean; // pick in for an unsettled round
+  signedPending?: boolean; // that pick is locked on-chain (only signed picks count)
 }
 
 export interface Anchor {
@@ -83,7 +82,6 @@ export interface Anchor {
 
 export interface RevealEntry {
   user: string;
-  verified: boolean;
   band: number;
   exact: number | null;
   salt: string;
@@ -117,25 +115,27 @@ export function isRpcError(e: unknown): e is RpcError {
   return e instanceof RpcError;
 }
 
-// ─── user + prediction API ────────────────────────────────────
+// ─── player + prediction API ──────────────────────────────────
 
-export async function findOrCreateUser(email: string, name: string): Promise<{ user?: User; error?: string }> {
-  return rpc("findOrCreateUser", { email, name });
+// The wallet address must come from a server-verified Xaman payload — the
+// session route is the only caller and never passes a client-supplied value.
+export async function findOrCreatePlayerByWallet(wallet: string): Promise<{ user?: User; error?: string }> {
+  return rpc("findOrCreatePlayerByWallet", { wallet });
 }
 
 export async function getUser(id: string): Promise<User | null> {
   return (await rpc<{ user: User | null }>("getUser", { id })).user;
 }
 
-export async function connectWallet(userId: string, address: string): Promise<{ user?: User; error?: string }> {
-  return rpc("connectWallet", { id: userId, address });
+export async function setPlayerName(id: string, name: string): Promise<{ user?: User; error?: string }> {
+  return rpc("setPlayerName", { id, name });
 }
 
 export async function submitPrediction(
   userId: string,
   band: number,
   exact: number | null
-): Promise<{ prediction?: { day: string; band: number; exact: number | null; hash: string }; commitTxNeeded?: boolean; error?: string }> {
+): Promise<{ prediction?: { day: string; band: number; exact: number | null; hash: string }; error?: string }> {
   return rpc("submitPrediction", { userId, band, exact });
 }
 
@@ -153,8 +153,8 @@ export async function roundState(userId: string | null): Promise<RoundState> {
   return rpc("roundState", { userId });
 }
 
-export async function leaderboard(scope: "week" | "season", verifiedOnly: boolean): Promise<LeaderRow[]> {
-  return (await rpc<{ rows: LeaderRow[] }>("leaderboard", { scope, verifiedOnly })).rows;
+export async function leaderboard(scope: "week" | "season"): Promise<LeaderRow[]> {
+  return (await rpc<{ rows: LeaderRow[] }>("leaderboard", { scope })).rows;
 }
 
 export async function archive(): Promise<{ rounds: RoundInfo[]; anchors: Anchor[] }> {

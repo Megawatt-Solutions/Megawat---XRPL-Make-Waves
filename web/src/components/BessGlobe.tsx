@@ -7,17 +7,33 @@
 // its coordinates, zooms in, and holds its tooltip open; dragging the globe
 // releases the focus back to auto-spin.
 import { useEffect, useRef } from "react";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import createGlobe from "cobe";
 import { bessMarkers } from "@/lib/protocol";
-import { fmtPct, bpsToPct } from "@/lib/format";
+import { fmtPct, bpsToPct, fmtPower, fmtEnergy } from "@/lib/format";
+import { Flag } from "./Flag";
+import { statusLabel } from "./vaultStatus";
 
 const MARKERS = bessMarkers();
 
 const THETA = 0.55; // resting view-centre latitude
 const PHI_BASE = 4.46; // rotate so ~15°E faces front
 const AUTO_SPEED = 0.0026;
-const R_FRAC = 0.46; // sphere radius / stage width at scale 1
-const FOCUS_SCALE = 1.42;
+// The zoom is bounded by the canvas, and the bound is the product of these
+// two numbers. cobe draws into a square canvas that is exactly the stage, so
+// a sphere of radius R_FRAC x width x scale is cut flat wherever it passes
+// width/2 — and 0.46 x 1.42 = 0.653 put a third of the focused globe outside
+// the frame, which is the straight left and right edges you could see on any
+// selected site. Enlarging the canvas does not help: the limit is a ratio, so
+// it holds at every size.
+//
+// So the product is the thing to keep under 0.5, and 0.47 is it — the last
+// ~3% is the glow, which reaches past the sphere and would band the edge on
+// its own. Both numbers move together: the resting globe gives up a little
+// size so the focused one can have real depth. To trade differently, change
+// them as a pair and keep R_FRAC x FOCUS_SCALE <= 0.47.
+const R_FRAC = 0.4; // sphere radius / stage width at scale 1
+const FOCUS_SCALE = 1.17;
 const EASE = 0.075; // per-frame lerp factor toward focus targets
 
 /** Camera angles that put (lat,lng) at the centre of the view. */
@@ -56,6 +72,15 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
   const phiRef = useRef(PHI_BASE);
   const thetaRef = useRef(THETA);
   const scaleRef = useRef(1);
+  // Read through a ref rather than a dependency: the rAF effect also creates
+  // and destroys the globe instance, so re-running it on a media-query change
+  // would tear down and rebuild the canvas. The loop picks the new value up on
+  // its next frame instead.
+  const reducedMotion = usePrefersReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
   const focusRef = useRef<(typeof MARKERS)[number] | null>(null);
   const draggingRef = useRef<number | null>(null);
   const hoveringRef = useRef(false);
@@ -101,7 +126,12 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         thetaRef.current += (t.theta - thetaRef.current) * EASE;
         scaleRef.current += (FOCUS_SCALE - scaleRef.current) * EASE;
       } else {
-        if (draggingRef.current === null && !hoveringRef.current) phiRef.current += AUTO_SPEED;
+        // The idle spin is the only continuous motion here; the rest of this
+        // loop is easing toward a target the user asked for, or drawing. So
+        // reduced motion stops the spin and leaves the globe usable.
+        if (draggingRef.current === null && !hoveringRef.current && !reducedMotionRef.current) {
+          phiRef.current += AUTO_SPEED;
+        }
         thetaRef.current += (THETA - thetaRef.current) * EASE;
         scaleRef.current += (1 - scaleRef.current) * EASE;
       }
@@ -119,7 +149,11 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         const el = pinRefs.current[i];
         if (!el) continue;
         const p = project(MARKERS[i].coords[0], MARKERS[i].coords[1], phiRef.current, thetaRef.current);
-        const lim = width / 2 - 4; // zoomed sphere exceeds the stage; drop out-of-frame pins
+        // The sphere now stays inside the stage at every scale, so this no
+        // longer culls anything a visible pin could hit. Kept as the guard it
+        // reads as: if the geometry above is ever retuned past the frame, pins
+        // stop at the edge instead of floating off the globe.
+        const lim = width / 2 - 4;
         if (!p.visible || Math.abs(p.x * R) > lim || Math.abs(p.y * R) > lim) {
           el.style.opacity = "0";
           el.style.pointerEvents = "none";
@@ -170,7 +204,17 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         onPointerEnter={() => (hoveringRef.current = true)}
         onPointerLeave={() => { hoveringRef.current = false; endDrag(); }}
       >
-        <canvas ref={canvasRef} className="globe-canvas" />
+        {/* Hidden from assistive tech rather than labelled (WCAG 1.1.1).
+            The canvas is a decorative rendering: it carries no information
+            that is not already text in the .globe-pin tooltips beside it —
+            every site's name, country, power and status. Describing the
+            drawing on top of that is noise, and a canvas with role="img" and
+            no name (which is what it had) is worse still: an element in the
+            accessibility tree that announces "image" and says nothing.
+
+            The pins are siblings, not children — a canvas cannot have DOM
+            children — so hiding this does not hide them. */}
+        <canvas ref={canvasRef} className="globe-canvas" aria-hidden="true" />
         <div className="globe-pins">
           {MARKERS.map((m, i) => (
             <div
@@ -186,10 +230,25 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
                 }}
               />
               <div className="globe-tip">
-                <div className="globe-tip-name">{m.flag} {m.name}</div>
-                <div className="globe-tip-sub">{m.location} · {m.capacityMw} MW / {m.energyMwh} MWh</div>
+                <div className="globe-tip-name"><Flag code={m.flag} size={13} /> {m.name}</div>
+                <div className="globe-tip-sub">{m.location} ·{" "}
+                  {/* Third surface with this same problem, after the vault
+                      cards and NetworkPanel. The marker carries MW/MWh, and
+                      printing them raw makes BESS Ljubljana 01 read
+                      "0.35 MW / 0.55 MWh" where its card says "350 kW / 550
+                      kWh". fmtPower/fmtEnergy pick the unit by magnitude, so a
+                      sub-megawatt site keeps its kW. */}
+                  {fmtPower(m.capacityMw * 1000)} / {fmtEnergy(m.energyMwh * 1000)}</div>
                 <div className="globe-tip-sub">
-                  <span className="globe-tip-status">{m.status.replace("_", " ")}</span> · {fmtPct(bpsToPct(m.apyBps))} APY
+                  {/* "APY" was hardcoded here for every marker, including the
+                      two showcase sites whose number is a gross yield on capex.
+                      VaultCard, VaultDetail and now VaultsOverview all draw
+                      this distinction; the globe was the last surface still
+                      flattening it. */}
+                  {/* Was `status.replace("_", " ")` — the raw enum value with an
+                      underscore swapped out, which produced a third spelling of
+                      a status the rest of the app already had a word for. */}
+                  <span className="globe-tip-status">{statusLabel(m.status)}</span> · {fmtPct(bpsToPct(m.apyBps))} {m.apyIsGross ? "gross yield" : "APY"}
                 </div>
               </div>
             </div>

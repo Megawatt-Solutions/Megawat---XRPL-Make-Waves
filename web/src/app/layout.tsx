@@ -1,21 +1,82 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/lib/wallet";
-import { TopNav } from "@/components/TopNav";
+import { TopNav, BottomNav } from "@/components/TopNav";
+import { Onboarding } from "@/components/Onboarding";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+// Brand loads JetBrains Mono at 400/500 only. Anything heavier would be
+// synthesised by the browser, and faux-bold monospace reads as a rendering
+// bug at display sizes. globals.css caps every mono rule at 500 to match.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
   variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
+// Without viewportFit: "cover" the env(safe-area-inset-*) values evaluate to
+// 0, which made the max(10px, env(...)) padding in .bottom-nav dead code and
+// --nav-h-safe wrong on notched devices.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#030907",
+};
+
+// Every route in the app used to share one of two titles — "Megawatt — BESS
+// Vaults" for the whole vaults half including each individual vault, and
+// "Spreadcast — Megawatt" for all four game routes. Six vault pages open in six
+// tabs were indistinguishable, browser history was a wall of the same string,
+// and a bookmarked vault said nothing about which vault.
+//
+// The template gives each page a name of its own without every file having to
+// repeat the brand. Pages set `title: "Portfolio"` and get "Portfolio —
+// Megawatt"; `default` covers routes that set nothing.
 export const metadata: Metadata = {
-  title: "Megawatt — BESS Vaults",
+  // Every og:image and twitter:image is emitted as an ABSOLUTE url, resolved
+  // against this. Unset, Next falls back to http://localhost:3000 and says so
+  // at build time:
+  //
+  //   ⚠ metadataBase property in metadata export is not set for resolving
+  //     social open graph or twitter images, using "http://localhost:3000"
+  //
+  // which means every share card points at a host only the developer can
+  // reach, and renders with no image at all for everyone else. That makes the
+  // cards themselves — root, each vault, each settled Spreadcast result —
+  // silently worthless off this machine.
+  //
+  // The production origin is not invented here: it comes from
+  // NEXT_PUBLIC_SITE_URL, with the dev origin as the fallback so local builds
+  // behave exactly as before. Set it wherever the app is deployed.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  title: {
+    template: "%s · Megawatt",
+    default: "Megawatt · BESS Vaults",
+  },
   description:
-    "Invest in Battery Energy Storage Systems, earn yield, and trade your position — on the XRP Ledger.",
+    "Invest in Battery Energy Storage Systems, earn yield, and trade your position, on the XRP Ledger.",
+  applicationName: "Megawatt",
+  // There were no og: tags at all, so a link pasted into Slack, WhatsApp or
+  // anywhere else rendered as a bare URL with no preview — for a product whose
+  // vault links are meant to be shared, that is the link doing no work.
+  openGraph: {
+    type: "website",
+    siteName: "Megawatt",
+    title: "Megawatt · BESS Vaults",
+    description:
+      "Invest in Battery Energy Storage Systems, earn yield, and trade your position, on the XRP Ledger.",
+  },
+  // summary_large_image, not summary. This was correct when written — the
+  // comment above used to end "no og:image yet" and there was none, so a small
+  // thumbnail was all X could show. opengraph-image.tsx landed afterwards and
+  // this was never revisited: every card the app ships is 1200x630 landscape
+  // (root, each vault, and every settled Spreadcast result), and `summary`
+  // crops all of them to a square postage stamp. The result pages are the ones
+  // that hurt — their entire purpose is being pasted into a chat.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,8 +85,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       
       <body suppressHydrationWarning>
         <AppProviders>
+          {/* WCAG 2.4.1 Bypass Blocks — Level A, and it was missing.
+              Measured before this: 7 tabs to reach page content on / and
+              /portfolio, 11 on /spreadcast because of the section bar. A
+              keyboard user paid that toll on EVERY navigation, since the same
+              nav repeats on every route.
+
+              First focusable in the document, invisible until focused. The
+              target is a wrapper rather than each page's own <main>, so it
+              works no matter what a route renders and no page has to remember
+              to opt in. */}
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
           <TopNav />
-          {children}
+          {/* tabIndex -1 so it can accept programmatic focus from the skip
+              link without joining the tab order itself. */}
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
+          {/* After the content, not beside the header. The bar is position:
+              fixed so this changes nothing visually, but it puts the five tab
+              stops where the eye finds them — at the end — instead of between
+              the header and the page. */}
+          <BottomNav />
+          {/* Inside AppProviders (it reads useWallet) and last in DOM/tab
+              order, so its focus trap sits at the end of the document. */}
+          <Onboarding />
         </AppProviders>
       </body>
     </html>

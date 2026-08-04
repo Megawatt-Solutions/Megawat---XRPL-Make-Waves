@@ -2,10 +2,33 @@
 // Dashboard v2 — protocol-level overview mock data.
 // Hero metrics are protocol-wide; the vault table below derives from VAULTS.
 // ─────────────────────────────────────────────────────────────
-import type { Vault } from "./types";
-import { VAULTS } from "./vaults";
+import type { Currency, Vault } from "./types";
+import { VAULTS, apyBpsIsGross } from "./vaults";
 
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
+
+/**
+ * The currency the physical assets are denominated in: every vault's capex,
+ * raised, annualRevenue and sinkingFundBalance. All six sites are European and
+ * every one of them is EUR.
+ *
+ * Derived from the vault data rather than written down, because the thing this
+ * exists to prevent already happened: the aggregates built out of these fields
+ * were formatted with a hardcoded "USD" while the rows they summed used
+ * `v.currency` and rendered "€". The vault table showed rows of €240K and
+ * €2.20M under a group total of $2.44M — the same two numbers added up, with
+ * the other continent's symbol on the result.
+ *
+ * Deposits are NOT this currency. They are RLUSD, a USD stablecoin, so
+ * deposit/claim/balance figures are correctly formatted as USD and must stay
+ * that way. Only asset-side aggregates use this constant.
+ *
+ * If vaults ever span currencies, this constant becomes the wrong shape — but
+ * so does every sum above it, since adding mixed currencies needs conversion
+ * rather than a different symbol. That is a data decision, so it is flagged
+ * here rather than guessed at.
+ */
+export const ASSET_CURRENCY: Currency = VAULTS[0].currency;
 
 /** Value of the two real operational systems (Ljubljana + Metlika capex). */
 export const OPERATIONAL_VALUE = VAULTS.filter((v) => v.kind === "showcase").reduce((s, v) => s + v.capex, 0);
@@ -161,6 +184,59 @@ export interface AllocSegment {
   color: string;
 }
 
+export interface YieldSlice {
+  key: "depositor" | "protocolFee" | "sinkingFund" | "reserve";
+  label: string;
+  bps: number; // capex-weighted average across the vault network
+  pct: number; // share of gross yield, one decimal
+  color: string;
+}
+
+/**
+ * Protocol-wide yield composition, capex-weighted across every vault — where
+ * each euro of gross yield actually goes.
+ *
+ * This was four hardcoded percentages in the dashboard (74 / 14 / 8 / 4) that
+ * matched no vault in the data. Every other number on that page derives from
+ * VAULTS; this one was a picture of a number. Weighted by capex to match
+ * `vaultGroups()`, which blends its APY the same way.
+ *
+ * Derived from `split`, which is the trustworthy field. Checked against ground
+ * truth — annualRevenue / capex — every vault's split sums to its actual gross
+ * yield, Belgrade included (26.0% measured vs 26.5% from its split; it is a
+ * denser site, not a broken row).
+ *
+ * `apyBps` is the field that does NOT hold a single meaning, so this function
+ * deliberately does not touch it. For five of six vaults apyBps === splitSum
+ * === revenue/capex, i.e. the GROSS yield. bess-belgrade-01's apyBps (1300)
+ * instead equals its depositorBps, i.e. the depositor's share. One field, two
+ * meanings, and types.ts calls it "headline depositor APY" — which is true of
+ * exactly one vault. Flagged for the founders rather than guessed at here,
+ * because every headline yield figure in the product reads from it.
+ */
+export function yieldComposition(): { slices: YieldSlice[]; grossBps: number; siteCount: number } {
+  const totalCapex = VAULTS.reduce((s, v) => s + v.capex, 0);
+  const weighted = (pick: (v: Vault) => number) =>
+    totalCapex > 0 ? VAULTS.reduce((s, v) => s + pick(v) * v.capex, 0) / totalCapex : 0;
+
+  const parts = [
+    { key: "depositor", label: "Depositor yield", color: "var(--accent)", bps: weighted((v) => v.split.depositorBps) },
+    { key: "protocolFee", label: "Protocol fees", color: "var(--amber)", bps: weighted((v) => v.split.protocolFeeBps) },
+    { key: "sinkingFund", label: "Sinking fund", color: "var(--blue)", bps: weighted((v) => v.split.sinkingFundBps) },
+    { key: "reserve", label: "Reserve buffer", color: "var(--gray)", bps: weighted((v) => v.split.reserveBps) },
+  ] as const;
+
+  const grossBps = parts.reduce((s, p) => s + p.bps, 0);
+  return {
+    grossBps,
+    siteCount: VAULTS.length,
+    slices: parts.map((p) => ({
+      ...p,
+      pct: grossBps > 0 ? Math.round((p.bps / grossBps) * 1000) / 10 : 0,
+    })),
+  };
+}
+
 /** Segments for the deployed/pipeline allocation bar. */
 export function allocation(): { deployed: AllocSegment[]; pipeline: AllocSegment[]; total: number } {
   const sum = (pred: (v: Vault) => boolean, capexField: "capex" | "raised") =>
@@ -196,6 +272,13 @@ export interface BessMarker {
   capacityMw: number;
   energyMwh: number;
   apyBps: number;
+  // Whether apyBps holds a gross yield or a depositor APY. This started as
+  // `kind`, on the assumption that showcase sites quote gross and on-chain ones
+  // quote APY — which the data does not support: BESS Leipzig 01 is on-chain
+  // and its apyBps IS gross. Every other surface moved to apyBpsIsGross(); the
+  // globe kept guessing from kind and so called Leipzig's gross yield "APY"
+  // while its own card said "Gross yield".
+  apyIsGross: boolean;
   status: Vault["status"];
   coords: [number, number]; // [lat, lng]
 }
@@ -209,6 +292,7 @@ export function bessMarkers(): BessMarker[] {
     capacityMw: v.spec.powerKw / 1000,
     energyMwh: v.spec.energyKwh / 1000,
     apyBps: v.apyBps,
+    apyIsGross: apyBpsIsGross(v),
     status: v.status,
     coords: BESS_COORDS[v.id],
   }));

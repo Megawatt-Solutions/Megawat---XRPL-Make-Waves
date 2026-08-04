@@ -6,7 +6,13 @@
     "dev": "next dev --webpack",
     "dev:turbo": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "audit": "node scripts/consistency-lint.mjs && node scripts/responsive-audit.mjs && node scripts/a11y-audit.mjs && node scripts/state-audit.mjs && node scripts/overlay-audit.mjs",
+    "audit:canary": "node scripts/consistency-lint.mjs --canary && node scripts/responsive-audit.mjs --canary && node scripts/a11y-audit.mjs --canary",
+    "audit:deep": "node scripts/a11y-audit.mjs --tab-order && node scripts/a11y-audit.mjs --motion && node scripts/overlay-audit.mjs --as-connected && node scripts/overlay-audit.mjs --height 360 && node scripts/responsive-audit.mjs --as-connected",
+    "audit:all": "npm run audit && npm run audit:deep && npm run audit:canary",
+    "audit:zoom": "node scripts/responsive-audit.mjs --text-zoom 200",
+    "audit:cls": "node scripts/responsive-audit.mjs --cls"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
@@ -14,6 +20,7 @@
     "ethers": "^6.16.0",
     "next": "16.2.1",
     "posthog-js": "^1.410.6",
+    "posthog-node": "^5.46.1",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.4",

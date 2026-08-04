@@ -23,10 +23,25 @@ const SLOTS: Record<FlowNodeKey, Slot> = {
   house:   { x: HOUSE.x, y: HOUSE.y, path: "", labelDy: 0 },
 };
 
-function fmtFlow(kw: number | null): string {
-  if (kw === null) return "- -";
+// One formatter for every reading in the diagram, house included.
+//
+// It used to be `Math.round(p * 100) / 100`, which does not choose a precision
+// — it just exposes whichever `round(x, 1)` or `round(x, 2)` the telemetry line
+// happened to use. Measured on one screen: -233.79, 74.4, 138.6, 47.56, 167.5,
+// 18.73. Neighbouring numbers in the same figure at 3, 4 and 5 significant
+// figures, and 1415.85 kW claiming ten-gram precision on a megawatt flow.
+//
+// Three significant figures throughout, promoting to MW past 1000 kW and down
+// to W below 1 kW. Unit promotion by magnitude is already this app's habit
+// ("1,485 kWh TODAY" beside "39.8 MWh THIS MONTH"), and it keeps a 3.2 MW site
+// legible as 1.44 MW rather than an ungrouped 1436.7.
+function fmtFlow(kw: number | null): { value: string; unit: string } {
+  if (kw === null) return { value: "- -", unit: "" };
   const p = Math.abs(kw);
-  return p >= 1 ? `${Math.round(p * 100) / 100} kW` : `${Math.round(p * 1000)} W`;
+  const [n, unit] = p >= 1000 ? [p / 1000, "MW"] : p >= 1 ? [p, "kW"] : [p * 1000, "W"];
+  // 3 sig figs: 1.44 / 20.9 / 234 — never more digits than the reading earns.
+  const dp = n >= 100 ? 0 : n >= 10 ? 1 : 2;
+  return { value: n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }), unit };
 }
 
 type Dir = "in" | "out" | "idle" | "off";
@@ -69,11 +84,24 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
   const dir = dirOf(ch.powerKw);
   const color = DIR_COLOR[dir];
   const live = dir === "in" || dir === "out";
+  const f = fmtFlow(ch.powerKw);
   return (
     <g>
       <circle cx={slot.x} cy={slot.y} r={42} fill="#0f1413" stroke="rgba(255,255,255,0.12)" strokeWidth={1.5} />
       <circle cx={slot.x} cy={slot.y} r={42} fill="none" stroke={live ? color : "transparent"} strokeWidth={1.5} opacity={0.5} />
-      <g transform={`translate(${slot.x - 20}, ${slot.y - 20})`} style={{ color: live ? color : "rgba(255,255,255,0.45)" }}>
+      {/* The glyph lifts when a state-of-charge sits under it. Both were centred
+          on the node: the icon translated to slot.y - 20 (40px tall, so centred)
+          and the SoC text at slot.y + 4 with textAnchor="middle". Measured on
+          the battery node, the only one carrying soc — label box 21x11 at
+          (993,1818), icon group 18x13 at (993,1818). The same box. "64%" was
+          printed straight over the battery glyph.
+
+          -28 and +26 both stay inside the r=42 ring: the icon spans -28..+12 and
+          the text sits ~6px below it. */}
+      <g
+        transform={`translate(${slot.x - 20}, ${slot.y - (ch.soc != null ? 28 : 20)})`}
+        style={{ color: live ? color : "rgba(255,255,255,0.45)" }}
+      >
         <Glyph k={k} />
       </g>
       {/* label */}
@@ -82,10 +110,13 @@ function Node({ k, ch }: { k: FlowNodeKey; ch: FlowChannel }) {
       </text>
       {/* value badge */}
       <text x={slot.x} y={slot.y - slot.labelDy + 6} textAnchor="middle" fontSize="18" fill={live ? "#f1f4f2" : "rgba(255,255,255,0.35)"} fontWeight={680}>
-        {fmtFlow(ch.powerKw)}
+        {f.value}
+        {f.unit && (
+          <tspan fontSize="12" fill={live ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.3)"}> {f.unit}</tspan>
+        )}
       </text>
       {ch.soc != null && (
-        <text x={slot.x} y={slot.y + 4} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.7)" fontWeight={600}>{Math.round(ch.soc)}%</text>
+        <text x={slot.x} y={slot.y + 26} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.7)" fontWeight={600}>{Math.round(ch.soc)}%</text>
       )}
     </g>
   );
@@ -118,8 +149,21 @@ export function EnergyFlow({ live }: { live: SiteLive }) {
   const present = order.filter((k) => byKey.has(k));
   const houseConsuming = live.housePowerKw < 0;
 
+  // A <title> rather than role="img" + aria-label.
+  //
+  // This diagram's numbers are <text> INSIDE the svg — solar output, battery
+  // flow, house draw — and SVG text is already reachable. Adding role="img"
+  // would collapse all of it into one string and LOSE those readings, which is
+  // the opposite of the intent. A title names the diagram while leaving its
+  // contents exposed.
   return (
-    <svg viewBox="0 0 940 560" className="eflow" style={{ width: "100%", height: "auto", display: "block" }}>
+    <svg
+      viewBox="0 0 940 560"
+      className="eflow"
+      style={{ width: "100%", height: "auto", display: "block" }}
+      aria-labelledby="eflow-title"
+    >
+      <title id="eflow-title">Live energy flow between solar, battery, site load and the grid</title>
       {/* connectors first (under nodes) */}
       {present.map((k) => <Connector key={`c-${k}`} k={k} ch={byKey.get(k)!} />)}
 
@@ -131,8 +175,22 @@ export function EnergyFlow({ live }: { live: SiteLive }) {
         <g transform={`translate(${HOUSE.x - 17}, ${HOUSE.y - 30})`} style={{ color: "rgba(255,255,255,0.85)" }}>
           <path d="M3 16 L17 4 L31 16 M7 13 V30 H27 V13" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round" />
         </g>
-        <text x={HOUSE.x} y={HOUSE.y + 34} textAnchor="middle" fontSize="22" fontWeight={700} fill="#f1f4f2">
-          {Math.round(live.housePowerKw * 100) / 100} <tspan fontSize="13" fill="rgba(255,255,255,0.55)">kW</tspan>
+        {/* The house was the one reading that printed its raw sign, and only
+            when it happened to be negative: "-233.79 kW" on one site, an
+            unsigned "1415.85 kW" on another. So the minus was never a
+            convention, just a leak — every node badge strips the sign and lets
+            direction come from colour and dash motion.
+            The house now formats like the rest. Direction moves into a word
+            rather than the ring colour, which was carrying it alone here: the
+            dash animation that helps on the connectors stops under
+            prefers-reduced-motion, and a red-vs-green ring is not something to
+            leave as the sole signal. */}
+        <text x={HOUSE.x} y={HOUSE.y + 28} textAnchor="middle" fontSize="22" fontWeight={700} fill="#f1f4f2">
+          {fmtFlow(live.housePowerKw).value}{" "}
+          <tspan fontSize="13" fill="rgba(255,255,255,0.55)">{fmtFlow(live.housePowerKw).unit}</tspan>
+        </text>
+        <text x={HOUSE.x} y={HOUSE.y + 48} textAnchor="middle" fontSize="11" fontWeight={600} letterSpacing="0.06em" fill={houseConsuming ? "var(--red)" : "var(--accent)"}>
+          {houseConsuming ? "DRAWING" : "EXPORTING"}
         </text>
       </g>
 

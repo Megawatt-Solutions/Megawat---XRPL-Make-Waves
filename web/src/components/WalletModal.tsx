@@ -5,8 +5,9 @@ import { KYC_LABEL } from "@/lib/user";
 import { explorerAccount } from "@/lib/xrpl";
 import { fmtAddress, fmtNum, fmtDate } from "@/lib/format";
 import {
-  XIcon, CopyIcon, ExternalLinkIcon, ShieldIcon, VerifiedIcon, CheckIcon,
+  CopyIcon, ExternalLinkIcon, ShieldIcon, VerifiedIcon, CheckIcon,
 } from "./Icons";
+import { Sheet } from "./Sheet";
 
 export function WalletModal({ onClose }: { onClose: () => void }) {
   const { profile, disconnect } = useWallet();
@@ -25,21 +26,35 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-title" style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Profile</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close" style={iconBtn}>
-            <XIcon size={17} />
-          </button>
-        </div>
-
+    // Sheet, not a bespoke .overlay: it brings a focus trap, Escape-to-close,
+    // scroll lock and a bottom-sheet form on phones — none of which the old
+    // centred modal had. Deliberately the FIRST sheet a user meets, so the
+    // pattern reads as the app's own overlay language rather than something
+    // Spreadcast imported. Restyle only; the disconnect path is untouched.
+    <Sheet
+      open
+      onClose={onClose}
+      title="Profile"
+      footer={
+        <button
+          className="btn btn-ghost btn-block"
+          onClick={() => {
+            disconnect();
+            notify("Wallet disconnected");
+            onClose();
+          }}
+        >
+          Disconnect
+        </button>
+      }
+    >
+      <>
         {/* Identity */}
         <div style={{ display: "flex", alignItems: "center", gap: 13, margin: "18px 0 20px" }}>
           <div style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(135deg, var(--accent), #3aa9ff)", flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 650, fontSize: 15 }} className="num">{fmtAddress(profile.address, 8, 6)}</span>
+              <span style={{ fontWeight: 650, fontSize: "0.9375rem" }} className="num">{fmtAddress(profile.address, 8, 6)}</span>
               <button onClick={copy} style={iconBtn} aria-label="Copy address">
                 {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
               </button>
@@ -47,7 +62,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 <ExternalLinkIcon size={14} />
               </a>
             </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: "0.8125rem", marginTop: 2 }}>
               XRPL · Mainnet · {profile.via === "xaman" ? "Xaman sign-in" : "watch-only"}
               {profile.funded ? "" : " · unfunded (1 XRP base reserve)"}
             </div>
@@ -58,8 +73,8 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
         <div
           style={{
             background: verified ? "var(--accent-dim)" : "var(--amber-dim)",
-            border: `1px solid ${verified ? "rgba(52,211,153,0.25)" : "rgba(244,181,62,0.25)"}`,
-            borderRadius: 13,
+            border: `1px solid ${verified ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--amber) 25%, transparent)"}`,
+            borderRadius: "var(--r-row)",
             padding: 15,
             marginBottom: 14,
           }}
@@ -70,9 +85,9 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
                 {accredited ? <VerifiedIcon size={20} /> : <ShieldIcon size={20} />}
               </span>
               <div>
-                <div style={{ fontWeight: 620, fontSize: 13.5 }}>{KYC_LABEL[profile.kycLevel]}</div>
+                <div style={{ fontWeight: 620, fontSize: "0.875rem" }}>{KYC_LABEL[profile.kycLevel]}</div>
                 {profile.kycIssuer && (
-                  <div className="muted" style={{ fontSize: 11.5 }}>
+                  <div className="muted" style={{ fontSize: "0.75rem" }}>
                     {profile.kycIssuer}
                     {profile.kycIssuedAt ? ` · ${fmtDate(profile.kycIssuedAt)}` : ""}
                   </div>
@@ -92,51 +107,52 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
 
         {/* Balances — live mainnet reads */}
         <div className="rows">
+          {/* An unreachable ledger leaves the snapshot at zero, and "0.00 XRP"
+              is a claim about an account rather than an admission about a
+              lookup. Say which one this is. */}
           <div className="row">
             <span className="row-key">XRP balance</span>
-            <span className="row-val num">{fmtNum(profile.xrpBalance, 2)} XRP</span>
+            <span className={profile.balancesKnown ? "row-val num" : "row-val muted"}>
+              {profile.balancesKnown ? `${fmtNum(profile.xrpBalance, 2)} XRP` : "Unavailable"}
+            </span>
           </div>
           <div className="row">
             <span className="row-key">RLUSD balance</span>
-            <span className="row-val num">
-              {profile.rlusdTrustline ? `${fmtNum(profile.rlusdBalance, 2)} RLUSD` : "No trustline"}
+            <span className={profile.balancesKnown ? "row-val num" : "row-val muted"}>
+              {!profile.balancesKnown
+                ? "Unavailable"
+                : profile.rlusdTrustline
+                  ? `${fmtNum(profile.rlusdBalance, 2)} RLUSD`
+                  : "No trustline"}
             </span>
           </div>
           <div className="row">
             <span className="row-key">Accreditation</span>
-            <span className="row-val">{accredited ? "Full (Tier 2)" : verified ? "Basic (Tier 1)" : "—"}</span>
+            <span className="row-val">{accredited ? "Full (Tier 2)" : verified ? "Basic (Tier 1)" : "–"}</span>
           </div>
         </div>
 
-        {!profile.rlusdTrustline && (
-          <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
-            Vault deposits settle in RLUSD — you&apos;ll be asked to set the RLUSD trustline when fundraising
+        {/* Only when we actually read the ledger and found no trustline — an
+            unreachable lookup is not evidence that one is missing. */}
+        {profile.balancesKnown && !profile.rlusdTrustline && (
+          <p className="muted" style={{ fontSize: "0.75rem", marginTop: 10 }}>
+            Vault deposits settle in RLUSD - you&apos;ll be asked to set the RLUSD trustline when fundraising
             opens.
           </p>
         )}
 
-        <button
-          className="btn btn-ghost btn-block"
-          style={{ marginTop: 18 }}
-          onClick={() => {
-            disconnect();
-            notify("Wallet disconnected");
-            onClose();
-          }}
-        >
-          Disconnect
-        </button>
-      </div>
-    </div>
+      </>
+    </Sheet>
   );
 }
 
 const iconBtn: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
-  width: 26,
-  height: 26,
-  borderRadius: 7,
+  width: 36,
+  height: 36,
+  borderRadius: "var(--r-control)",
+  flexShrink: 0,
   background: "transparent",
   border: "none",
   color: "var(--muted)",

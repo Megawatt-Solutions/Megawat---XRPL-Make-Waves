@@ -73,9 +73,30 @@ export function fmtAgo(sec: number): string {
   return `${Math.round(sec / 3600)}h ago`;
 }
 
+// en-GB, to match the rest of the app rather than the number formatters above.
+// Today this changes nothing: with only month and year requested both locales
+// render "Jul 2024" identically, verified across every commissioned date in
+// vaults.ts. It matters the moment anyone adds `day` here, because the two
+// disagree on order - en-US gives "Aug 3, 2026" and en-GB "3 Aug 2026" - and
+// the shareable result page already renders its dates in en-GB. One app should
+// not order a date two ways depending on which screen you are on.
+// The NumberFormat locales above stay en-US: those are grouping and decimal
+// separators for an English-language UI, which is a different question and one
+// for the founders rather than a silent change here.
 export function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("en-GB", {
     month: "short",
     year: "numeric",
   });
+}
+
+/** A count with its noun agreeing: "1 position", "2 positions", "0 positions".
+ *
+ *  English pluralises on n !== 1, so zero takes the plural — "0 positions" is
+ *  right and "0 position" is not. Added after the portfolio tile read
+ *  "1 positions"; that only showed up once a fixture put a single position in,
+ *  which is the general hazard with count strings — the empty and the many
+ *  cases both look fine and the one case is the one nobody sees. */
+export function plural(n: number, one: string, many = one + "s"): string {
+  return `${fmtNum(n)} ${n === 1 ? one : many}`;
 }

@@ -9,6 +9,7 @@ import { Line } from "react-chartjs-2";
 import type { Vault } from "@/lib/types";
 import { getSeries } from "@/lib/telemetry";
 import type { SeriesRange } from "@/lib/telemetry";
+import { useChartTheme, alpha } from "@/lib/chartTheme";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -23,6 +24,7 @@ const INTERVAL_HOURS: Record<SeriesRange, number> = { day: 0.25, week: 3, month:
 export function SiteChart({ vault }: { vault: Vault }) {
   const [range, setRange] = useState<SeriesRange>("day");
   const [mode, setMode] = useState<"power" | "energy">("power");
+  const t = useChartTheme();
   const series = useMemo(() => getSeries(vault, range), [vault, range]);
   const hasSolar = vault.spec.hasSolar;
 
@@ -35,28 +37,28 @@ export function SiteChart({ vault }: { vault: Vault }) {
       ...(hasSolar
         ? [{
             label: "Solar", yAxisID: "y", data: series.map((p) => p.solarKw * k),
-            borderColor: "#f4b53e", backgroundColor: "rgba(244,181,62,0.22)", fill: "origin",
+            borderColor: t.amber, backgroundColor: alpha(t.amber, 0.22), fill: "origin",
             tension: 0.35, pointRadius: 0, borderWidth: 1.4,
           }]
         : []),
       {
         label: "Grid", yAxisID: "y", data: series.map((p) => p.gridKw * k),
-        borderColor: "#6b8cff", backgroundColor: "rgba(107,140,255,0.14)", fill: "origin",
+        borderColor: t.blue, backgroundColor: alpha(t.blue, 0.14), fill: "origin",
         tension: 0.35, pointRadius: 0, borderWidth: 1.2,
       },
       {
         label: "Consumption", yAxisID: "y", data: series.map((p) => -p.consumptionKw * k),
-        borderColor: "#34d399", backgroundColor: "rgba(52,211,153,0.2)", fill: "origin",
+        borderColor: t.accent, backgroundColor: alpha(t.accent, 0.2), fill: "origin",
         tension: 0.35, pointRadius: 0, borderWidth: 1.2,
       },
       {
         label: "Battery", yAxisID: "y", data: series.map((p) => p.batteryKw * k),
-        borderColor: "#2dd4bf", backgroundColor: "transparent", fill: false,
+        borderColor: t.teal, backgroundColor: "transparent", fill: false,
         tension: 0.35, pointRadius: 0, borderWidth: 1.4,
       },
       {
         label: "SoC", yAxisID: "y1", data: series.map((p) => p.socPct),
-        borderColor: "#8fb3ff", backgroundColor: "transparent", fill: false,
+        borderColor: t.periwinkle, backgroundColor: "transparent", fill: false,
         tension: 0.4, pointRadius: 0, borderWidth: 2, borderDash: [4, 3],
       },
     ],
@@ -67,10 +69,10 @@ export function SiteChart({ vault }: { vault: Vault }) {
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
     plugins: {
-      legend: { display: true, position: "top", align: "end", labels: { color: "#aab2ae", boxWidth: 8, boxHeight: 8, usePointStyle: true, font: { size: 11.5 } } },
+      legend: { display: true, position: "top", align: "end", labels: { color: t.text2, boxWidth: 8, boxHeight: 8, usePointStyle: true, font: { size: 11.5 } } },
       tooltip: {
-        backgroundColor: "#1c2220", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1, padding: 10,
-        titleColor: "#f1f4f2", bodyColor: "#aab2ae",
+        backgroundColor: t.elevated, borderColor: t.border, borderWidth: 1, padding: 10,
+        titleColor: t.text, bodyColor: t.text2,
         callbacks: {
           label: (ctx) => {
             const u = ctx.dataset.yAxisID === "y1" ? "%" : unit;
@@ -80,15 +82,15 @@ export function SiteChart({ vault }: { vault: Vault }) {
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: "#6c756f", font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, border: { display: false } },
+      x: { grid: { display: false }, ticks: { color: t.muted, font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, border: { display: false } },
       y: {
-        position: "left", grid: { color: "rgba(255,255,255,0.05)" },
-        ticks: { color: "#6c756f", font: { size: 10.5 }, callback: (v) => `${v} ${unit}` }, border: { display: false },
+        position: "left", grid: { color: t.grid },
+        ticks: { color: t.muted, font: { size: 10.5 }, callback: (v) => `${v} ${unit}` }, border: { display: false },
       },
       y1: {
         position: "right", min: 0, max: 100, grid: { display: false },
-        ticks: { color: "#5a7", font: { size: 10.5 }, callback: (v) => `${v}%` }, border: { display: false },
-        title: { display: true, text: "SoC", color: "#5a7", font: { size: 11 } },
+        ticks: { color: t.teal, font: { size: 10.5 }, callback: (v) => `${v}%` }, border: { display: false },
+        title: { display: true, text: "SoC", color: t.teal, font: { size: 11 } },
       },
     },
   };
@@ -96,18 +98,37 @@ export function SiteChart({ vault }: { vault: Vault }) {
   return (
     <div className="card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div className="seg">
+        {/* aria-pressed, because ".active" is a colour and nothing else. A
+            screen reader heard four identical buttons with no way to tell
+            which range was showing, and the group itself had no name. Not
+            role="tab": that contract also promises arrow-key navigation and a
+            single tab stop, and a half-implemented tab pattern reads as broken
+            rather than as plain buttons. */}
+        <div className="seg" role="group" aria-label="Chart time range">
           {RANGES.map((r) => (
-            <button key={r.key} className={`seg-btn ${range === r.key ? "active" : ""}`} onClick={() => setRange(r.key)}>{r.label}</button>
+            <button key={r.key} className={`seg-btn ${range === r.key ? "active" : ""}`} aria-pressed={range === r.key} onClick={() => setRange(r.key)}>{r.label}</button>
           ))}
         </div>
-        <div className="seg">
-          <button className={`seg-btn ${mode === "power" ? "active" : ""}`} onClick={() => setMode("power")}>Power</button>
-          <button className={`seg-btn ${mode === "energy" ? "active" : ""}`} onClick={() => setMode("energy")}>Energy</button>
+        <div className="seg" role="group" aria-label="Chart units">
+          <button className={`seg-btn ${mode === "power" ? "active" : ""}`} aria-pressed={mode === "power"} onClick={() => setMode("power")}>Power</button>
+          <button className={`seg-btn ${mode === "energy" ? "active" : ""}`} aria-pressed={mode === "energy"} onClick={() => setMode("energy")}>Energy</button>
         </div>
       </div>
       <div style={{ height: 320 }}>
-        <Line data={data} options={options} />
+        {/* Named for the same reason as the other charts: react-chartjs-2
+            gives its canvas role="img" and no accessible name, which
+            announces "image" and stops there. The label names the site, the
+            range, the unit and which series are plotted — the legend a
+            sighted reader gets from colour. */}
+        <Line
+          data={data}
+          options={options}
+          role="img"
+          aria-label={
+            `${vault.shortName} ${mode === "energy" ? "energy" : "power"}, ` +
+            `${range} view, in ${unit}. Series: ${data.datasets.map((ds) => ds.label).join(", ")}.`
+          }
+        />
       </div>
     </div>
   );

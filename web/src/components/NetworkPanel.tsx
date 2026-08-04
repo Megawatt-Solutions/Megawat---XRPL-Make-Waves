@@ -4,11 +4,18 @@
 // tooltip open; selecting again — or dragging the globe — releases it.
 import { useState } from "react";
 import { BessGlobe } from "./BessGlobe";
+import { Flag } from "./Flag";
 import { bessMarkers, CAPACITY } from "@/lib/protocol";
+import { fmtPower, fmtEnergy } from "@/lib/format";
+import { statusLabel } from "./vaultStatus";
 
+// A site that is physically running is a good state, so it reads green like
+// every other live signal in the app. It was blue, which made the two real
+// operational sites — the flagship ones — look like a different kind of thing
+// from "active", when both simply mean live.
 const STATUS_DOT: Record<string, string> = {
   active: "var(--accent)",
-  operational: "var(--blue)",
+  operational: "var(--accent)",
   fundraising: "var(--amber)",
   coming_soon: "var(--gray)",
 };
@@ -24,7 +31,11 @@ export function NetworkPanel() {
     <div className="net-grid">
       <div className="net-globe">
         <BessGlobe focusId={selected} onSelect={setSelected} />
-        <div className="net-hint caps">Drag to rotate · click a site to focus</div>
+        {/* "select", not "click". This hint and the two chart readouts in PlayView
+            were addressed to opposite devices - "click a site" here, "tap a bar"
+            there - so each was wrong for half the people reading it. Drag is
+            device-neutral already; the verb for the discrete action was not. */}
+        <div className="net-hint caps">Drag to rotate · select a site to focus</div>
       </div>
       <div className="net-side">
         <div className="site-rows">
@@ -36,16 +47,35 @@ export function NetworkPanel() {
               aria-pressed={selected === s.id}
               onClick={() => setSelected(selected === s.id ? null : s.id)}
             >
-              <span className="dot" style={{ background: STATUS_DOT[s.status] }} />
+              {/* The flag takes the leading slot — location is what the eye
+                  wants first in a list of sites. The status dot moves inline
+                  with the text it describes, instead of floating loose in its
+                  own column where it read as decoration. */}
+              {/* No title: the location is spelled out in this same row, so naming
+                  the flag only repeats it. */}
+              <Flag code={s.flag} size={18} />
               <span className="site-id">
                 <span className="site-name">{s.name}</span>
                 <span className="site-loc">
-                  {s.flag} {s.location}
+                  <span className="site-status-dot" style={{ background: STATUS_DOT[s.status] }} aria-hidden="true" />
+                  {s.location}
                 </span>
               </span>
               <span className="site-num">
-                {s.capacityMw.toFixed(1)} MW
-                <span className="caps">{s.status.replace("_", " ")}</span>
+                {/* fmtPower, not toFixed(1). This row is in MW, and forcing one
+                    decimal on every site made BESS Ljubljana 01 read "0.3 MW"
+                    where its own card says "350 kW" — the same site, rounded
+                    away by 50kW, about 14% of it, on a dashboard. fmtPower picks
+                    the unit by magnitude, so sub-megawatt sites keep their kW
+                    and whole ones lose the trailing ".0" that no other surface
+                    shows: 5.0 MW and 3.0 MW here against 5 MW and 3 MW on the
+                    cards. */}
+                {fmtPower(s.capacityMw * 1000)}
+                {/* Raw enum. statusLabel() is the same fix BessGlobe got when
+                    it was printing status.replace("_", " ") and producing a
+                    third spelling of a status the app already had a word for.
+                    This component was the sibling that did not get it. */}
+                <span className="caps">{statusLabel(s.status)}</span>
               </span>
             </button>
           ))}
@@ -53,7 +83,7 @@ export function NetworkPanel() {
         <div className="site-total">
           <span>Total installed</span>
           <span className="accent">
-            {CAPACITY.mw.toFixed(1)} MW / {CAPACITY.mwh.toFixed(1)} MWh
+            {fmtPower(CAPACITY.mw * 1000)} / {fmtEnergy(CAPACITY.mwh * 1000)}
           </span>
         </div>
       </div>

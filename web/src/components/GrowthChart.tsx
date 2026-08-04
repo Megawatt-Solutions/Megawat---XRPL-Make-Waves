@@ -7,10 +7,12 @@ import type { ChartOptions, TooltipItem } from "chart.js";
 import { Line } from "react-chartjs-2";
 import type { GrowthPoint } from "@/lib/portfolio";
 import { fmtCompact } from "@/lib/format";
+import { useChartTheme, alpha } from "@/lib/chartTheme";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 export function GrowthChart({ data }: { data: GrowthPoint[] }) {
+  const t = useChartTheme();
   const labels = data.map((d) => d.month);
 
   const chartData = {
@@ -19,8 +21,8 @@ export function GrowthChart({ data }: { data: GrowthPoint[] }) {
       {
         label: "Principal",
         data: data.map((d) => d.principal),
-        borderColor: "rgba(170,178,173,0.85)",
-        backgroundColor: "rgba(170,178,173,0.12)",
+        borderColor: alpha(t.text2, 0.85),
+        backgroundColor: alpha(t.text2, 0.12),
         fill: true,
         tension: 0.35,
         pointRadius: 0,
@@ -30,8 +32,8 @@ export function GrowthChart({ data }: { data: GrowthPoint[] }) {
       {
         label: "Yield",
         data: data.map((d) => d.interest),
-        borderColor: "#34d399",
-        backgroundColor: "rgba(52,211,153,0.18)",
+        borderColor: t.accent,
+        backgroundColor: alpha(t.accent, 0.18),
         fill: true,
         tension: 0.35,
         pointRadius: 0,
@@ -50,15 +52,15 @@ export function GrowthChart({ data }: { data: GrowthPoint[] }) {
         display: true,
         position: "top" as const,
         align: "end" as const,
-        labels: { color: "#aab2ae", boxWidth: 8, boxHeight: 8, usePointStyle: true, font: { size: 12 } },
+        labels: { color: t.text2, boxWidth: 8, boxHeight: 8, usePointStyle: true, font: { size: 12 } },
       },
       tooltip: {
-        backgroundColor: "#1c2220",
-        borderColor: "rgba(255,255,255,0.1)",
+        backgroundColor: t.elevated,
+        borderColor: t.border,
         borderWidth: 1,
         padding: 12,
-        titleColor: "#f1f4f2",
-        bodyColor: "#aab2ae",
+        titleColor: t.text,
+        bodyColor: t.text2,
         callbacks: {
           label: (ctx: TooltipItem<"line">) =>
             ` ${ctx.dataset.label}: ${fmtCompact(ctx.parsed.y ?? 0, "USD")}`,
@@ -69,21 +71,39 @@ export function GrowthChart({ data }: { data: GrowthPoint[] }) {
       x: {
         stacked: true,
         grid: { display: false },
-        ticks: { color: "#6c756f", font: { size: 11 }, maxRotation: 0, autoSkipPadding: 16 },
+        ticks: { color: t.muted, font: { size: 11 }, maxRotation: 0, autoSkipPadding: 16 },
         border: { display: false },
       },
       y: {
         stacked: true,
-        grid: { color: "rgba(255,255,255,0.05)" },
-        ticks: { color: "#6c756f", font: { size: 11 }, callback: (v: string | number) => fmtCompact(Number(v), "USD") },
+        grid: { color: t.grid },
+        ticks: { color: t.muted, font: { size: 11 }, callback: (v: string | number) => fmtCompact(Number(v), "USD") },
         border: { display: false },
       },
     },
   };
 
+  // Same rule as OverviewChart: react-chartjs-2 sets role="img" with no name,
+  // which puts an element in the accessibility tree that announces "image" and
+  // says nothing. This chart is content, so it gets named — the shape's
+  // headline, not a reading of every point.
+  const summary = (() => {
+    if (!data.length) return "Portfolio value chart: no data yet.";
+    const first = data[0];
+    const last = data[data.length - 1];
+    // The field is `interest`; the series is labelled "Yield" on screen. Say
+    // what the reader sees, read what the type actually has.
+    const total = (p: GrowthPoint) => p.principal + p.interest;
+    return (
+      `Portfolio value, ${first.month} to ${last.month}. ` +
+      `${fmtCompact(total(first), "USD")} to ${fmtCompact(total(last), "USD")}, ` +
+      `of which yield ${fmtCompact(last.interest, "USD")}. Series: Principal, Yield.`
+    );
+  })();
+
   return (
     <div style={{ height: 280 }}>
-      <Line data={chartData} options={options} />
+      <Line data={chartData} options={options} role="img" aria-label={summary} />
     </div>
   );
 }

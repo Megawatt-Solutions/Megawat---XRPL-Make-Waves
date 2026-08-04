@@ -1,8 +1,7 @@
 // ── Merkle anchoring ─────────────────────────────────────────────
 // Weekly, the platform writes one XRPL transaction carrying the Merkle root
-// of every prediction + outcome that week, so even email-only players get
-// public auditability. Leaves are the same salted commit hashes verified
-// players sign daily.
+// of every prediction + outcome that week — one public audit record over the
+// whole week. Leaves are the same salted commit hashes players sign daily.
 
 import { createHash } from "crypto";
 
@@ -11,7 +10,7 @@ export function sha256Hex(data: string): string {
 }
 
 /** Commit hash: sha256(day|band|exactGuess|salt). Published pre-close on
- * chain (verified players) and revealed with the salt after settlement. */
+ * chain and revealed with the salt after settlement. */
 export function commitHash(day: string, band: number, exact: number | null, salt: string): string {
   return sha256Hex(`${day}|${band}|${exact ?? ""}|${salt}`);
 }

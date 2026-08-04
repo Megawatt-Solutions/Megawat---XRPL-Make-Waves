@@ -77,7 +77,7 @@ export async function GET(req: Request) {
     return NextResponse.json(await lookup(address));
   } catch {
     return NextResponse.json(
-      { error: "Could not reach XRPL mainnet right now — try again in a moment." },
+      { error: "Could not reach XRPL mainnet right now - try again in a moment." },
       { status: 502 }
     );
   }

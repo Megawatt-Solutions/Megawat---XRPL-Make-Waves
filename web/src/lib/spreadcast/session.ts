@@ -1,7 +1,6 @@
 // ── Sessions ─────────────────────────────────────────────────────
-// Email-only instant play (progressive wallet model): joining sets a signed
-// HttpOnly cookie. Production swaps this for Supabase Auth magic links; the
-// cookie shape stays the same.
+// A session exists only after a server-verified Xaman sign-in: the session
+// route sets a signed HttpOnly cookie carrying just the player id.
 
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
