@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import type { ReactNode } from "react";
+import posthog from "posthog-js";
 import type { UserProfile } from "./types";
 import type { XrplAccountSnapshot } from "./xrpl";
 
@@ -84,11 +85,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
     setConnected(true);
     localStorage.setItem(ADDRESS_KEY, snap.address);
     localStorage.setItem(VIA_KEY, via);
+    posthog.identify(snap.address, { wallet_connection_method: via });
   }, []);
 
   const connect = useCallback(() => setShowConnect(true), []);
 
   const disconnect = useCallback(() => {
+    posthog.reset();
     localStorage.removeItem(ADDRESS_KEY);
     localStorage.removeItem(VIA_KEY);
     setConnected(false);
