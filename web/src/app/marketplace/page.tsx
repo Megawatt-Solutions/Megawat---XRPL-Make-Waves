@@ -93,7 +93,7 @@ export default function MarketplacePage() {
 
       <div className="section-head">
         <h2 className="section-title">Open listings <span className="section-count">{views.length}</span></h2>
-        {/* Was "Settled in USDC". The dashboard ribbon and footer both state
+        {/* Was "Settled in USDC". The dashboard footer states
             "RLUSD settlement", and WalletModal tells you deposits settle in
             RLUSD and that you will be asked to set the RLUSD trustline. USDC
             and RLUSD are different assets by different issuers, so this was not
@@ -136,7 +136,7 @@ export default function MarketplacePage() {
         {views.map((lv) => (
           <div key={lv.listing.id} className="drow mk-row">
             <div className="mk-c-id" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
+              <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: "var(--r-row)" }}>
                 {lv.vault.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
               </span>
               <div style={{ minWidth: 0 }}>
@@ -275,7 +275,7 @@ function SellModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: str
                   onClick={() => { setVaultId(p.vaultId); setSharesStr(""); }}
                   style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
-                    padding: "11px 13px", borderRadius: 11, cursor: "pointer",
+                    padding: "11px 13px", borderRadius: "var(--r-row)", cursor: "pointer",
                     background: sel ? "var(--accent-dim)" : "var(--card)",
                     border: `1px solid ${sel ? "rgba(52,211,153,0.4)" : "var(--border-2)"}`,
                     color: "var(--text)",

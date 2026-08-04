@@ -11,9 +11,7 @@ export async function GET() {
     const s = await roundState(uid);
     return NextResponse.json({
       now: s.now,
-      user: s.user
-        ? { id: s.user.id, name: s.user.name, email: s.user.email, verified: s.user.verified, wallet: s.user.wallet }
-        : null,
+      user: s.user ? { id: s.user.id, name: s.user.name, wallet: s.user.wallet } : null,
       open: s.open
         ? {
             day: s.open.day,

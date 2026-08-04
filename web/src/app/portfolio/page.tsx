@@ -192,7 +192,7 @@ export default function PortfolioPage() {
               }
             >
               <div className="pf-c-id" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: 10 }}>
+                <span className="vault-thumb" style={{ width: 38, height: 38, borderRadius: "var(--r-row)" }}>
                   {v.spec.hasSolar ? <SunIcon size={18} /> : <BatteryIcon size={18} />}
                 </span>
                 <div style={{ minWidth: 0 }}>

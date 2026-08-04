@@ -10,10 +10,11 @@
 // See docs/ui-ux-rehaul.md §2.
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useWallet } from "@/lib/wallet";
 
 export interface RoundState {
   now: { day: string; hh: number; mm: number };
-  user: { id: string; name: string; email: string; verified: boolean; wallet: string | null } | null;
+  user: { id: string; name: string | null; wallet: string; demo?: boolean } | null;
   open:
     | { day: string; closesAt: number; boundaries: number[]; bands: { i: number; name: string; label: string }[]; participants: number }
     | { nextOpensAt: number; nextDay: string };
@@ -77,9 +78,18 @@ export function RoundProvider({ children }: { children: React.ReactNode }) {
     setState(data);
   }, []);
 
+  // Who the round belongs to is decided by the sc_session cookie, and that
+  // cookie is minted and cleared by the wallet layer — not here. Reloading only
+  // on mount meant the identity in `state.user` was whatever it was when the
+  // section first painted: signing in left Play rendering its signed-out
+  // "browsing only" panel until a manual refresh, so a first-time player could
+  // not reach the picker at all, and signing out left the signed-in panel and an
+  // enabled submit button that 401'd. Keying on the player id refetches on both
+  // edges and on a switch between two accounts, and not on anything else.
+  const playerId = useWallet().player?.id ?? null;
   useEffect(() => {
     reload();
-  }, [reload]);
+  }, [reload, playerId]);
 
   const isOpen = !!state?.open && "day" in state.open;
   const closesAt = isOpen ? (state!.open as { closesAt: number }).closesAt : null;

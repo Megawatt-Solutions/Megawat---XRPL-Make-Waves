@@ -2,8 +2,8 @@
 // Season prize pool — sponsored RLUSD promotional awards for the
 // top of the season leaderboard. Entry is always free; prizes are
 // marketing awards from the sponsor, never a return on a payment.
-// Paid weekly/at season end to VERIFIED players (XRPL wallet +
-// RLUSD trustline required to receive).
+// Paid weekly/at season end to players' XRPL wallets (an RLUSD
+// trustline is required to receive).
 // ─────────────────────────────────────────────────────────────
 
 export const PRIZE_POOL = {

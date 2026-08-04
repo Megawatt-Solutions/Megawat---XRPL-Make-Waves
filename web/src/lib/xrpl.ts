@@ -41,4 +41,7 @@ export interface XrplAccountSnapshot {
   xrpBalance: number;
   rlusdBalance: number;
   rlusdTrustline: boolean;
+  /** Absent from a real ledger read (which is by definition known). Set to
+   *  false only by the offline-reconnect placeholder — see wallet.tsx. */
+  balancesKnown?: boolean;
 }

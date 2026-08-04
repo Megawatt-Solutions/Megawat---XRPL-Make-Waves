@@ -6,7 +6,8 @@ import { VAULTS, dashboardMetrics, vaultsByStatus } from "@/lib/vaults";
 import { fmtCompact, fmtNum, fmtPower, fmtEnergy, plural } from "@/lib/format";
 import { ASSET_CURRENCY } from "@/lib/protocol";
 import { CoinsIcon, ShieldIcon, LayersIcon, BoltIcon } from "@/components/Icons";
-import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
+// Parked with its usage below — see the note above the commented element.
+// import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
   // title.template applies to CHILD segments, not the segment that defines it,
@@ -35,8 +36,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Cross-sell sits AFTER the page identifies itself — a promo should not
-          be the first thing above a page's own title. */}
-      <SpreadcastStrip />
+          be the first thing above a page's own title.
+          Parked for now, not deleted — the import and the placement stay so
+          restoring it is one line. */}
+      {/* <SpreadcastStrip /> */}
 
       <div className="tile-grid">
         {/* This figure is the capex of the two sites Megawatt operates —

@@ -36,7 +36,7 @@ const FALLBACK: ChartTheme = {
   text: "#ffffff",
   text2: "#aab2ae",
   muted: "#737373",
-  elevated: "#16281f",
+  elevated: "#1c2220",
   border: "rgba(255,255,255,0.1)",
   grid: "rgba(255,255,255,0.05)",
 };

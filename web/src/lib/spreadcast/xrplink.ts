@@ -1,7 +1,7 @@
 // ── XRPL integration ─────────────────────────────────────────────
 // Two platform wallets (keys with the CTO, never in the repo):
 //   anchor wallet — receives the daily 1-drop commit signatures from
-//                   verified players and sends the weekly Merkle anchor;
+//                   players and sends the weekly Merkle anchor;
 //   prize wallet  — weekly RLUSD batch payouts (out of scope for the
 //                   prototype; no payment-IN rails exist anywhere).
 // Without XRPL_ANCHOR_SEED the prototype runs in demo mode: transactions
@@ -15,14 +15,16 @@ export const ANCHOR_ADDRESS = process.env.XRPL_ANCHOR_ADDRESS || "";
 
 const hex = (s: string) => Buffer.from(s, "utf8").toString("hex").toUpperCase();
 
-/** The 1-drop Payment a verified player signs in Xaman each day. Carries the
+/** The 1-drop Payment a player signs in Xaman each day. Carries the
  * salted prediction hash as a memo → tamper-proof public commitment and a
  * genuine daily mainnet transaction per active player. */
 export function buildCommitTx(playerAddress: string, day: string, hash: string) {
   return {
     TransactionType: "Payment" as const,
     Account: playerAddress,
-    Destination: ANCHOR_ADDRESS || "rSPREADCASTanchorDEMOxxxxxxxxxxxxx",
+    // Callers must gate on ANCHOR_ADDRESS being configured — there is no
+    // demo fallback destination, so an unconfigured anchor fails loudly.
+    Destination: ANCHOR_ADDRESS,
     Amount: "1", // 1 drop
     SourceTag: MAKE_WAVES_SOURCE_TAG,
     Memos: [

@@ -21,12 +21,29 @@
 
   /* Surfaces â€” ladder rising from Carbon */
   --bg: var(--mw-carbon);
-  --surface: #071009;
-  --card: #0c1712;
-  --card-2: #112019;
-  --elevated: #16281f;
-  --sheet: #1b2f25; /* bottom sheets â€” must separate from --card-2 */
-  --toast: #20372b;
+  /* The boxes are the near-neutral ladder the app shipped with before the
+     rehaul, not the green-tinted one that replaced it. Both ladders separate
+     from the canvas by the same amount — measured card-against-canvas, 1.12
+     now against 1.10 before — so nothing about the layout reads differently.
+     What changed is saturation: the rehaul ladder pushed the green channel
+     8 to 17 points above the mean of red and blue, which on a page where the
+     accent is budgeted at ~2% of a surface meant every panel was quietly
+     spending that budget. This ladder holds that cast to 2 to 4.
+     The canvas stays Carbon — that one is brand, not derived. */
+  --surface: #0e1110;
+  --card: #141817;
+  --card-2: #181d1b;
+  --elevated: #1c2220;
+  /* Every overlay in the app draws on this one token — the wallet sheet, the
+     onboarding sheet and the nickname sheet are all .sheet-panel / .ob-sheet —
+     so an overlay is the same surface as a card, deliberately. It used to sit
+     a rung lighter on the rule that a sheet "must separate from --card-2",
+     which the scrim already does far more strongly than a 1.12 fill ratio
+     ever could: 76%-opacity backdrop, a --border-2 hairline and an 18/60px
+     shadow. The lighter rung bought no separation and cost the overlays a
+     visibly warmer, greener cast than the page they covered. */
+  --sheet: var(--card);
+  --toast: #242b29;
   --border: rgba(255, 255, 255, 0.1); /* brand ring value */
   --border-2: rgba(255, 255, 255, 0.14);
   /* Boundary for controls that are identified BY their boundary — text fields
@@ -43,8 +60,8 @@
      that cleared 3:1 on --bg and it failed on --toast at 2.96 — the same
      one-surface-at-a-time mistake the --muted note above records making twice.
      Measured on all seven rungs at 0.36:
-       --bg 3.23  --surface 3.29  --card 3.33  --card-2 3.31
-       --elevated 3.25  --sheet 3.16  --toast 3.04  (binding) */
+       --bg 3.24  --surface 3.33  --card 3.34  --card-2 3.31
+       --elevated 3.31  --sheet 3.34 (= --card)  --toast 3.19  (binding) */
   --border-control: rgba(255, 255, 255, 0.36);
 
   /* Text */
@@ -75,13 +92,18 @@
      --toast — both of which only exist inside overlays, which the route
      sweep never opens, so nothing caught them. The full ladder is:
 
-       --bg        #030907   7.68
-       --surface   #071009   7.39
-       --card      #0c1712   7.00
-       --card-2    #112019   6.46
-       --elevated  #16281f   5.92
-       --sheet     #1b2f25   5.17
-       --toast     #20372b   4.66   <- binding constraint
+       --bg        #030907   7.31
+       --surface   #0e1110   6.91
+       --card      #141817   6.52
+       --card-2    #181d1b   6.22
+       --elevated  #1c2220   5.89
+       --sheet     = --card  6.52   (overlays draw on the card surface)
+       --toast     #242b29   5.27   <- binding constraint
+
+     Re-measured when the box ladder went back to the pre-rehaul neutrals.
+     The binding rung is still --toast and #9c9c9c still clears it, now at
+     5.27 rather than 4.66 — the neutral ladder tops out darker than the
+     green one did, so this got easier, not harder. The value does not move.
 
      #9c9c9c clears 4.5 on all seven. Ratios above are against it.
 
@@ -131,13 +153,20 @@
   --chart-teal: #4fb3a6;
   --chart-periwinkle: #9fb4d9;
 
-  /* â”€â”€â”€ Radius â€” brand scale, assigned by object role â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-     Brand Radius collection is 6 / 10 / 16 / 999. There is no 0. */
-  --r-control: 6px;             /* buttons, inputs, chips */
-  --r-row: 10px;                /* band rows, list rows, segmented controls */
-  --r-surface: 16px;            /* cards, panels, tiles */
-  --r-overlay: 16px 16px 0 0;   /* bottom sheets */
-  --r-full: 999px;              /* pills, dots, avatars, grab handles */
+  /* â”€â”€â”€ Radius â€” square, assigned by object role â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     The product's edges are square, as they are in production. Every box
+     role is 0 and the roles are kept as separate tokens rather than
+     collapsed into one, because they are the seams a radius scale would
+     be reapplied along — set these four and the whole app rounds, which
+     is how the brand's 6 / 10 / 16 scale was carried before.
+     --r-full is NOT a box role: it is what makes a circle out of a dot,
+     an avatar or a grab handle, and it stays. Pills and badges are boxes
+     and use --r-control, so they square off with everything else. */
+  --r-control: 0;               /* buttons, inputs, chips, pills, badges */
+  --r-row: 0;                   /* band rows, list rows, segmented controls */
+  --r-surface: 0;               /* cards, panels, tiles */
+  --r-overlay: 0;               /* bottom sheets */
+  --r-full: 999px;              /* dots, avatars, grab handles â€” circles only */
   /* Legacy aliases â€” existing rules pick up the brand scale for free */
   --radius: var(--r-surface);
   --radius-lg: var(--r-surface);
@@ -410,7 +439,7 @@ button {
 
 /* â”€â”€â”€ Wallet pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .wallet-pill {
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -685,7 +714,7 @@ button {
 
 /* â”€â”€â”€ Badges / pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .badge {
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -697,7 +726,8 @@ button {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   line-height: 1.5;
-  /* Was `white-space: nowrap`, on the same reasoning as .ribbon-item and with
+  /* Was `white-space: nowrap`, on the same reasoning as the since-removed
+     .ribbon-item and with
      the same result. A badge is two or three words in a pill and wants one
      line, and it gets one whenever there is room; the declaration only ever
      applied in the case where there was not. Measured at 320 and 200% text:
@@ -743,13 +773,13 @@ button {
 .progress {
   height: 7px;
   background: rgba(255, 255, 255, 0.07);
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   overflow: hidden;
 }
 .progress-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   transition: width 0.6s var(--ease);
 }
 .segbar {
@@ -964,7 +994,7 @@ button {
   background: var(--card);
   border: 1px solid var(--border);
   padding: 2px 9px;
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
 }
 
 /* â”€â”€â”€ Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -1615,15 +1645,23 @@ button {
      under the icon, while 390 was clear only because the label wrapped to two
      lines and pushed it down. A min-height on the label makes that accidental
      clearance deliberate. Two columns only: at four-across the tiles are wide
-     enough that the value never reaches the icon horizontally. */
-  .tile > .caps { min-height: 32px; }
+     enough that the value never reaches the icon horizontally.
+
+     Scoped to .tile-grid, which is where the icons actually are (StatTile).
+     Unscoped it also padded the vault-detail tiles, and those no longer carry
+     an icon at all — so it was reserving a band for nothing and adding 32px of
+     empty label to four boxes on every phone. */
+  .tile-grid .tile > .caps { min-height: 32px; }
   .vault-grid { grid-template-columns: 1fr; }
 }
 
 /* â”€â”€â”€ Vault detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Four equal tiles. The fourth track used to carry a decorative brand panel
+   and the third a double-width box holding two readings; now every track is
+   one reading, so none of them needs to be wider than another. */
 .detail-tiles {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.6fr 0.92fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 18px;
 }
@@ -1658,23 +1696,6 @@ button {
 .detail-side .card > .empty-state {
   flex: 1;
   align-content: center;
-}
-.brand-panel {
-  background: linear-gradient(150deg, var(--accent), var(--accent-2));
-  border-radius: var(--radius);
-  display: grid;
-  place-items: center;
-  color: var(--accent-ink);
-  position: relative;
-  overflow: hidden;
-  min-height: 124px;
-}
-.brand-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(130px 90px at 72% 18%, rgba(255, 255, 255, 0.4), transparent 70%);
-  pointer-events: none;
 }
 /* Sized in rem so the gauge scales with the reading printed on it.
    .battery-pct is font-size: 1.0625rem and therefore doubles under text zoom,
@@ -1725,13 +1746,14 @@ button {
   z-index: 1;
 }
 @media (max-width: 1100px) {
-  .detail-tiles { grid-template-columns: 1fr 1fr; }
+  /* Four tiles over two columns is two full rows — no odd one out to place. */
+  .detail-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detail-layout { flex-direction: column; }
   .detail-main { grid-template-columns: minmax(0, 1fr); }
   .detail-side { width: auto; }
 }
 @media (max-width: 560px) {
-  .detail-tiles { grid-template-columns: 1fr; }
+  .detail-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* â”€â”€â”€ Operational site monitor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2246,7 +2268,6 @@ button {
   .v2-metric:nth-child(n + 2) { border-top: 1px solid var(--border); }
   .v2-table { overflow-x: auto; }
   .v2-row { min-width: 540px; }
-  .ribbon-group.ribbon-right { display: none; }
   .sec-meta { display: none; }
 }
 
@@ -2334,36 +2355,6 @@ button {
 .globe-tip-sub { font-size: 0.6875rem; color: var(--muted); margin-top: 1px; }
 
 /* â•â•â• Institutional chrome (v2) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* Status ribbon */
-.ribbon {
-  border-radius: var(--r-control);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  padding: 9px 14px;
-  margin-bottom: 26px;
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.ribbon-group { display: inline-flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-/* No white-space: nowrap. It was here to keep each status phrase on one line,
-   which it does whenever there is room - and when there is not, it forbids the
-   break without providing anywhere else to go: at 320 and 200% text the ribbon
-   ran 73px past its own box, on a bar that already has flex-wrap: wrap and was
-   perfectly willing to give the item another line.
-   nowrap only ever takes effect in the case where wrapping is what you want. */
-.ribbon-item { display: inline-flex; align-items: center; gap: 8px; }
-.ribbon-item .dot { width: 6px; height: 6px; }
-.ribbon-live { color: var(--accent); }
 
 /* Numbered section headers */
 .sec-head {
@@ -3126,7 +3117,7 @@ button {
   align-items: center;
   gap: 5px;
   padding: 3px 9px;
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--sc-b3, var(--amber));
@@ -3153,7 +3144,7 @@ button {
 .sc-bar-status { height: auto; min-height: 22px; }
 
 .sc-pill {
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -3398,7 +3389,7 @@ button {
 .sc-table td.num, .sc-table th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .sc-rank-1 { color: var(--accent); font-weight: 700; }
 .sc-tag {
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   font-family: var(--mono);
   font-size: 0.5625rem;
   font-weight: 500;
@@ -3481,7 +3472,7 @@ button {
   flex-shrink: 0;
   background: none;
   border: 0;
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   color: var(--muted);
   cursor: pointer;
 }
@@ -3528,7 +3519,7 @@ button {
 .sc-locked-chip {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: var(--r-control);
   flex-shrink: 0;
 }
 .sc-locked-id { flex: 1; min-width: 0; }
@@ -4009,7 +4000,7 @@ button {
     inset: auto;
     width: 10px;
     height: 10px;
-    border-radius: 3px;
+    border-radius: var(--r-control);
     opacity: 1;
   }
   .sc-band-name { grid-area: name; margin-bottom: 0; font-size: 0.6875rem; }
@@ -4707,7 +4698,7 @@ button {
   margin: -8px -8px 0 0;
   background: none;
   border: 0;
-  border-radius: var(--r-full);
+  border-radius: var(--r-control);
   color: var(--muted);
   cursor: pointer;
 }

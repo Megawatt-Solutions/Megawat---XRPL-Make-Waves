@@ -4,12 +4,13 @@
 -- the web app's API routes migrate onto these tables next.
 -- ─────────────────────────────────────────────────────────────
 
+-- A player IS an XRPL r-address, proven by a server-verified Xaman sign-in.
+-- name is the leaderboard nickname, chosen right after first connect (null
+-- until then — the player cannot predict while it is null).
 create table if not exists players (
   id          text primary key,
-  email       text unique not null,
-  name        text not null,
-  wallet      text,
-  verified    boolean not null default false,
+  wallet      text unique not null,
+  name        text,
   is_demo     boolean not null default false,
   created_at  timestamptz not null default now()
 );
@@ -36,7 +37,7 @@ create table if not exists predictions (
   exact_guess  numeric,
   salt         text not null,
   commit_hash  text not null,
-  tx_hash      text,                    -- XRPL commit tx (verified players)
+  tx_hash      text,                    -- XRPL commit tx observed on-ledger; null = pick does not count
   submitted_at timestamptz not null default now(),
   -- settlement results
   correct      boolean,

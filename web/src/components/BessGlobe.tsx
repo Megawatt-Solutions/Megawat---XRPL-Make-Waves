@@ -19,8 +19,21 @@ const MARKERS = bessMarkers();
 const THETA = 0.55; // resting view-centre latitude
 const PHI_BASE = 4.46; // rotate so ~15°E faces front
 const AUTO_SPEED = 0.0026;
-const R_FRAC = 0.46; // sphere radius / stage width at scale 1
-const FOCUS_SCALE = 1.42;
+// The zoom is bounded by the canvas, and the bound is the product of these
+// two numbers. cobe draws into a square canvas that is exactly the stage, so
+// a sphere of radius R_FRAC x width x scale is cut flat wherever it passes
+// width/2 — and 0.46 x 1.42 = 0.653 put a third of the focused globe outside
+// the frame, which is the straight left and right edges you could see on any
+// selected site. Enlarging the canvas does not help: the limit is a ratio, so
+// it holds at every size.
+//
+// So the product is the thing to keep under 0.5, and 0.47 is it — the last
+// ~3% is the glow, which reaches past the sphere and would band the edge on
+// its own. Both numbers move together: the resting globe gives up a little
+// size so the focused one can have real depth. To trade differently, change
+// them as a pair and keep R_FRAC x FOCUS_SCALE <= 0.47.
+const R_FRAC = 0.4; // sphere radius / stage width at scale 1
+const FOCUS_SCALE = 1.17;
 const EASE = 0.075; // per-frame lerp factor toward focus targets
 
 /** Camera angles that put (lat,lng) at the centre of the view. */
@@ -136,7 +149,11 @@ export function BessGlobe({ focusId = null, onSelect }: Props) {
         const el = pinRefs.current[i];
         if (!el) continue;
         const p = project(MARKERS[i].coords[0], MARKERS[i].coords[1], phiRef.current, thetaRef.current);
-        const lim = width / 2 - 4; // zoomed sphere exceeds the stage; drop out-of-frame pins
+        // The sphere now stays inside the stage at every scale, so this no
+        // longer culls anything a visible pin could hit. Kept as the guard it
+        // reads as: if the geometry above is ever retuned past the frame, pins
+        // stop at the edge instead of floating off the globe.
+        const lim = width / 2 - 4;
         if (!p.visible || Math.abs(p.x * R) > lim || Math.abs(p.y * R) > lim) {
           el.style.opacity = "0";
           el.style.pointerEvents = "none";

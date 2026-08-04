@@ -10,7 +10,10 @@
 //  - Value is shown before anything is asked of the user.
 //  - The wallet step is SKIPPABLE. Forcing wallet-connect before value is the
 //    single best-documented drop-off point in web3 onboarding — you can browse
-//    every vault, read every result and play Spreadcast free without it.
+//    every vault and read every result without it. Playing Spreadcast is the
+//    exception now that a pick is an on-chain commitment: identity and the
+//    daily commit are both signatures, so the game needs a wallet. The step is
+//    still skippable because everything except playing works without one.
 
 export const ONBOARDING_VERSION = 1;
 
@@ -92,7 +95,7 @@ export const STEPS: OnboardingStep[] = [
     eyebrow: "Optional",
     title: "Connect when you're ready",
     body:
-      "You can browse every vault, read every result and play Spreadcast for free without connecting anything. A wallet is only needed to deposit, or to join the verified leaderboard.",
+      "You can browse every vault and read every result without connecting anything. A wallet is needed to deposit — and to play Spreadcast, where your Xaman sign-in is the account.",
     cta: "Explore first",
     offersWallet: true,
   },

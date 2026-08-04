@@ -123,7 +123,7 @@ function SiteOverview({ vault }: { vault: Vault }) {
         {vault.commissioned && <div className="row"><span className="row-key">Commissioned</span><span className="row-val">{fmtDate(vault.commissioned)}</span></div>}
         <div className="row"><span className="row-key">Operator</span><span className="row-val">Megawatt</span></div>
       </div>
-      <div style={{ display: "flex", gap: 8, padding: 11, marginTop: 12, borderRadius: 10, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
+      <div style={{ display: "flex", gap: 8, padding: 11, marginTop: 12, borderRadius: "var(--r-row)", background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
         <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={15} /></span>
         <div style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>Off-chain showcase of a live Megawatt site. Not an investable vault.</div>
       </div>

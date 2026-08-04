@@ -8,7 +8,8 @@ import { NetworkPanel } from "@/components/NetworkPanel";
 import { Sparkline } from "@/components/Sparkline";
 import { ASSET_CURRENCY, PROTOCOL, CAPACITY, tvlSeries, apySeries } from "@/lib/protocol";
 import { CCY_SYMBOL, fmtPct, bpsToPct, fmtCompact, fmtPower, fmtEnergy, plural } from "@/lib/format";
-import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
+// Parked with its usage below — see the note above the commented element.
+// import { SpreadcastStrip } from "@/components/spreadcast/DailySpread";
 
 export const metadata: Metadata = {
   title: "Protocol overview",
@@ -51,21 +52,6 @@ export default function DashboardV2Page() {
 
   return (
     <main className="page">
-      {/* Status ribbon */}
-      <div className="ribbon">
-        <div className="ribbon-group">
-          <span className="ribbon-item ribbon-live">
-            <span className="dot pulse" style={{ background: "var(--accent)" }} />
-            All systems operational
-          </span>
-          <span className="ribbon-item">XRPL · Mainnet</span>
-        </div>
-        <div className="ribbon-group ribbon-right">
-          <span className="ribbon-item">Tokenization: XRPL MPT · RLUSD settlement</span>
-          <span className="ribbon-item">Telemetry: 15-min intervals</span>
-        </div>
-      </div>
-
       <div className="page-head">
         <h1 className="page-title">Protocol overview</h1>
         {/* The subtitle enumerates the metrics below it, so it has to match
@@ -86,16 +72,19 @@ export default function DashboardV2Page() {
       </div>
 
       {/* Cross-sell sits AFTER the page identifies itself — a promo should
-          not be the first thing above a page's own title. */}
-      <SpreadcastStrip />
+          not be the first thing above a page's own title.
+          Parked for now, not deleted — the import and the placement stay so
+          restoring it is one line. */}
+      {/* <SpreadcastStrip /> */}
 
       {/* 01 — Hero metrics */}
       {/* Not "Updated per block". Nothing in this section reads a block:
           lib/protocol.ts is headed "protocol-level overview mock data",
           every figure here is a static constant derived from VAULTS, and the
           only thing that moves is the yield odometer accruing client-side at
-          a MODELLED rate (tvl x apy / seconds-per-year). Beside a "XRPL —
-          Mainnet" ribbon, "updated per block" reads as a provenance claim,
+          a MODELLED rate (tvl x apy / seconds-per-year). Beside the "XRPL —
+          Mainnet" ribbon this page carried at the time (since removed),
+          "updated per block" read as a provenance claim,
           which is the same overstatement already corrected on this page for
           "value locked" and "depositor yield".
 

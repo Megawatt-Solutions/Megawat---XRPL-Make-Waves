@@ -1,7 +1,7 @@
 "use client";
 // Spreadcast play view: daily band pick → optional exact-spread tiebreaker →
-// submit. Verified players additionally get the 1-drop commit transaction to
-// sign (simulated locally until Xaman credentials are configured).
+// submit → sign the 1-drop commit in Xaman. A pick counts only once its commit
+// tx is observed on the ledger; until then it renders as pending.
 
 import { useEffect, useRef, useState } from "react";
 import { useWallet } from "@/lib/wallet";
@@ -34,15 +34,12 @@ export function PlayView() {
   const exactTrimmed = exact.trim();
   const exactInvalid =
     exactTrimmed !== "" && !(Number.isFinite(Number(exactTrimmed)) && Number(exactTrimmed) >= 0);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   // The Megawatt shell already owns wallet connection (Xaman handshake, QR,
   // deep link, watch-only fallback). Spreadcast consumes that state rather
   // than running a second connect flow — see docs/ui-ux-rehaul.md §4.
-  const { connected, connecting, profile, connect: connectShellWallet } = useWallet();
+  const { connected, connecting, profile, connect: connectShellWallet, openNamePrompt } = useWallet();
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
-  const [acctMsg, setAcctMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
   const [commit, setCommit] = useState<{ hash: string; signed: boolean; txHash?: string | null } | null>(null);
   // Real recent daily swings (SI market) — helps players calibrate.
   const [history, setHistory] = useState<{ day: string; swing: number }[]>([]);
@@ -121,72 +118,140 @@ export function PlayView() {
     setResultSeen(true);
   };
 
-  const join = async () => {
-    setBusy(true);
-    setAcctMsg(null);
-    const res = await fetch("/api/spreadcast/join", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, name }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    reload();
-  };
-
-  // Bind the address the shell already proved to this Spreadcast session.
-  // Same endpoint the manual r-address input used to call — the only change
-  // is where the address comes from, so no API or connector change is needed.
-  const linkWallet = async (address: string) => {
-    if (!address) return;
-    setBusy(true);
-    setAcctMsg(null);
-    const res = await fetch("/api/spreadcast/wallet", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ address }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) return setAcctMsg({ kind: "err", text: data.error });
-    setAcctMsg({ kind: "ok", text: data.note ?? "Wallet linked. You're verified." });
-    reload();
+  // Both network calls below parse JSON before they know they have JSON. An
+  // infrastructure 502 answers in HTML and a dropped connection rejects
+  // outright, and either one threw past setBusy(false) — leaving `busy` true
+  // for the life of the page, with the submit and sign buttons disabled on it.
+  // The finally is what guarantees the buttons come back.
+  const readJson = async (res: Response) => {
+    try {
+      return (await res.json()) as Record<string, unknown>;
+    } catch {
+      return {} as Record<string, unknown>;
+    }
   };
 
   const submit = async () => {
     if (sel == null) return setMsg({ kind: "err", text: "Pick a band first." });
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/spreadcast/predict", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ band: sel, exact: exact.trim() === "" ? null : Number(exact) }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) return setMsg({ kind: "err", text: data.error });
-    setCommit({ hash: data.prediction.hash, signed: false });
-    setMsg({ kind: "ok", text: "Prediction locked in. You can change it until close." });
-    setEditing(false); // collapse back to the status strip
-    reload();
+    try {
+      const res = await fetch("/api/spreadcast/predict", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ band: sel, exact: exact.trim() === "" ? null : Number(exact) }),
+      });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setMsg({ kind: "err", text: (data.error as string) ?? "Could not save your prediction." });
+        // The one refusal with a remedy: a session exists but has no nickname,
+        // which happens after "Choose later". Without this the player reads
+        // "Choose a nickname first." beside no control that chooses one, and
+        // the only way back is disconnecting and re-signing in Xaman.
+        if (data.code === "nickname_required") openNamePrompt();
+        // A 502 can mean "stored as pending but Xaman was unreachable" — the
+        // pick exists server-side, so re-fetch truth instead of rendering the
+        // form as if nothing was saved. Harmless refresh on every other error.
+        reload();
+        return;
+      }
+      const prediction = data.prediction as { hash: string };
+      setCommit({ hash: prediction.hash, signed: false });
+      // The predict route creates the Xaman payload in the same response, so
+      // signing starts immediately — a stored-but-unsigned pick does not count,
+      // and parking the player on a bare success message would hide that.
+      const sign = data.sign as { uuid: string; qrPng: string; deeplink: string } | undefined;
+      if (sign) {
+        setSignFlow({ uuid: sign.uuid, qrPng: sign.qrPng, deeplink: sign.deeplink, opened: false });
+      }
+      setMsg({ kind: "ok", text: "Prediction saved - now sign the 1-drop commit in Xaman. It doesn't count until it's on-chain." });
+      setEditing(false); // collapse back to the status strip
+      reload();
+    } catch {
+      setMsg({ kind: "err", text: "Could not reach the game API. Your pick was not saved - try again." });
+    } finally {
+      setBusy(false);
+    }
   };
 
-  // Real Xaman signing: server wraps the 1-drop commit Payment (anchor
-  // destination, Make Waves SourceTag, hash memo) in a Xaman payload.
+  // Re-opens a sign request for the stored pending pick (the payload from
+  // submit expires after 5 minutes, or the player may have cancelled it).
   const startSign = async () => {
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/spreadcast/commit-sign", { method: "POST" });
-    const data = await res.json();
-    setBusy(false);
-    if (res.status === 501) return simulateSign(); // no XUMM keys → demo path
-    if (!res.ok) return setMsg({ kind: "err", text: data.error });
-    setSignFlow({ uuid: data.uuid, qrPng: data.qrPng, deeplink: data.deeplink, opened: false });
+    try {
+      const res = await fetch("/api/spreadcast/commit-sign", { method: "POST" });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setMsg({ kind: "err", text: (data.error as string) ?? "Xaman signing is unavailable right now." });
+        // 409 is "already signed" — the strip is showing a pending state the
+        // server has moved past, so take its word for it rather than leaving
+        // the player looking at an error beside a stale "not signed".
+        if (res.status === 409) reload();
+        return;
+      }
+      setSignFlow({
+        uuid: data.uuid as string,
+        qrPng: data.qrPng as string,
+        deeplink: data.deeplink as string,
+        opened: false,
+      });
+    } catch {
+      setMsg({ kind: "err", text: "Could not reach Xaman - try again in a moment." });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const signUuid = signFlow?.uuid;
   const signDay = isOpen ? (state!.open as { day: string }).day : null;
+
+  // Signing means leaving the browser for the Xaman app, and on a phone iOS
+  // and Android both discard the backgrounded tab freely. The sign flow lived
+  // only in component state, so coming back to a reloaded page showed
+  // "Pending - not signed" for a commit that was signed or in flight, and the
+  // obvious next move — press the button again — mints a SECOND payload and
+  // can put a second 1-drop Payment on the ledger for one prediction.
+  // Persisting the payload lets the same one resume instead.
+  const SIGN_KEY = "mw.sc.signFlow";
+  useEffect(() => {
+    if (!signDay) return;
+    try {
+      const raw = sessionStorage.getItem(SIGN_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { day: string; uuid: string; qrPng: string; deeplink: string };
+      // Only for the round now open — yesterday's payload is not resumable.
+      if (saved.day !== signDay) return sessionStorage.removeItem(SIGN_KEY);
+      setSignFlow((f) => f ?? { uuid: saved.uuid, qrPng: saved.qrPng, deeplink: saved.deeplink, opened: false });
+    } catch {
+      // unparseable or storage blocked — fall through to the normal flow
+    }
+  }, [signDay]);
+
+  useEffect(() => {
+    if (!signDay) return;
+    try {
+      if (signFlow) {
+        sessionStorage.setItem(SIGN_KEY, JSON.stringify({ day: signDay, ...signFlow }));
+      } else {
+        sessionStorage.removeItem(SIGN_KEY);
+      }
+    } catch {
+      // private mode — resuming is a nicety, not a correctness requirement
+    }
+  }, [signFlow, signDay]);
+
+  // Returning from the Xaman app is the moment the answer changes, and the
+  // poll below only runs while a payload is open. Re-reading the round on
+  // re-focus is what makes a commit signed in the app show as signed here.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") reload();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [reload]);
+
   useEffect(() => {
     if (!signUuid || !signDay) return;
     let alive = true;
@@ -217,22 +282,6 @@ export function PlayView() {
       clearInterval(iv);
     };
   }, [signUuid, signDay]);
-
-  // Demo-mode stand-in for the Xaman sign flow: reports a simulated tx hash.
-  const simulateSign = async () => {
-    if (!commit || !state?.mine) return;
-    setBusy(true);
-    const day = (state.open as { day: string }).day;
-    const fakeTx = `SIMULATED-${commit.hash.slice(0, 16).toUpperCase()}`;
-    await fetch("/api/spreadcast/predict", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ day, txHash: fakeTx }),
-    });
-    setBusy(false);
-    setCommit({ ...commit, signed: true });
-    setMsg({ kind: "ok", text: "Commit signature recorded (simulated - Xaman signing arrives with API keys)." });
-  };
 
   if (err)
     return (
@@ -286,12 +335,19 @@ export function PlayView() {
 
   // A pick exists for the open round and we're not currently changing it.
   const locked = !!state.mine && isOpen && !editing;
+  // A pick counts only once its commit tx is on the ledger. Derived from
+  // state.mine directly (not just `commit`) so a signed pick never flashes
+  // "pending" during the frame before the mirror effect runs. SIMULATED-
+  // hashes are demo-era rows the worker also excludes from scoring.
+  const mineOnChain = !!state.mine?.txHash && !state.mine.txHash.startsWith("SIMULATED-");
+  const pickSigned = !!commit?.signed || mineOnChain;
 
   // Identity, stated honestly. The shell knowing an address is NOT the same as
-  // the game session having one bound — rendering "connected" off shell state
-  // alone would claim a binding that doesn't exist. Three states only:
-  //   shellAddress && !gameWallet  -> connected but unlinked (offer one tap)
-  //   gameWallet === shellAddress  -> linked
+  // the game session having one — a session exists only after a Xaman SignIn
+  // is verified server-side, so watch-only browsing never creates one. Three
+  // states only:
+  //   shellAddress && !state.user  -> browsing only (watch-only proves nothing)
+  //   gameWallet === shellAddress  -> signed in
   //   gameWallet !== shellAddress  -> mismatched (say so; don't silently rebind)
   const shellAddress = connected && profile ? profile.address : null;
   const gameWallet = state.user?.wallet ?? null;
@@ -373,16 +429,11 @@ export function PlayView() {
                       {realTx} ↗
                     </a>
                   </>
-                ) : state.user?.verified ? (
-                  <>
-                    Verified players sign a 1-drop payment carrying the hash, so the timestamp is the ledger&apos;s, not
-                    ours.
-                    <span className="pf-value pending">Not signed for this round yet.</span>
-                  </>
                 ) : (
                   <>
-                    Email-only players are covered by a weekly Merkle anchor instead - one root covering every
-                    prediction that week, written to XRPL. Link a wallet to get your own per-round transaction.
+                    You sign a 1-drop payment in Xaman carrying the hash, so the timestamp is the ledger&apos;s, not
+                    ours.
+                    <span className="pf-value pending">Not signed for this round yet - an unsigned pick doesn&apos;t count.</span>
                   </>
                 )}
               </div>
@@ -465,8 +516,11 @@ export function PlayView() {
               <span className="tick br" />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                 <h2 style={{ marginBottom: 0 }}>Round · {(state.open as { day: string }).day}</h2>
+                {/* The worker counts only picks whose commit tx is on the
+                    ledger, so the label must claim exactly that — "predictions
+                    in" would count differently than the number shown. */}
                 <span className="sc-pill">
-                  {(state.open as { participants: number }).participants} predictions in
+                  {(state.open as { participants: number }).participants} locked on-chain
                 </span>
               </div>
 
@@ -489,7 +543,11 @@ export function PlayView() {
                       {state.mine!.exact != null && ` · exact ${state.mine!.exact}`}
                     </div>
                   </div>
-                  <span className="sc-pill ok">Locked</span>
+                  {pickSigned ? (
+                    <span className="sc-pill ok">Locked on-chain</span>
+                  ) : (
+                    <span className="sc-pill">Pending · not signed</span>
+                  )}
                   <button ref={changePickRef} className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
                     Change pick
                   </button>
@@ -639,47 +697,20 @@ export function PlayView() {
                   )}
                 </div>
               ) : (
-                /* "in the panel below" was a positional instruction, and the
-                   position depends on the breakpoint. Measured against the
-                   join form's own email field: below at 390 and 768 — though
-                   682-844px below, so off-screen either way — and at 1280 and
-                   1920 it is 141px ABOVE and in the other column, x=875 against
-                   this line at x=131. The sentence pointed down and left at the
-                   width where the panel is up and right.
-                   Naming the control instead of its location is true at every
-                   width, and stays true the next time the layout changes.
-
-                   It is a button rather than prose because "below" was doing
-                   navigation work: on a phone the join form is 682-844px away,
-                   so even a truthful direction leaves the player hunting for
-                   it. This takes them there and puts the caret in the field. */
+                /* Connecting is the shell's flow (Xaman QR / deep link), so
+                   this opens it rather than pointing anywhere on the page.
+                   The game session exists only after the Xaman SignIn is
+                   verified server-side — there is no form to fill in here. */
                 <p className="sc-notice">
                   <button
                     type="button"
                     className="sc-link-btn"
-                    /* The element this operates, named in the accessibility
-                       tree rather than only in the click handler. It also
-                       explains the one thing the tab-order audit flags here:
-                       at 1280 this sits at y=493 and the field it leads to is
-                       at y=377 in the other column, so Tab appears to move
-                       backwards. It is not a DOM-order accident — the next
-                       thing after "Join with your email" is the email field.
-                       At 390 there is no jump at all, since one column puts
-                       them in visual order. */
-                    aria-controls="sc-join-email"
-                    onClick={() => {
-                      const el = document.getElementById("sc-join-email");
-                      if (!el) return;
-                      el.scrollIntoView({
-                        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-                        block: "center",
-                      });
-                      el.focus({ preventScroll: true });
-                    }}
+                    onClick={connectShellWallet}
+                    disabled={connecting}
                   >
-                    Join with your email
+                    Connect your XRPL wallet
                   </button>{" "}
-                  to lock in your pick. It takes five seconds.
+                  to play. Your Xaman sign-in is the account - no email, no password.
                 </p>
               )}
                 </>
@@ -721,61 +752,68 @@ export function PlayView() {
                       rule sits on the value, and .pf-value.pending resets it
                       for the one case that holds a sentence. */}
                   <span className="sc-commit-hash">{commit.hash}</span>
-                  {state.user.verified && (
-                    <div style={{ marginTop: 8 }}>
-                      {commit.signed ? (
-                        <span style={{ color: "var(--accent)" }}>
-                          ✓ locked on XRPL mainnet
-                          {commit.txHash && !commit.txHash.startsWith("SIMULATED-") && (
-                            <>
-                              {" · "}
-                              <a
-                                href={`https://livenet.xrpl.org/transactions/${commit.txHash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: "var(--accent)", textDecoration: "underline" }}
-                              >
-                                view on ledger
-                              </a>
-                            </>
-                          )}
-                        </span>
-                      ) : signFlow ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={signFlow.qrPng} alt="Xaman commit QR" width={124} height={124} style={{ background: "#fff", padding: 5 }} />
-                          <div style={{ display: "grid", gap: 8, justifyItems: "start" }}>
-                            <span style={{ color: "var(--text-2)" }}>
-                              {signFlow.opened ? "Opened in Xaman. Approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
-                            </span>
-                            <a className="btn btn-ghost btn-sm" href={signFlow.deeplink} target="_blank" rel="noreferrer">
-                              Open in Xaman app
-                            </a>
-                            <button
-                              onClick={() => setSignFlow(null)}
-                              /* Was 41x18 — under the 24px floor this repo's own
-                                 responsive-audit enforces, and the only way out
-                                 of the QR flow on a phone. Its two siblings in
-                                 this same box are 40 and 44px tall.
-                                 Padding grows the target to 53x30; the negative
-                                 margin cancels it in layout, so the grid gap
-                                 above it is unchanged and nothing moves. It
-                                 survived because no audit can reach this state:
-                                 it needs a signed-in player, a commitment and a
-                                 Xaman payload in flight. */
-                              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: "6px", margin: "-6px", fontFamily: "inherit", fontSize: "0.6875rem", textDecoration: "underline" }}
-                            >
-                              cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={startSign} disabled={busy}>
-                          Lock on-chain with Xaman (1 drop)
-                        </button>
-                      )}
-                    </div>
+                  {/* The pending line is the honest half of the loop: the
+                      server stores an unsigned pick, but scoring, the
+                      leaderboard and the participant count all ignore it
+                      until the commit tx is observed on the ledger. */}
+                  {!commit.signed && (
+                    <p className="sc-notice" style={{ marginTop: 8, marginBottom: 0 }}>
+                      Pending - this pick doesn&apos;t count until its 1-drop commit is signed in Xaman.
+                    </p>
                   )}
+                  <div style={{ marginTop: 8 }}>
+                    {commit.signed ? (
+                      <span style={{ color: "var(--accent)" }}>
+                        ✓ locked on XRPL mainnet
+                        {commit.txHash && !commit.txHash.startsWith("SIMULATED-") && (
+                          <>
+                            {" · "}
+                            <a
+                              href={`https://livenet.xrpl.org/transactions/${commit.txHash}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: "var(--accent)", textDecoration: "underline" }}
+                            >
+                              view on ledger
+                            </a>
+                          </>
+                        )}
+                      </span>
+                    ) : signFlow ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={signFlow.qrPng} alt="Xaman commit QR" width={124} height={124} style={{ background: "var(--mw-paper)", padding: 5 }} />
+                        <div style={{ display: "grid", gap: 8, justifyItems: "start" }}>
+                          <span style={{ color: "var(--text-2)" }}>
+                            {signFlow.opened ? "Opened in Xaman. Approve to commit" : "Scan with Xaman to lock your prediction on-chain"}
+                          </span>
+                          <a className="btn btn-ghost btn-sm" href={signFlow.deeplink} target="_blank" rel="noreferrer">
+                            Open in Xaman app
+                          </a>
+                          <button
+                            onClick={() => setSignFlow(null)}
+                            /* Was 41x18 — under the 24px floor this repo's own
+                               responsive-audit enforces, and the only way out
+                               of the QR flow on a phone. Its two siblings in
+                               this same box are 40 and 44px tall.
+                               Padding grows the target to 53x30; the negative
+                               margin cancels it in layout, so the grid gap
+                               above it is unchanged and nothing moves. It
+                               survived because no audit can reach this state:
+                               it needs a signed-in player, a commitment and a
+                               Xaman payload in flight. */
+                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: "6px", margin: "-6px", fontFamily: "inherit", fontSize: "0.6875rem", textDecoration: "underline" }}
+                          >
+                            cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button className="btn btn-ghost btn-sm" onClick={startSign} disabled={busy}>
+                        Lock on-chain with Xaman (1 drop)
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -927,136 +965,56 @@ export function PlayView() {
         <div className="sc-side-stack">
           {!state.user ? (
             <div className="panel sc-panel">
-              <h2>Join free</h2>
+              <h2>Play with your wallet</h2>
+              {/* No email path. A player IS an XRPL address proven by a Xaman
+                  SignIn the server verifies — the shell owns that flow, this
+                  panel only opens it. */}
               <p className="sc-notice" style={{ marginBottom: 12 }}>
-                Email only, instant play. No purchase, no deposits, ever.
+                Sign in with Xaman, pick a nickname for the leaderboard, and lock each daily prediction on-chain
+                with a 1-drop payment. No email, no deposits, free every day.
               </p>
-              {/* A real <form>, so Enter submits — this is a two-field signup
-                  and reaching for the mouse to finish it is a needless step.
-                  It also lets password managers recognise the flow, which two
-                  bare inputs and a click handler never could.
-
-                  The labels are visible rather than placeholders. A
-                  placeholder is not a label: it fails to name the field for
-                  assistive tech, and it disappears the moment someone starts
-                  typing — taking away the only cue at exactly the point they
-                  might want to check it. */}
-              <form
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                onSubmit={(e) => { e.preventDefault(); if (!busy) join(); }}
-              >
-                <div>
-                  <label className="field-label" htmlFor="sc-join-email">Email</label>
-                  <input
-                    id="sc-join-email"
-                    className="sc-field"
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="field-label" htmlFor="sc-join-name">Display name</label>
-                  <input
-                    id="sc-join-name"
-                    className="sc-field"
-                    name="name"
-                    autoComplete="nickname"
-                    placeholder="shown on the leaderboard"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <button className="btn btn-accent" type="submit" disabled={busy}>
-                  Start playing
-                </button>
-                {shellAddress && (
-                  // Don't imply the connected wallet already plays — /join is
-                  // email-based. Just set the expectation honestly.
-                  <p className="sc-notice" style={{ fontSize: "0.75rem" }}>
-                    You&apos;re connected as <span className="sc-mono">{fmtAddress(shellAddress)}</span> - you can link
-                    it right after, to become prize-eligible.
-                  </p>
-                )}
-                <p
-                  className={acctMsg?.kind === "err" ? "sc-err" : "sc-notice"}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {acctMsg?.text ?? ""}
+              <button className="btn btn-accent btn-block" onClick={connectShellWallet} disabled={connecting}>
+                {connecting ? "Connecting…" : "Connect XRPL wallet"}
+              </button>
+              {shellAddress && (
+                // The shell knows an address but no game session exists — the
+                // watch-only path proves nothing, so say why the button above
+                // is still the way in rather than implying they're signed in.
+                <p className="sc-notice" style={{ fontSize: "0.75rem", marginTop: 10 }}>
+                  <span className="sc-mono">{fmtAddress(shellAddress)}</span> is connected for browsing only.
+                  Playing needs a Xaman sign-in - that signature is your account.
                 </p>
-              </form>
+              )}
             </div>
           ) : (
             <div className="panel sc-panel">
-              <h2>
-                {state.user.name} {state.user.verified && <span className="sc-tag v">VERIFIED</span>}
-              </h2>
-              <p className="sc-notice">{state.user.email}</p>
-              {!state.user.verified ? (
-                <>
-                  <p className="sc-notice" style={{ margin: "10px 0" }}>
-                    Link an XRPL wallet to join the verified leaderboard and become prize-eligible. Your daily
-                    prediction then gets locked on-chain - tamper-proof.
+              {/* Nickname not chosen yet (the prompt after connecting handles
+                  that) — fall back to the truncated address rather than an
+                  empty heading. */}
+              <h2>{state.user.name ?? fmtAddress(state.user.wallet)}</h2>
+              <p className="sc-notice" style={{ marginTop: 8 }}>
+                <span className="sc-mono">{state.user.wallet}</span>
+                <br />
+                Signed in with Xaman. A prediction counts once its 1-drop commit is on XRPL.
+              </p>
+              {mismatched && (
+                <div style={{ marginTop: 12 }}>
+                  <p className="sc-err">
+                    The wallet in your header ({fmtAddress(shellAddress!)}) isn&apos;t the one you signed in with.
+                    Predictions stay bound to the signed-in address.
                   </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {shellAddress ? (
-                      // Connected in the header but not bound here yet. One tap,
-                      // no retyping — the address is already proven by the shell.
-                      <>
-                        <div className="sc-wallet-row">
-                          <span className="dot" style={{ background: "var(--accent)" }} />
-                          <span className="sc-mono" style={{ flex: 1, minWidth: 0 }}>
-                            {fmtAddress(shellAddress)}
-                          </span>
-                          <span className="sc-pill">in wallet</span>
-                        </div>
-                        <button className="btn btn-accent" onClick={() => linkWallet(shellAddress)} disabled={busy}>
-                          {busy ? "Linking…" : "Link this wallet"}
-                        </button>
-                      </>
-                    ) : (
-                      <button className="btn btn-ghost" onClick={connectShellWallet} disabled={connecting}>
-                        {connecting ? "Connecting…" : "Connect wallet"}
-                      </button>
-                    )}
-                    <p
-                  className={acctMsg?.kind === "err" ? "sc-err" : "sc-notice"}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {acctMsg?.text ?? ""}
-                </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="sc-notice" style={{ marginTop: 8 }}>
-                    <span className="sc-mono">{state.user.wallet}</span>
-                    <br />
-                    Your predictions are locked on-chain with tiny 1-drop payments.
-                  </p>
-                  {mismatched && (
-                    <div style={{ marginTop: 12 }}>
-                      <p className="sc-err">
-                        The wallet in your header ({fmtAddress(shellAddress!)}) isn&apos;t the one linked here.
-                        Predictions stay bound to the linked address.
-                      </p>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ marginTop: 8 }}
-                        onClick={() => linkWallet(shellAddress!)}
-                        disabled={busy}
-                      >
-                        {busy ? "Linking…" : "Link the header wallet instead"}
-                      </button>
-                    </div>
-                  )}
-                </>
+                  {/* Switching means proving the other address the same way —
+                      a fresh Xaman sign-in via the shell. No client-side
+                      relink exists any more, by design. */}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginTop: 8 }}
+                    onClick={connectShellWallet}
+                    disabled={connecting}
+                  >
+                    {connecting ? "Connecting…" : "Sign in with Xaman to switch"}
+                  </button>
+                </div>
               )}
             </div>
           )}

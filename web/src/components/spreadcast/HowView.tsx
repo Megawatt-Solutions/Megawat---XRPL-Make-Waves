@@ -55,15 +55,15 @@ export function HowView() {
         </div>
 
         <div className="panel sc-panel">
-          <h2 className="sc-how-h">VERIFIED PLAY · XRPL</h2>
+          <h2 className="sc-how-h">ON-CHAIN PLAY · XRPL</h2>
           <p>
-            Anyone plays instantly with an email. Connecting an XRPL wallet (Xaman) makes you <b>verified</b>:
-            required for the verified leaderboard and prize eligibility.
+            You play as your XRPL wallet: sign in with Xaman, pick a nickname for the leaderboard, and that&apos;s
+            the whole account. No email, no password.
           </p>
           <ul style={{ marginTop: 10 }}>
-            <li>Daily 1-drop signature to the platform anchor carries a salted hash of your forecast: a tamper-proof public commitment on XRPL mainnet.</li>
+            <li>Every prediction is locked with a daily 1-drop signature to the platform anchor carrying a salted hash of your forecast: a tamper-proof public commitment on XRPL mainnet. <b>A pick only counts once that transaction is signed.</b></li>
             <li>After settlement we reveal the salts, so anyone can verify every commitment.</li>
-            <li>A weekly Merkle anchor transaction covers all players, including email-only.</li>
+            <li>A weekly Merkle anchor transaction adds one root covering the whole week&apos;s record.</li>
           </ul>
         </div>
 
@@ -72,8 +72,10 @@ export function HowView() {
           <p>
             A <b>$500 RLUSD prize pool</b> is split across the top 10 of the season leaderboard and paid out on
             XRPL (receiving RLUSD needs a trustline, one more real on-chain step). Prizes are promotional awards
-            from the sponsoring entity. They are never a return on a payment, because there is no payment: entry is
-            free in every configuration and the platform has no way to accept money from players.
+            from the sponsoring entity. They are never a return on a payment: there is no entry fee, no deposit and
+            no stake. Locking a pick sends 1 drop of XRP (0.000001 XRP) to the anchor account plus the ledger&apos;s
+            own network fee &mdash; that is what puts the commitment on-chain, not a price of entry, and nothing about
+            it is a wager or buys a better chance.
           </p>
         </div>
 
@@ -123,7 +125,9 @@ export function HowView() {
         <h2 className="sc-how-h">THE FINE PRINT</h2>
         <p className="sc-notice">
           Spreadcast is a free, skill-based promotional competition. 18+. No purchase necessary; no entry fee,
-          deposits or staking exist anywhere in the product. Prizes are promotional awards from the sponsoring
+          deposits or staking exist anywhere in the product. Locking a pick on-chain sends 1 drop of XRP
+          (0.000001 XRP) plus the network fee, which is the cost of writing the commitment to the ledger.
+          Prizes are promotional awards from the sponsoring
           entity (final entity details pending company registration). Wallet addresses are treated as personal data
           under GDPR. This is a prototype: terms, privacy policy and prize tax handling land with the production
           release.

@@ -16,7 +16,7 @@ import { explorerAccount } from "@/lib/xrpl";
 import { Donut } from "./Donut";
 import { SiteMonitor } from "./SiteMonitor";
 import {
-  ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, CubeIcon, VerifiedIcon,
+  ArrowLeftIcon, ClockIcon, BoltIcon, SunIcon, VerifiedIcon,
   ExternalLinkIcon, ShieldIcon, CheckIcon, XIcon, ChevronDownIcon, WalletIcon,
 } from "./Icons";
 import { Flag } from "./Flag";
@@ -150,14 +150,12 @@ export function VaultDetail({ vault }: { vault: Vault }) {
             label={isGrossHeadline ? "Gross yield" : "APY"}
             value={<span className="accent">{fmtPct(bpsToPct(vault.apyBps))}</span>}
             sub={isGrossHeadline ? "On capex / yr" : "Per annum"}
-            icon={<BoltIcon size={17} />}
           />
           {hasTelemetry ? (
             <Tile
               label={modeLabel(snap.mode)}
               value={`${snap.socPct.toFixed(1)}%`}
               sub="State of charge"
-              icon={<BoltIcon size={17} />}
             />
           ) : (
             // A pipeline site has not failed to raise — it has not started.
@@ -172,25 +170,21 @@ export function VaultDetail({ vault }: { vault: Vault }) {
               }
             />
           )}
-          <div className="tile">
-            <div style={{ display: "flex", gap: 28, flexWrap: "wrap", minWidth: 0 }}>
-              <div>
-                <div className="caps">Capacity</div>
-                <div className="tile-value sm num">{fmtEnergy(vault.spec.energyKwh)}</div>
-                <div className="tile-sub">{fmtPower(vault.spec.powerKw)} · installed</div>
-              </div>
-              <div>
-                <div className="caps">{hasTelemetry ? "Battery health" : "Chemistry"}</div>
-                <div className="tile-value sm num">
-                  {hasTelemetry ? `${snap.healthPct.toFixed(1)}%` : vault.spec.chemistry}
-                </div>
-                <div className="tile-sub">{hasTelemetry ? "State of health" : vault.spec.hasSolar ? "+ solar" : "battery"}</div>
-              </div>
-            </div>
-          </div>
-          <div className="brand-panel">
-            <span style={{ position: "relative", zIndex: 1 }}><CubeIcon size={54} /></span>
-          </div>
+          {/* Capacity and battery health are two readings and get two tiles.
+              They used to share one double-width box, which made the row read
+              as three things when it is four, and set them in .tile-value sm
+              — smaller than the two figures beside them, for no reason other
+              than that two had been packed into one box. */}
+          <Tile
+            label="Capacity"
+            value={fmtEnergy(vault.spec.energyKwh)}
+            sub={`${fmtPower(vault.spec.powerKw)} · installed`}
+          />
+          <Tile
+            label={hasTelemetry ? "Battery health" : "Chemistry"}
+            value={hasTelemetry ? `${snap.healthPct.toFixed(1)}%` : vault.spec.chemistry}
+            sub={hasTelemetry ? "State of health" : vault.spec.hasSolar ? "+ solar" : "battery"}
+          />
         </div>
 
         {/* Body */}
@@ -347,10 +341,13 @@ function modeLabel(mode: string): string {
   return "↓ Discharging";
 }
 
-function Tile({ label, value, sub, icon }: { label: string; value: React.ReactNode; sub?: string; icon?: React.ReactNode }) {
+// No icon slot. Two of these tiles carried the same bolt, which is the one
+// thing an icon must not do — it distinguished nothing between them and
+// nothing from the two tiles that never had one. The label already says what
+// the number is.
+function Tile({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
   return (
     <div className="tile">
-      {icon && <span className="tile-icon">{icon}</span>}
       <div className="caps">{label}</div>
       <div className="tile-value num">{value}</div>
       {sub && <div className="tile-sub">{sub}</div>}
@@ -726,7 +723,7 @@ function SiteOverviewCard({ vault }: { vault: Vault }) {
         <Row k="Operator" v="Megawatt" />
       </div>
       <div style={{ marginTop: "auto", paddingTop: 16 }}>
-        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: 12, background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
+        <div style={{ display: "flex", gap: 9, padding: 13, borderRadius: "var(--r-row)", background: "var(--blue-dim)", border: "1px solid color-mix(in srgb, var(--blue) 20%, transparent)" }}>
           <span style={{ color: "var(--blue)", flexShrink: 0 }}><ShieldIcon size={17} /></span>
           <div style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>
             {/* The header pill now carries "not investable" so it is read

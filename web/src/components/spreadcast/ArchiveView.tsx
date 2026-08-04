@@ -35,7 +35,7 @@ interface Detail {
   hourly: number[];
   values: number[];
   resolution: string;
-  reveal: { user: string; verified: boolean; band: number; salt: string; hash: string; txHash: string | null; correct: boolean | null; points: number }[];
+  reveal: { user: string; band: number; salt: string; hash: string; txHash: string | null; correct: boolean | null; points: number }[];
 }
 
 export function ArchiveView() {
@@ -83,8 +83,20 @@ export function ArchiveView() {
     if (openDay === day) return setOpenDay(null);
     setOpenDay(day);
     if (!detail[day]) {
-      const d = await fetch(`/api/spreadcast/archive/${day}`, { cache: "no-store" }).then((r) => r.json());
-      setDetail((prev) => ({ ...prev, [day]: d }));
+      // The two list fetches above already check status before storing; this
+      // one did not, and a 404/502 answers with { error }. That object is
+      // truthy, so it was stored as a Detail and RowGroup then spread an
+      // undefined `hourly` into Math.min — the render-time crash the
+      // guidelines record as having white-screened this route once already.
+      // Storing nothing leaves the row on its loading line instead.
+      try {
+        const res = await fetch(`/api/spreadcast/archive/${day}`, { cache: "no-store" });
+        const d = await res.json();
+        if (!res.ok || !d || !Array.isArray(d.hourly)) return;
+        setDetail((prev) => ({ ...prev, [day]: d }));
+      } catch {
+        // offline or non-JSON body — same outcome, nothing stored
+      }
     }
   };
 
@@ -158,8 +170,8 @@ export function ArchiveView() {
 
       <h2>Weekly blockchain anchors</h2>
       <p className="muted" style={{ fontSize: "0.8125rem", marginBottom: 10 }}>
-        Once a week, a fingerprint of every prediction and result is written to XRPL, so even email-only players
-        get a tamper-proof record. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
+        Once a week, a fingerprint of the week&apos;s predictions and results is written to XRPL - one root on top
+        of each prediction&apos;s own 1-drop commit transaction. {anchors.some((a) => a.simulated) && "Simulated in the prototype."}
       </p>
       {/* Column headers describe rows. With no anchors written yet this
           rendered WEEK / MERKLE ROOT / LEAVES / TX over nothing at all —
@@ -417,9 +429,7 @@ function RowGroup({ r, open, detail, onToggle }: { r: ArchRound; open: boolean; 
                     <tbody>
                       {detail.reveal.slice(0, 12).map((p, i) => (
                         <tr key={i}>
-                          <td>
-                            {p.user} {p.verified && <span className="sc-tag v" role="img" aria-label="Verified">V</span>}
-                          </td>
+                          <td>{p.user}</td>
                           {/* The name, not the index. This column is headed BAND
                               and printed "2". Every other surface in the app
                               names them — the row above this table reads

@@ -140,6 +140,10 @@ export interface UserProfile {
   rlusdBalance: number; // RLUSD via trustline (0 when no trustline)
   rlusdTrustline: boolean;
   funded: boolean; // account exists on ledger (meets base reserve)
+  /** False when the ledger read failed and the balances above are not reads
+   *  but placeholders. Anything rendering a balance must say so rather than
+   *  print a zero that looks like an answer. */
+  balancesKnown: boolean;
   via: "xaman" | "watch"; // xaman = ownership proven by SignIn signature
 }
 

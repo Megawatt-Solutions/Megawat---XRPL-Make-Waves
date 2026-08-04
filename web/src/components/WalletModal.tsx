@@ -74,7 +74,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
           style={{
             background: verified ? "var(--accent-dim)" : "var(--amber-dim)",
             border: `1px solid ${verified ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--amber) 25%, transparent)"}`,
-            borderRadius: 13,
+            borderRadius: "var(--r-row)",
             padding: 15,
             marginBottom: 14,
           }}
@@ -107,14 +107,23 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
 
         {/* Balances — live mainnet reads */}
         <div className="rows">
+          {/* An unreachable ledger leaves the snapshot at zero, and "0.00 XRP"
+              is a claim about an account rather than an admission about a
+              lookup. Say which one this is. */}
           <div className="row">
             <span className="row-key">XRP balance</span>
-            <span className="row-val num">{fmtNum(profile.xrpBalance, 2)} XRP</span>
+            <span className={profile.balancesKnown ? "row-val num" : "row-val muted"}>
+              {profile.balancesKnown ? `${fmtNum(profile.xrpBalance, 2)} XRP` : "Unavailable"}
+            </span>
           </div>
           <div className="row">
             <span className="row-key">RLUSD balance</span>
-            <span className="row-val num">
-              {profile.rlusdTrustline ? `${fmtNum(profile.rlusdBalance, 2)} RLUSD` : "No trustline"}
+            <span className={profile.balancesKnown ? "row-val num" : "row-val muted"}>
+              {!profile.balancesKnown
+                ? "Unavailable"
+                : profile.rlusdTrustline
+                  ? `${fmtNum(profile.rlusdBalance, 2)} RLUSD`
+                  : "No trustline"}
             </span>
           </div>
           <div className="row">
@@ -123,7 +132,9 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {!profile.rlusdTrustline && (
+        {/* Only when we actually read the ledger and found no trustline — an
+            unreachable lookup is not evidence that one is missing. */}
+        {profile.balancesKnown && !profile.rlusdTrustline && (
           <p className="muted" style={{ fontSize: "0.75rem", marginTop: 10 }}>
             Vault deposits settle in RLUSD - you&apos;ll be asked to set the RLUSD trustline when fundraising
             opens.
@@ -140,7 +151,7 @@ const iconBtn: React.CSSProperties = {
   placeItems: "center",
   width: 36,
   height: 36,
-  borderRadius: 7,
+  borderRadius: "var(--r-control)",
   flexShrink: 0,
   background: "transparent",
   border: "none",

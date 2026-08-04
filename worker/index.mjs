@@ -323,7 +323,13 @@ async function settleDueRounds() {
        hourly = $5, spread = $6, outcome_band = $7 where delivery_day = $1`,
       [day, prices.source, prices.resolution ?? null, prices.values ?? null, hourly, spread, outcome]
     );
-    const preds = await q("select player_id, band, exact_guess from predictions where delivery_day = $1", [day]);
+    // Score only picks whose commit was observed on-chain — an unsigned pick
+    // earns nothing and (correct stays null) breaks any streak through it.
+    const preds = await q(
+      `select player_id, band, exact_guess from predictions
+       where delivery_day = $1 and tx_hash is not null and tx_hash not like 'SIMULATED-%'`,
+      [day]
+    );
     for (const p of preds.rows) {
       const correct = p.band === outcome;
       const streak = correct ? (await previousStreak(p.player_id, day)) + 1 : 0;
@@ -502,7 +508,7 @@ const API_TOKEN = process.env.SPREADCAST_API_TOKEN || "";
 const newId = () => randomBytes(8).toString("hex");
 
 function playerOut(r) {
-  return { id: r.id, email: r.email, name: r.name, wallet: r.wallet, verified: r.verified, demo: r.is_demo };
+  return { id: r.id, name: r.name, wallet: r.wallet, demo: r.is_demo };
 }
 // pg returns `date` columns as local-midnight Dates; format via local
 // components (server TZ = Europe/Ljubljana) — toISOString would shift a day.
@@ -539,14 +545,18 @@ function roundOut(r) {
 }
 
 const rpcMethods = {
-  async findOrCreateUser({ email, name }) {
-    const norm = String(email ?? "").trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(norm)) return { error: "Enter a valid email." };
-    const existing = await q("select * from players where email = $1", [norm]);
-    if (existing.rowCount) return { user: playerOut(existing.rows[0]) };
-    const nm = String(name ?? "").trim().slice(0, 24) || norm.split("@")[0];
-    const ins = await q("insert into players (id, email, name) values ($1, $2, $3) returning *", [newId(), norm, nm]);
-    return { user: playerOut(ins.rows[0]) };
+  // A player IS an XRPL r-address — created on first server-verified Xaman
+  // sign-in, name chosen afterwards (null until then).
+  async findOrCreatePlayerByWallet({ wallet }) {
+    const addr = String(wallet ?? "").trim();
+    if (!/^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(addr)) return { error: "That doesn't look like an XRPL r-address." };
+    // Single upsert so two concurrent sign-ins for one wallet can't race the
+    // select-then-insert into a unique violation.
+    const r = await q(
+      "insert into players (id, wallet) values ($1, $2) on conflict (wallet) do update set wallet = excluded.wallet returning *",
+      [newId(), addr]
+    );
+    return { user: playerOut(r.rows[0]) };
   },
 
   async getUser({ id }) {
@@ -554,10 +564,11 @@ const rpcMethods = {
     return { user: r.rowCount ? playerOut(r.rows[0]) : null };
   },
 
-  async connectWallet({ id, address }) {
-    if (!/^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(String(address ?? ""))) return { error: "That doesn't look like an XRPL r-address." };
-    const r = await q("update players set wallet = $2, verified = true where id = $1 returning *", [id, address]);
-    return r.rowCount ? { user: playerOut(r.rows[0]) } : { error: "Session expired — join again." };
+  async setPlayerName({ id, name }) {
+    const nm = String(name ?? "").trim();
+    if (nm.length < 2 || nm.length > 24) return { error: "Nickname must be 2–24 characters." };
+    const r = await q("update players set name = $2 where id = $1 returning *", [id, nm]);
+    return r.rowCount ? { user: playerOut(r.rows[0]) } : { error: "Session expired — connect again." };
   },
 
   async submitPrediction({ userId, band, exact }) {
@@ -570,6 +581,8 @@ const rpcMethods = {
     if (exact != null && (!Number.isFinite(exact) || exact < 0 || exact > 4000)) return { error: "Exact spread guess must be between 0 and 4000 €/MWh." };
     const user = await q("select * from players where id = $1", [userId]);
     if (!user.rowCount) return { error: "Sign in first." };
+    if (!user.rows[0].wallet) return { error: "Connect your XRPL wallet first." };
+    if (!user.rows[0].name) return { error: "Choose a nickname first." };
     const salt = randomBytes(16).toString("hex");
     const hash = sha256(`${day}|${band}|${exact ?? ""}|${salt}`);
     await q(
@@ -579,7 +592,7 @@ const rpcMethods = {
          band = $3, exact_guess = $4, salt = $5, commit_hash = $6, tx_hash = null, submitted_at = now()`,
       [day, userId, band, exact ?? null, salt, hash]
     );
-    return { prediction: { day, band, exact: exact ?? null, hash }, commitTxNeeded: user.rows[0].verified };
+    return { prediction: { day, band, exact: exact ?? null, hash } };
   },
 
   async attachCommitTx({ userId, day, txHash }) {
@@ -600,8 +613,12 @@ const rpcMethods = {
     if (openDay) {
       const r = await q("select * from rounds where delivery_day = $1 and status = 'open'", [openDay]);
       if (r.rowCount) {
+        // Only picks locked on-chain count as participants — an unsigned pick
+        // does not exist as far as the game is concerned.
         const participants = await q(
-          "select count(*)::int c from predictions p join players u on u.id = p.player_id and not u.is_demo where p.delivery_day = $1",
+          `select count(*)::int c from predictions p
+            join players u on u.id = p.player_id and not u.is_demo
+            where p.delivery_day = $1 and p.tx_hash is not null and p.tx_hash not like 'SIMULATED-%'`,
           [openDay]
         );
         open = { ...roundOut(r.rows[0]), participants: participants.rows[0].c };
@@ -631,10 +648,12 @@ const rpcMethods = {
     };
   },
 
-  async leaderboard({ scope, verifiedOnly }) {
+  async leaderboard({ scope }) {
     const week = isoWeek(localTime().day);
+    // Only on-chain commits count anywhere on the board: tx_hash observed by
+    // the ledger listener, never a SIMULATED- leftover from the demo era.
     const rows = await q(
-      `select p.player_id, u.name, u.verified, u.wallet,
+      `select p.player_id, u.name, u.wallet,
               coalesce(sum(p.points), 0)::int points, count(*)::int played,
               (count(*) filter (where p.correct))::int correct,
               sum(p.abs_error) filter (where p.exact_guess is not null) abs_err,
@@ -642,10 +661,10 @@ const rpcMethods = {
        from predictions p
        join rounds r on r.delivery_day = p.delivery_day and r.status = 'settled'
        join players u on u.id = p.player_id and not u.is_demo
-       where ($1 = 'season' or to_char(p.delivery_day, 'IYYY-"W"IW') = $2)
-         and (not $3 or u.verified)
-       group by 1, 2, 3, 4`,
-      [scope === "week" ? "week" : "season", week, !!verifiedOnly]
+       where p.tx_hash is not null and p.tx_hash not like 'SIMULATED-%'
+         and ($1 = 'season' or to_char(p.delivery_day, 'IYYY-"W"IW') = $2)
+       group by 1, 2, 3`,
+      [scope === "week" ? "week" : "season", week]
     );
     const lastSettled = await q("select delivery_day from rounds where status = 'settled' order by delivery_day desc limit 1");
     const streaks = new Map();
@@ -657,7 +676,6 @@ const rpcMethods = {
       rank: 0,
       playerId: r.player_id,
       name: r.name,
-      verified: r.verified,
       wallet: r.wallet ? `${r.wallet.slice(0, 6)}…${r.wallet.slice(-4)}` : null,
       points: r.points,
       played: r.played,
@@ -669,30 +687,30 @@ const rpcMethods = {
       signedPending: false,
     }));
     // Players with a live (not-yet-settled) forecast appear immediately —
-    // the board should never look empty between close and settlement.
+    // the board should never look empty between close and settlement. Same
+    // rule though: a pick shows up only once its commit is on-chain.
     const pending = await q(
-      `select p.player_id, u.name, u.verified, u.wallet,
-              bool_or(p.tx_hash is not null and p.tx_hash not like 'SIMULATED-%') signed
+      `select p.player_id, u.name, u.wallet
        from predictions p
        join rounds r on r.delivery_day = p.delivery_day and r.status != 'settled'
        join players u on u.id = p.player_id and not u.is_demo
-       where ($1 = 'season' or to_char(p.delivery_day, 'IYYY-"W"IW') = $2)
-         and (not $3 or u.verified)
-       group by 1, 2, 3, 4`,
-      [scope === "week" ? "week" : "season", week, !!verifiedOnly]
+       where p.tx_hash is not null and p.tx_hash not like 'SIMULATED-%'
+         and ($1 = 'season' or to_char(p.delivery_day, 'IYYY-"W"IW') = $2)
+       group by 1, 2, 3`,
+      [scope === "week" ? "week" : "season", week]
     );
     const byId = new Map(out.map((r) => [r.playerId, r]));
     for (const p of pending.rows) {
       const existing = byId.get(p.player_id);
       if (existing) {
         existing.pending = true;
-        existing.signedPending = p.signed;
+        existing.signedPending = true;
       } else {
         out.push({
-          rank: 0, playerId: p.player_id, name: p.name, verified: p.verified,
+          rank: 0, playerId: p.player_id, name: p.name,
           wallet: p.wallet ? `${p.wallet.slice(0, 6)}…${p.wallet.slice(-4)}` : null,
           points: 0, played: 0, correct: 0, streak: 0, absError: null,
-          isDemo: false, pending: true, signedPending: p.signed,
+          isDemo: false, pending: true, signedPending: true,
         });
       }
     }
@@ -731,14 +749,14 @@ const rpcMethods = {
     const r = await q("select * from rounds where delivery_day = $1 and status = 'settled'", [day]);
     if (!r.rowCount) return { error: "Not settled." };
     const reveal = await q(
-      `select p.*, u.name, u.verified from predictions p join players u on u.id = p.player_id
+      `select p.*, u.name from predictions p join players u on u.id = p.player_id
        where p.delivery_day = $1 order by p.points desc nulls last`,
       [day]
     );
     return {
       round: roundOut(r.rows[0]),
       reveal: reveal.rows.map((p) => ({
-        user: p.name, verified: p.verified, band: p.band,
+        user: p.name, band: p.band,
         exact: p.exact_guess == null ? null : Number(p.exact_guess),
         salt: p.salt, hash: p.commit_hash, txHash: p.tx_hash,
         correct: p.correct, points: p.points ?? 0,
@@ -760,7 +778,7 @@ http.createServer(async (req, res) => {
         (select count(*) from rounds) rounds,
         (select count(*) from rounds where status = 'settled') settled,
         (select count(*) from players where not is_demo) players,
-        (select count(*) from predictions) predictions,
+        (select count(*) from predictions where tx_hash is not null and tx_hash not like 'SIMULATED-%') predictions,
         (select count(*) from chain_txs) chain_txs`);
       return send(200, { ok: true, tz: TZ, now: localTime(), counts: counts.rows[0], recentJobs: jobs.rows });
     }

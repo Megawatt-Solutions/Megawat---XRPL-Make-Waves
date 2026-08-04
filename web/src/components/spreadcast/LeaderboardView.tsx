@@ -6,7 +6,6 @@ import { PRIZE_POOL, prizeForRank } from "@/lib/spreadcast/prizes";
 interface Row {
   rank: number;
   name: string;
-  verified: boolean;
   wallet: string | null;
   points: number;
   played: number;
@@ -22,7 +21,6 @@ interface Row {
 
 export function LeaderboardView() {
   const [scope, setScope] = useState<"week" | "season">("week");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [rows, setRows] = useState<Row[] | null>(null);
   // `rows === null` meant BOTH "still loading" and "the fetch died", because
   // there was no .catch() at all. Block the API and this table shows its
@@ -32,16 +30,16 @@ export function LeaderboardView() {
   // "Market feed unavailable · Try again" off the back of it; the two
   // view-local fetches on this page and the Log page never got the same.
   const [failed, setFailed] = useState(false);
-  // Retry needs its own dependency. Re-setting scope/verifiedOnly to the values
-  // they already hold does NOT re-run the effect — React bails out on identical
-  // state — so a retry built that way is a button that does nothing.
+  // Retry needs its own dependency. Re-setting scope to the value it already
+  // holds does NOT re-run the effect — React bails out on identical state —
+  // so a retry built that way is a button that does nothing.
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setRows(null);
     setFailed(false);
-    fetch(`/api/spreadcast/leaderboard?scope=${scope}${verifiedOnly ? "&verified=1" : ""}`, { cache: "no-store" })
+    fetch(`/api/spreadcast/leaderboard?scope=${scope}`, { cache: "no-store" })
       // A 500 answers with a body, so .json() resolves and the old code treated
       // an error response as data. Status has to be checked before parsing.
       .then((r) => {
@@ -57,7 +55,7 @@ export function LeaderboardView() {
     return () => {
       cancelled = true;
     };
-  }, [scope, verifiedOnly, attempt]);
+  }, [scope, attempt]);
 
   const retry = () => setAttempt((a) => a + 1);
 
@@ -79,23 +77,28 @@ export function LeaderboardView() {
             ))}
           </div>
           <div className="label" style={{ marginTop: 6 }}>
-            promotional awards · verified players · paid in RLUSD on XRPL
+            promotional awards · paid in RLUSD on XRPL
           </div>
         </div>
       </div>
-      {/* Which filter is active was carried entirely by a CSS class, so the
+      {/* Which period is active was carried entirely by a CSS class, so the
           selection existed only as a background colour: WCAG 1.4.1 for sighted
-          users and 4.1.2 for everyone else, who met four identical-sounding
+          users and 4.1.2 for everyone else, who met identical-sounding
           buttons and no indication of state.
 
-          Five other groups in the app were fixed for this earlier; these two
-          were missed because the sweep looked for `.seg-btn` and the marker
-          words "active"/"selected", and these use `.sc-seg` and "on". Worth
+          Other groups in the app were fixed for this earlier; this one was
+          missed because the sweep looked for `.seg-btn` and the marker
+          words "active"/"selected", and it uses `.sc-seg` and "on". Worth
           remembering when auditing by pattern: the pattern is the state-driven
           className, not the vocabulary someone happened to choose for it.
 
           role="group" rather than radiogroup/tablist for the same reason as
-          elsewhere — those contracts also promise arrow-key navigation. */}
+          elsewhere — those contracts also promise arrow-key navigation.
+
+          There is no verified-only filter: every player has proved a wallet
+          via Xaman sign-in, so "verified" no longer splits the field. The
+          distinction that survives is per-prediction — locked on-chain or
+          not — and it is carried by the row tags below, not a filter. */}
       <div className="sc-lb-controls">
         <div className="sc-seg" role="group" aria-label="Leaderboard period">
           <button type="button" aria-pressed={scope === "week"} className={scope === "week" ? "on" : ""} onClick={() => setScope("week")}>
@@ -105,18 +108,10 @@ export function LeaderboardView() {
             Season
           </button>
         </div>
-        <div className="sc-seg" role="group" aria-label="Player filter">
-          <button type="button" aria-pressed={!verifiedOnly} className={!verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(false)}>
-            Everyone
-          </button>
-          <button type="button" aria-pressed={verifiedOnly} className={verifiedOnly ? "on" : ""} onClick={() => setVerifiedOnly(true)}>
-            Verified · prize-eligible
-          </button>
-        </div>
       </div>
-      {/* The two filters above reload the table underneath. Sighted, that reads
-          as skeleton rows then results; to a screen reader nothing happened at
-          all, so the controls appear inert. This says what the filter did.
+      {/* The period control above reloads the table underneath. Sighted, that
+          reads as skeleton rows then results; to a screen reader nothing
+          happened at all, so the control appears inert. This says what it did.
 
           Polite, not assertive: it is the result of something the user just
           did, not an interruption worth cutting across them for. */}
@@ -127,7 +122,7 @@ export function LeaderboardView() {
           ? "Loading leaderboard"
           : `${rows.length} ${rows.length === 1 ? "player" : "players"}, ${
               scope === "week" ? "this week" : "this season"
-            }${verifiedOnly ? ", verified only" : ""}`}
+            }`}
       </div>
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
         <table className="sc-table sc-t-lb">
@@ -190,13 +185,6 @@ export function LeaderboardView() {
                   </td>
                   <td>
                     {r.name}{" "}
-                    {/* role="img" + aria-label, the same treatment Flag.tsx uses: it tells
-                        assistive tech to read the meaning rather than the glyph. Without
-                        it this announced as a bare letter "V" next to a player name, and
-                        the only thing that expands it is a footnote below the table.
-                        The abbreviation is deliberate — one chip per row, and PlayView
-                        spells out "VERIFIED" where there is room for it. */}
-                    {r.verified && <span className="sc-tag v" role="img" aria-label="Verified">V</span>}{" "}
                     {r.pending && (
                       <span className="sc-tag" style={{ color: "var(--amber)", borderColor: "color-mix(in srgb, var(--amber) 40%, transparent)" }}>
                         prediction in
@@ -226,9 +214,10 @@ export function LeaderboardView() {
         </p>
       )}
       <p className="muted prose-note" style={{ fontSize: "0.75rem", marginTop: 12 }}>
-        Verified = XRPL wallet connected. &ldquo;Prediction in&rdquo; = prediction awaiting today&apos;s 15:00 result;
-        &ldquo;on-chain&rdquo; = that prediction is locked on XRPL mainnet. Prize pool is split across the top 10 of the season leaderboard. Prize-eligibility requires verified
-        status; awards are promotional and occasional, announced per cycle.
+        &ldquo;Prediction in&rdquo; = prediction awaiting today&apos;s 15:00 result;
+        &ldquo;on-chain&rdquo; = that prediction is locked on XRPL mainnet. Only predictions locked on-chain count
+        toward the standings. Prize pool is split across the top 10 of the season leaderboard; awards are
+        promotional and occasional, announced per cycle.
       </p>
     </>
   );
