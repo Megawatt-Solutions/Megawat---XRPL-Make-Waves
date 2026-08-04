@@ -1601,7 +1601,9 @@ button {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .toast-success::before {
-  content: "âœ“ ";
+  /* U+2713. Was "âœ“ " — the same character double-encoded, which is what
+     every success toast has been printing since 03db61f. */
+  content: "✓ ";
   color: var(--accent);
   font-weight: 700;
 }
