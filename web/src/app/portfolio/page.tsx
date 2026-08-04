@@ -1,4 +1,5 @@
 "use client";
+import posthog from "posthog-js";
 import Link from "next/link";
 import { StatTile } from "@/components/StatTile";
 import { GrowthChart } from "@/components/GrowthChart";
@@ -19,6 +20,19 @@ export default function PortfolioPage() {
   const m = portfolioMetrics();
   const growth = growthSeries();
   const totalClaimable = m.totalClaimable;
+
+  // The one claim that is not per-vault, so it gets its own name rather than a
+  // yield_claimed with the vault fields missing. Properties follow the vault
+  // event's shape: amount and currency, never a bare number.
+  const claimAll = () => {
+    if (totalClaimable <= 0) return;
+    posthog.capture("portfolio_yield_claimed", {
+      amount: totalClaimable,
+      currency: "EUR",
+      position_count: m.positionsCount,
+    });
+    notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success");
+  };
 
   if (!connected) {
     return (
@@ -125,7 +139,7 @@ export default function PortfolioPage() {
             actions — so it was a dead control beside a heading reading
             "Your positions 0". */}
         {POSITIONS.length > 0 && (
-          <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={() => notify(`Claimed ${fmtMoney(totalClaimable, "EUR")} across all positions`, "success")}>
+          <button className="btn btn-ghost btn-sm" disabled={totalClaimable <= 0} onClick={claimAll}>
             Claim all
           </button>
         )}
