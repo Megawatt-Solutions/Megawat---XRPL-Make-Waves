@@ -7,6 +7,7 @@ import { fmtAddress } from "@/lib/format";
 import { WalletModal } from "./WalletModal";
 import { BrandMark } from "./BrandMark";
 import { ChainSelect } from "./ChainSelect";
+import { Identicon } from "./Identicon";
 import { GridIcon, BriefcaseIcon, StoreIcon, WalletIcon, TrendingUpIcon, BoltIcon } from "./Icons";
 
 // Spreadcast sits at index 2 — the centre thumb slot on a phone — because it
@@ -87,7 +88,7 @@ export function TopNav() {
           <ChainSelect />
           {connected && profile ? (
             <button className="wallet-pill" onClick={() => setModal(true)}>
-              <span className="wallet-avatar" />
+              <Identicon address={profile.address} size={24} className="wallet-avatar" />
               <span className="num">{fmtAddress(profile.address)}</span>
               <span className="wallet-dot" />
             </button>

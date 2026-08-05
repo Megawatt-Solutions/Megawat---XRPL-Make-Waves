@@ -964,7 +964,10 @@ export function PlayView() {
 
         <div className="sc-side-stack">
           {!state.user ? (
-            <div className="panel sc-panel">
+            // sc-signin-panel: on one column this is ordered above the form.
+            // It is the only control a signed-out visitor can use, so it
+            // should not sit under the thing it is a precondition for.
+            <div className="panel sc-panel sc-signin-panel">
               <h2>Play with your wallet</h2>
               {/* No email path. A player IS an XRPL address proven by a Xaman
                   SignIn the server verifies — the shell owns that flow, this

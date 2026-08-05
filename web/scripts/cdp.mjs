@@ -11,12 +11,31 @@
 // --eval's file must evaluate to an expression (it is wrapped in an async IIFE
 // and the completion value is returned by value).
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const CHROME =
-  "C:/Users/Jax/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
+// The same resolution the five audit scripts use. This file used to hardcode
+// one developer's Windows playwright path, which made it the only script in
+// scripts/ that could not run on a Mac or in CI — it threw ENOENT on spawn
+// before doing anything, while `npm run audit` beside it worked fine.
+function findChrome() {
+  if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  const guesses = [
+    join(home, "AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe"),
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    "/usr/bin/chromium",
+    "/usr/bin/google-chrome",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  ];
+  const hit = guesses.find(existsSync);
+  if (hit) return hit;
+  throw new Error("No Chrome found. Set CHROME_PATH, or: npx playwright install chromium");
+}
+
+const CHROME = findChrome();
 
 function arg(name, dflt = null) {
   const i = process.argv.indexOf(`--${name}`);
