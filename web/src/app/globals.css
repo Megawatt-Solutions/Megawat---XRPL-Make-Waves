@@ -465,11 +465,23 @@ button {
   background: var(--card-2);
   border-color: rgba(255, 255, 255, 0.16);
 }
+/* Identicon base. A round mark that never shrinks in a flex row; callers
+   override display where they need to (see .sc-lb-avatar). */
+.identicon {
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Now an <svg> identicon rather than an empty <span>, so the gradient that
+   used to BE the avatar is gone — every wallet drew the identical green-to-blue
+   disc, which identified the app rather than the person holding it. Size and
+   radius stay here because the nav's zoom cascade below still hides this at
+   narrow widths by class. */
 .wallet-avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #3aa9ff);
   flex-shrink: 0;
 }
 .wallet-dot {
@@ -572,11 +584,29 @@ button {
 }
 
 /* â”€â”€â”€ Label / caps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* The app's label style: section titles, stat-tile captions, table headers.
+   Was 10px/0.14em, which is where the "pixelated" reading came from. It is
+   not contrast — these measure 6.52:1 on the dashboard, past AA for normal
+   text with room to spare. It is that 10px uppercase leaves a cap height of
+   about 7px, so a mono stem lands between device pixels and greyscale
+   antialiasing smears it. On a 2x display it resolves; at 1x it does not.
+
+   11px is the smallest size that puts cap height above 7px, and tracking
+   comes in from 0.14em to 0.11em at the same time: uppercase already
+   discards the ascender/descender pattern that lets a word be recognised by
+   shape, and 1.4px of extra space between 6px glyphs finishes the job of
+   turning a word into loose letters. Tighter tracking at a larger size is
+   the same silhouette, more legibly set — the dense terminal look these
+   labels are carrying does not depend on being hard to read.
+
+   Net width change is about +5%: +10% from the size, most of it given back
+   by the tracking. Measured across all 11 audit widths, plus 200% text
+   zoom, with no new overflow. */
 .caps {
   font-family: var(--mono);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -2785,8 +2815,20 @@ button {
   }
 }
 
-.chain-select { position: relative; }
+/* Stretch to the row rather than to its own contents. The chain pill measured
+   34.63px beside a .wallet-pill of 38px and a .connect-btn of 37.88px, so it
+   sat visibly short of whichever control was next to it — the pill's height
+   comes from the 24px avatar inside it, which the chain pill has no equivalent
+   of, so matching by padding would only be matching today's arithmetic.
+
+   Stretching means the row's tallest control sets the height and this follows
+   it, connected or not, at any text size. A fixed height would have been the
+   obvious fix and the wrong one: this bar is the subject of a whole zoom
+   cascade above, and content that outgrows a hard-set box is exactly what
+   audit:zoom and the outgrows-box check exist to catch. */
+.chain-select { position: relative; align-self: stretch; display: flex; }
 .chain-btn {
+  height: 100%;
   border-radius: var(--r-control);
   display: inline-flex;
   align-items: center;
@@ -3344,34 +3386,12 @@ button {
 .sc-spark { display: flex; align-items: flex-end; gap: 2px; height: 56px; margin-top: 12px; }
 .sc-spark span { flex: 1; min-height: 2px; }
 
-.sc-lb-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.sc-seg {
-  border-radius: var(--r-control);
-  overflow: hidden; display: inline-flex; border: 1px solid var(--border-2); }
-.sc-seg button {
-  /* Same floor as the nav: flex children default to min-width:auto and will
-     not shrink past their content, so at 200% text on a 320 screen the two
-     buttons held 153px each inside a 286px control and the second one's label
-     was cut. The buttons were already wrapping - the control was 109px tall -
-     so the overflow was the floor, not the text.
-     Measured at 320: clipped 20px -> 0. At 390 it also drops the control from
-     109px to 74px, because the labels can size to their content instead of
-     splitting the width evenly and wrapping more than they need to.
-     white-space:normal was measured alongside and changed nothing at any
-     width, so it is not here. */
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  padding: 8px 15px;
-  cursor: pointer;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.sc-seg button.on { background: var(--card-2); color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+/* .sc-lb-controls and .sc-seg lived here, for the leaderboard's
+   week/season pair. The board is all-time now and there are no seasons, so
+   the control and every rule that dressed it are gone rather than left
+   dead: the min-width:0 floor it needed at 200% text, its .on state, its
+   44px touch target and its inward focus ring. Nothing else used them —
+   .seg and .seg-btn elsewhere are different controls and still live. */
 
 .sc-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .sc-table th {
@@ -3388,6 +3408,15 @@ button {
 }
 .sc-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .sc-table tr:last-child td { border-bottom: 0; }
+/* The player's identicon. Inline rather than a flex row, because the cell
+   already wraps a long name and its badges onto more than one line at narrow
+   widths (see .sc-t-lb td:nth-child(2) below) and a flex row would fight that.
+   vertical-align middle against the name; the margin is the gap. */
+.sc-lb-avatar {
+  display: inline-block;
+  vertical-align: -0.3em;
+  margin-right: 8px;
+}
 .sc-table td.num, .sc-table th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .sc-rank-1 { color: var(--accent); font-weight: 700; }
 .sc-tag {
@@ -4010,6 +4039,23 @@ button {
   .sc-band-range { grid-area: range; text-align: right; font-size: 0.875rem; }
   .sc-band-unit { grid-area: unit; text-align: right; margin-top: 0; }
   .sc-play-grid, .sc-how-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /* One column puts the whole right-hand stack under the form, and the first
+     thing in that stack is the only control a signed-out visitor can actually
+     use. So the page asked for a band, then an optional tiebreaker, and only
+     after all of it mentioned that playing needs a wallet — the ask before
+     the means to answer it.
+
+     display: contents lifts the stack's children into the grid so they can be
+     ordered individually. Moving .sc-side-stack itself would carry "This
+     week's bands" and "Prizes" up with it and bury the picker instead.
+
+     Only the sign-in panel is ordered, and it only exists while signed out,
+     so this needs no signed-in/out class of its own — when there is a session
+     the panel is not rendered and everything keeps DOM order. The stack's own
+     16px gap matches the grid's, so contents changes no spacing. */
+  .sc-side-stack { display: contents; }
+  .sc-signin-panel { order: -1; }
 }
 
 /* Header chain chip â€” XRPL network tag */
@@ -4352,7 +4398,6 @@ button {
    target gets bigger, the ink does not. */
 @media (max-width: 820px) {
   .seg-btn,
-  .sc-seg button,
   .v2-tab,
   .v2-select,
   .chain-btn,
@@ -4360,8 +4405,7 @@ button {
   .perf-toggle {
     min-height: 44px;
   }
-  .seg-btn,
-  .sc-seg button { padding-top: 0; padding-bottom: 0; }
+  .seg-btn { padding-top: 0; padding-bottom: 0; }
 
   /* The brand mark is a link to home — it was a 23x15 target, and below
      380px the wordmark collapses so only the 23px symbol remains.
@@ -4483,14 +4527,14 @@ button {
    these controls fills a rounded parent with overflow: hidden, so the parent
    cuts the ring off. Measured by focusing each control and comparing the ring's
    box against every clipping ancestor: .sc-bands cut 3px of the 4px it needs on
-   the five band cards, .seg 2px on ten range buttons, .sc-seg 2px on four
-   filters, and .panel 3px on the six site rows. Most of the ring, on the
-   game's primary control and on the dashboard's.
+   the five band cards, .seg 2px on ten range buttons, and .panel 3px on the six
+   site rows. Most of the ring, on the game's primary control and on the
+   dashboard's. (.sc-seg, the leaderboard's period filters, was measured in the
+   same pass at 2px; that control is gone with the week/season split.)
    -3px puts a 2px ring fully inside the element with a pixel to spare. These
    controls fill their parent edge to edge, so an inward ring is also the
    natural reading: it outlines the button, not the gap around it. */
 .seg > *:focus-visible,
-.sc-seg > *:focus-visible,
 .sc-bands > *:focus-visible,
 .site-row:focus-visible {
   outline-offset: -3px;

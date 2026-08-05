@@ -8,6 +8,7 @@ import {
   CopyIcon, ExternalLinkIcon, ShieldIcon, VerifiedIcon, CheckIcon,
 } from "./Icons";
 import { Sheet } from "./Sheet";
+import { Identicon } from "./Identicon";
 
 export function WalletModal({ onClose }: { onClose: () => void }) {
   const { profile, disconnect } = useWallet();
@@ -51,7 +52,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
       <>
         {/* Identity */}
         <div style={{ display: "flex", alignItems: "center", gap: 13, margin: "18px 0 20px" }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", background: "linear-gradient(135deg, var(--accent), #3aa9ff)", flexShrink: 0 }} />
+          <Identicon address={profile.address} size={46} />
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontWeight: 650, fontSize: "0.9375rem" }} className="num">{fmtAddress(profile.address, 8, 6)}</span>

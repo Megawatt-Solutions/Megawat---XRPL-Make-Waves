@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PRIZE_POOL, prizeForRank } from "@/lib/spreadcast/prizes";
+import { Identicon } from "../Identicon";
 
 interface Row {
   rank: number;
@@ -20,7 +21,6 @@ interface Row {
 }
 
 export function LeaderboardView() {
-  const [scope, setScope] = useState<"week" | "season">("week");
   const [rows, setRows] = useState<Row[] | null>(null);
   // `rows === null` meant BOTH "still loading" and "the fetch died", because
   // there was no .catch() at all. Block the API and this table shows its
@@ -30,16 +30,21 @@ export function LeaderboardView() {
   // "Market feed unavailable · Try again" off the back of it; the two
   // view-local fetches on this page and the Log page never got the same.
   const [failed, setFailed] = useState(false);
-  // Retry needs its own dependency. Re-setting scope to the value it already
-  // holds does NOT re-run the effect — React bails out on identical state —
-  // so a retry built that way is a button that does nothing.
+  // Retry needs its own dependency, and now it is the only one: with the
+  // period control gone there is no other state that re-runs this effect.
+  // Re-setting a value to what it already holds does NOT re-run it — React
+  // bails out on identical state — so a retry built that way does nothing.
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setRows(null);
     setFailed(false);
-    fetch(`/api/spreadcast/leaderboard?scope=${scope}`, { cache: "no-store" })
+    // No scope parameter: the route reads anything that is not "week" as
+    // "season", and the worker's season branch applies no date filter at all,
+    // so this is every settled round ever played. All-time is what the board
+    // has always been able to answer; it was just one of two options.
+    fetch("/api/spreadcast/leaderboard", { cache: "no-store" })
       // A 500 answers with a body, so .json() resolves and the old code treated
       // an error response as data. Status has to be checked before parsing.
       .then((r) => {
@@ -55,7 +60,7 @@ export function LeaderboardView() {
     return () => {
       cancelled = true;
     };
-  }, [scope, attempt]);
+  }, [attempt]);
 
   const retry = () => setAttempt((a) => a + 1);
 
@@ -67,7 +72,7 @@ export function LeaderboardView() {
       </p>
       <div className="sc-prizebar">
         <div>
-          <div className="label">{PRIZE_POOL.season} prize pool · top 10</div>
+          <div className="label">Prize pool · top 10</div>
           <div className="amount">${PRIZE_POOL.total} <small>{PRIZE_POOL.currency}</small></div>
         </div>
         <div>
@@ -81,37 +86,18 @@ export function LeaderboardView() {
           </div>
         </div>
       </div>
-      {/* Which period is active was carried entirely by a CSS class, so the
-          selection existed only as a background colour: WCAG 1.4.1 for sighted
-          users and 4.1.2 for everyone else, who met identical-sounding
-          buttons and no indication of state.
+      {/* There is one board and it is all-time. The week/season pair is gone:
+          there are no seasons, so "Season" named a period that will never end
+          and "This week" split a board that is thin enough already. Nothing is
+          lost — season was the unfiltered query, which is what renders now.
 
-          Other groups in the app were fixed for this earlier; this one was
-          missed because the sweep looked for `.seg-btn` and the marker
-          words "active"/"selected", and it uses `.sc-seg` and "on". Worth
-          remembering when auditing by pattern: the pattern is the state-driven
-          className, not the vocabulary someone happened to choose for it.
-
-          role="group" rather than radiogroup/tablist for the same reason as
-          elsewhere — those contracts also promise arrow-key navigation.
-
-          There is no verified-only filter: every player has proved a wallet
-          via Xaman sign-in, so "verified" no longer splits the field. The
-          distinction that survives is per-prediction — locked on-chain or
-          not — and it is carried by the row tags below, not a filter. */}
-      <div className="sc-lb-controls">
-        <div className="sc-seg" role="group" aria-label="Leaderboard period">
-          <button type="button" aria-pressed={scope === "week"} className={scope === "week" ? "on" : ""} onClick={() => setScope("week")}>
-            This week
-          </button>
-          <button type="button" aria-pressed={scope === "season"} className={scope === "season" ? "on" : ""} onClick={() => setScope("season")}>
-            Season
-          </button>
-        </div>
-      </div>
-      {/* The period control above reloads the table underneath. Sighted, that
-          reads as skeleton rows then results; to a screen reader nothing
-          happened at all, so the control appears inert. This says what it did.
+          There is likewise no verified-only filter: every player has proved a
+          wallet via Xaman sign-in, so "verified" no longer splits the field.
+          The distinction that survives is per-prediction — locked on-chain or
+          not — and the row tags below carry it. */}
+      {/* Still a live region, though nothing but a retry changes it now.
+          Sighted, a reload reads as skeleton rows then results; to a screen
+          reader nothing happens at all unless this says so.
 
           Polite, not assertive: it is the result of something the user just
           did, not an interruption worth cutting across them for. */}
@@ -120,9 +106,7 @@ export function LeaderboardView() {
           ? "Leaderboard unavailable. Could not load the leaderboard."
           : rows == null
           ? "Loading leaderboard"
-          : `${rows.length} ${rows.length === 1 ? "player" : "players"}, ${
-              scope === "week" ? "this week" : "this season"
-            }`}
+          : `${rows.length} ${rows.length === 1 ? "player" : "players"}, all time`}
       </div>
       <div className="panel sc-panel" style={{ padding: 0, overflowX: "auto" }}>
         <table className="sc-table sc-t-lb">
@@ -167,7 +151,7 @@ export function LeaderboardView() {
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="muted">
-                  No predictions yet this period - lock in the first one on the Play tab.
+                  No predictions yet - lock in the first one on the Play tab.
                 </td>
               </tr>
             ) : (
@@ -184,6 +168,14 @@ export function LeaderboardView() {
                     )}
                   </td>
                   <td>
+                    {/* Keyed on the truncated wallet the worker sends, which
+                        identiconSeed reduces to the same first-6 + last-4 it
+                        takes from a full address — so this is the same mark a
+                        player sees in their own wallet pill. A player with no
+                        wallet cannot exist under wallet-first identity, but
+                        the type still allows null, so fall back rather than
+                        render a mark keyed on "". */}
+                    {r.wallet && <Identicon address={r.wallet} size={20} className="sc-lb-avatar" />}
                     {r.name}{" "}
                     {r.pending && (
                       <span className="sc-tag" style={{ color: "var(--amber)", borderColor: "color-mix(in srgb, var(--amber) 40%, transparent)" }}>
@@ -209,15 +201,15 @@ export function LeaderboardView() {
           reason to play rather than a reason to doubt. */}
       {rows != null && rows.length > 0 && rows.length < 4 && (
         <p className="sc-board-early">
-          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} entered this period. The
-          board fills as the week runs, and every prize tier is still open.
+          Only {rows.length === 1 ? "one player has" : `${rows.length} players have`} scored so far. The board
+          fills as rounds settle, and every prize tier is still open.
         </p>
       )}
       <p className="muted prose-note" style={{ fontSize: "0.75rem", marginTop: 12 }}>
         &ldquo;Prediction in&rdquo; = prediction awaiting today&apos;s 15:00 result;
         &ldquo;on-chain&rdquo; = that prediction is locked on XRPL mainnet. Only predictions locked on-chain count
-        toward the standings. Prize pool is split across the top 10 of the season leaderboard; awards are
-        promotional and occasional, announced per cycle.
+        toward the standings. Prize pool is split across the top 10; awards are promotional and occasional,
+        announced per cycle.
       </p>
     </>
   );
