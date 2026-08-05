@@ -71,9 +71,20 @@ systemctl stop spreadcast-worker
 
 echo "==> backing up to /root"
 [ -f "$DEST/index.mjs" ] && cp "$DEST/index.mjs" "/root/index.mjs.$STAMP.bak"
-sudo -u postgres pg_dump spreadcast > "/root/spreadcast-$STAMP.sql"
+# Dump through DATABASE_URL, not a database name written here. This line
+# used to read `sudo -u postgres pg_dump spreadcast`, which guessed the
+# database was called "spreadcast" from worker.env.example — a file whose
+# password field says CHANGE_ME, i.e. one that announces its values are not
+# the real ones. It also assumed a postgres superuser reachable by peer
+# auth. The connection string the worker itself uses is the only thing here
+# that is known to be true, and it is already loaded above.
+pg_dump "$DATABASE_URL" > "/root/spreadcast-$STAMP.sql"
+# set -e covers a non-zero exit, but a dump that "succeeds" into an empty
+# file is the failure that matters: it is only discovered when someone
+# reaches for it after the migration has already run.
+[ -s "/root/spreadcast-$STAMP.sql" ] || { echo "FAIL: database backup is empty — refusing to migrate"; exit 1; }
 echo "    /root/index.mjs.$STAMP.bak"
-echo "    /root/spreadcast-$STAMP.sql"
+echo "    /root/spreadcast-$STAMP.sql ($(wc -c < "/root/spreadcast-$STAMP.sql") bytes)"
 
 echo "==> installing"
 install -o spreadcast -g spreadcast -m 0644 "$SRC" "$DEST/index.mjs"
