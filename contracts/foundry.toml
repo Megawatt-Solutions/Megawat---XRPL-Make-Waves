@@ -14,3 +14,4 @@ remappings = [
 
 [rpc_endpoints]
 arbitrum_sepolia = "${RPC_URL}"
+base_sepolia = "https://sepolia.base.org"

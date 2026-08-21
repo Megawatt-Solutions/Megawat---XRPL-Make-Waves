@@ -1,0 +1,10 @@
+{
+  "chainId": 84532,
+  "deployBlock": 45772621,
+  "deployer": "0x35679E61E5946F711ca1288255B1F32376C416D7",
+  "mockTBill": "0x4851abE7Ae1dc3c20108540f86a14c5B5f1FA2e0",
+  "mockUsd": "0x4232353b04a62547eAB29217332e1340c917e852",
+  "navOracle": "0xdb649C2086595CD798d7dEB9974634C9f3b5A44C",
+  "secondsPerMonth": 600,
+  "streamVault": "0x2DAf9D7BeE23e65344431850Ce28b54C63244faD"
+}

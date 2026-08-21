@@ -52,6 +52,63 @@ megawatt-interface/
 | Explorer | `https://livenet.xrpl.org` |
 | Settlement | RLUSD (`rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De`) |
 
+## Stream Vault demo (Base Sepolia)
+
+On-chain demo of the **Stream Vault** mechanism at `/stream`: pre-deposit
+escrow (T-bill parked, yield to depositors), RTB-gated conversion to
+vintage-tagged ERC-1155 units at a **PV-parity mint**, milestone drawdowns
+(engineer cert → 2-of-3 confirm → timelock → fixed SPV destination), monthly
+revenue sweeps into a segregated reserve compartment, a mechanical NAV oracle,
+and FIFO redemption epochs at a forward-priced spread. **Demo only — not
+audited, simulated assets, compressed clock (1 month = 10 minutes).**
+
+| Contract | Address (Base Sepolia, chain 84532) |
+|---|---|
+| MockUSD `dUSD` (faucet, 6dp) | `0x4232353b04a62547eAB29217332e1340c917e852` |
+| MockTBill `dTBILL` (ERC-4626, 5% APR) | `0x4851abE7Ae1dc3c20108540f86a14c5B5f1FA2e0` |
+| StreamVault (ERC-1155 vintages) | `0x2DAf9D7BeE23e65344431850Ce28b54C63244faD` |
+| NAVOracle | `0xdb649C2086595CD798d7dEB9974634C9f3b5A44C` |
+
+Verified on [Blockscout](https://base-sepolia.blockscout.com/address/0x2DAf9D7BeE23e65344431850Ce28b54C63244faD?tab=contract).
+Addresses land in `contracts/deployments/base-sepolia-stream.json`, which the
+frontend imports directly.
+
+Deploy a fresh instance (also re-seeds both tranches and rewrites the JSON):
+
+```bash
+cd contracts && set -a && source .env && set +a && forge script script/DeployStreamDemo.s.sol --rpc-url https://sepolia.base.org --broadcast --verify --verifier blockscout --verifier-url https://base-sepolia.blockscout.com/api/ --private-key "$PRIVATE_KEY"
+```
+
+Tests (`forge test`): full lifecycle, refund path, drawdown safety gauntlet,
+PV-parity mint, forward-pricing spread, and a fuzz **invariant proving the
+escrow and reserve compartments never cross**.
+
+### The 10-minute stage demo
+
+All roles sit on the deployer wallet by default (set `AGENT_ADDRESS` /
+`ENGINEER_ADDRESS` at deploy for a real 3-wallet multisig demo). Only MetaMask
+is needed; the header links a Base Sepolia ETH faucet for gas.
+
+1. Open `/stream`, **Connect MetaMask** (auto-adds Base Sepolia), hit the
+   **dUSD faucet** (10,000 dUSD/hour) — or use the pre-funded deployer wallet.
+2. **Tranches** → *BESS Alba* → **Deposit dUSD**. Watch the escrow card on
+   Overview: principal parked in T-bills, accrued yield ticking.
+3. At ≥ 90% subscription: **Convert at NTP** (Megawatt role). First vintage
+   mints `refMWhTotal` units — 1 unit ≙ 1 reference MWh; the oracle sets the
+   ratio, nobody types it.
+4. **Drawdown console**: post a milestone cert (memo hashed client-side),
+   queue a drawdown, confirm as two roles, let the 120s timelock run,
+   **Execute → SPV**. Funds can only reach the tranche's fixed SPV account.
+5. **Sweep feed** → **Simulate month** ×3 (gross randomised ±20% around
+   reference). Watch the NAV chart climb on Overview and the performance
+   factor mark PV up/down.
+6. **Redeem**: request units, show deposit NAV vs redeem NAV (the 50 bps
+   forward-pricing spread), **Close epoch & pay queue** — FIFO, capped at 20%
+   of reserves per epoch.
+7. Later: convert *BESS Beta* while Alba streams to show the **PV-parity
+   mint** leaving Alba's NAV per unit untouched; after 18 sweeps,
+   **Expire vintage** and redeem at terminal (pure-cash) NAV.
+
 ## Legacy: Arbitrum Sepolia deployment (main branch, 2026-07-10)
 
 The Solidity contracts below remain live on Arbitrum Sepolia from the
