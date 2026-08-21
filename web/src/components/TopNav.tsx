@@ -8,7 +8,7 @@ import { WalletModal } from "./WalletModal";
 import { BrandMark } from "./BrandMark";
 import { ChainSelect } from "./ChainSelect";
 import { Identicon } from "./Identicon";
-import { GridIcon, BriefcaseIcon, StoreIcon, WalletIcon, TrendingUpIcon, BoltIcon } from "./Icons";
+import { GridIcon, BriefcaseIcon, StoreIcon, WalletIcon, TrendingUpIcon, BoltIcon, LayersIcon } from "./Icons";
 
 // Spreadcast sits at index 2 — the centre thumb slot on a phone — because it
 // is the only daily-return destination here. Everything else is browsing.
@@ -19,6 +19,8 @@ const LINKS = [
   { href: "/spreadcast", label: "Spreadcast", icon: BoltIcon },
   { href: "/portfolio", label: "Portfolio", icon: BriefcaseIcon },
   { href: "/marketplace", label: "Marketplace", icon: StoreIcon },
+  // EVM demo area (Base Sepolia), separate from the XRPL app proper.
+  { href: "/stream", label: "Stream", icon: LayersIcon },
 ];
 
 export function TopNav() {
